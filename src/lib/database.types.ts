@@ -54,6 +54,14 @@ export interface Company {
   created_at: string;
 }
 
+export interface Pathway {
+  id: string;
+  name: string;
+  category: string;
+  active: boolean;
+  created_at: string;
+}
+
 export interface Employee {
   id: string;
   name: string;
@@ -77,6 +85,63 @@ export interface Employee {
   birthday_month: number | null;
   birthday_day: number | null;
   company_id: string | null;
+  current_level: string | null;
+  next_level: string | null;
+  pathway_id: string | null;
+  readiness_level: string | null;
+  current_status: string | null;
+  employment_type: string | null;
+  created_at: string;
+}
+
+export interface Review {
+  id: string;
+  employee_id: string;
+  review_date: string;
+  review_type: string;
+  review_year: number;
+  sentiment: string;
+  notes: string | null;
+  pdf_path: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface DevelopmentPlan {
+  id: string;
+  employee_id: string;
+  goal_title: string;
+  status: string;
+  progress_pct: number;
+  target_date: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface Certification {
+  id: string;
+  employee_id: string;
+  course_name: string;
+  status: string;
+  completion_date: string | null;
+  proof_path: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface Checkin {
+  id: string;
+  employee_id: string;
+  checkin_date: string;
+  motivation_level: string;
+  notes: string | null;
+  decision: string;
+  pillar_focus: string | null;
+  pillar_reflection: string | null;
+  contribution_to_growth: string | null;
+  business_dev_involvement: string | null;
+  created_by: string | null;
   created_at: string;
 }
 

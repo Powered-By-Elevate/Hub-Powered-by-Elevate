@@ -18,7 +18,8 @@ function useMobile() {
 import {
   Employee, OnboardingTask, TemplateWithTasks,
   Document, Schedule, ActivityLog,
-  QuarterlyCheckin, AnnualReview, EmployeeNote, Company
+  EmployeeNote, Company, Pathway,
+  Review, DevelopmentPlan, Certification, Checkin,
 } from '../lib/database.types';
 import { HRSidebar } from '../components/hr/Sidebar';
 import { HRDashboard } from '../components/hr/Dashboard';
@@ -37,9 +38,10 @@ import { AddCheckinModal } from '../components/hr/modals/AddCheckin';
 import { AddReviewModal } from '../components/hr/modals/AddReview';
 import { AddNoteModal } from '../components/hr/modals/AddNote';
 import { EditEmployeeModal } from '../components/hr/modals/EditEmployee';
+import { CareerDevelopment } from '../components/hr/CareerDevelopment';
 import { ToastContainer, ToastItem } from '../components/shared/Toast';
 
-export type HRTab = 'dashboard' | 'employees' | 'templates' | 'checkins' | 'detail' | 'settings';
+export type HRTab = 'dashboard' | 'employees' | 'templates' | 'checkins' | 'career' | 'detail' | 'settings';
 
 async function logActivity(employeeId: string | null, action: string) {
   await supabase.from('activity_log').insert({ employee_id: employeeId, action, created_at: new Date().toISOString() });
@@ -56,8 +58,11 @@ export function HRApp() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [activity, setActivity] = useState<ActivityLog[]>([]);
-  const [checkins, setCheckins] = useState<QuarterlyCheckin[]>([]);
-  const [reviews, setReviews] = useState<AnnualReview[]>([]);
+  const [pathways, setPathways] = useState<Pathway[]>([]);
+  const [empReviews, setEmpReviews] = useState<Record<string, Review[]>>({});
+  const [empDevPlans, setEmpDevPlans] = useState<Record<string, DevelopmentPlan[]>>({});
+  const [empCertifications, setEmpCertifications] = useState<Record<string, Certification[]>>({});
+  const [empCheckins, setEmpCheckins] = useState<Record<string, Checkin[]>>({});
   const [notes, setNotes] = useState<Record<string, EmployeeNote[]>>({});
   const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null);
   const [modal, setModal] = useState<{ type: string; eid?: string } | null>(null);
@@ -104,14 +109,29 @@ export function HRApp() {
     setCompanies(data ?? []);
   }, []);
 
-  const loadCheckins = useCallback(async () => {
-    const { data } = await supabase.from('quarterly_checkins').select('*').order('scheduled_at', { ascending: false });
-    setCheckins(data ?? []);
+  const loadPathways = useCallback(async () => {
+    const { data } = await supabase.from('pathways').select('*').order('name');
+    setPathways(data ?? []);
   }, []);
 
-  const loadReviews = useCallback(async () => {
-    const { data } = await supabase.from('annual_reviews').select('*').order('review_year', { ascending: false });
-    setReviews(data ?? []);
+  const loadEmpReviews = useCallback(async (empId: string) => {
+    const { data } = await supabase.from('reviews').select('*').eq('employee_id', empId).order('review_date', { ascending: false });
+    setEmpReviews(prev => ({ ...prev, [empId]: data ?? [] }));
+  }, []);
+
+  const loadEmpDevPlans = useCallback(async (empId: string) => {
+    const { data } = await supabase.from('development_plans').select('*').eq('employee_id', empId).order('created_at');
+    setEmpDevPlans(prev => ({ ...prev, [empId]: data ?? [] }));
+  }, []);
+
+  const loadEmpCertifications = useCallback(async (empId: string) => {
+    const { data } = await supabase.from('certifications').select('*').eq('employee_id', empId).order('created_at');
+    setEmpCertifications(prev => ({ ...prev, [empId]: data ?? [] }));
+  }, []);
+
+  const loadEmpCheckins = useCallback(async (empId: string) => {
+    const { data } = await supabase.from('checkins').select('*').eq('employee_id', empId).order('checkin_date', { ascending: false });
+    setEmpCheckins(prev => ({ ...prev, [empId]: data ?? [] }));
   }, []);
 
   const loadNotes = useCallback(async (empId: string) => {
@@ -138,11 +158,10 @@ export function HRApp() {
     loadTemplates();
     loadDepartments();
     loadCompanies();
-    loadCheckins();
-    loadReviews();
+    loadPathways();
     loadActivity();
     supabase.from('schedules').select('*').is('employee_id', null).order('time_label').then(({ data }) => setSchedules(data ?? []));
-  }, [loadEmployees, loadTemplates, loadDepartments, loadCompanies, loadCheckins, loadReviews, loadActivity]);
+  }, [loadEmployees, loadTemplates, loadDepartments, loadCompanies, loadPathways, loadActivity]);
 
   // Real-time subscriptions
   useEffect(() => {
@@ -218,8 +237,12 @@ export function HRApp() {
       if (!tasks[selectedEmpId]) loadTasks(selectedEmpId);
       if (!notes[selectedEmpId]) loadNotes(selectedEmpId);
       loadDocumentsForEmp(selectedEmpId);
+      loadEmpReviews(selectedEmpId);
+      loadEmpDevPlans(selectedEmpId);
+      loadEmpCertifications(selectedEmpId);
+      loadEmpCheckins(selectedEmpId);
     }
-  }, [selectedEmpId, tasks, notes, loadTasks, loadNotes, loadDocumentsForEmp]);
+  }, [selectedEmpId, tasks, notes, loadTasks, loadNotes, loadDocumentsForEmp, loadEmpReviews, loadEmpDevPlans, loadEmpCertifications, loadEmpCheckins]);
 
   // DB trigger now handles all progress/status/lifecycle recalculation.
   // No frontend auto-promote needed — the trigger fires on every task change.
@@ -293,7 +316,7 @@ export function HRApp() {
 
   const hrTabTitle: Record<string, string> = {
     dashboard: 'Dashboard', employees: 'Employees', templates: 'Templates',
-    checkins: 'Check-ins', settings: 'Settings', detail: 'Employee Detail',
+    checkins: 'Check-ins', career: 'Career Dev', settings: 'Settings', detail: 'Employee Detail',
   };
 
   if (isMobile) {
@@ -342,11 +365,11 @@ export function HRApp() {
           {tab === 'checkins' && (
             <HRCheckins
               employees={employees.filter(e => !e.archived)}
-              checkins={checkins}
-              reviews={reviews}
+              checkins={[]}
+              reviews={[]}
               onOpenModal={(type, eid) => setModal({ type, eid })}
-              onCheckinUpdated={loadCheckins}
-              onReviewUpdated={loadReviews}
+              onCheckinUpdated={() => {}}
+              onReviewUpdated={() => {}}
             />
           )}
         </MobileLayout>
@@ -370,6 +393,7 @@ export function HRApp() {
               departments={departments}
               companies={companies}
               employees={employees}
+              pathways={pathways}
               onClose={() => setEditEmpId(null)}
               onSaved={async updated => {
                 setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
@@ -393,8 +417,8 @@ export function HRApp() {
           <HRDashboard
             employees={employees}
             activity={activity}
-            checkins={checkins}
-            reviews={reviews}
+            checkins={[]}
+            reviews={[]}
             onViewEmployee={viewEmployee}
             onOpenModal={(type, eid) => setModal({ type, eid })}
             onTab={t => setTab(t as HRTab)}
@@ -404,6 +428,7 @@ export function HRApp() {
           <EmployeeList
             employees={employees}
             companies={companies}
+            departments={departments}
             onViewEmployee={viewEmployee}
             onOpenModal={(type, eid) => setModal({ type, eid })}
             onRestoreEmployee={restoreEmployee}
@@ -416,15 +441,22 @@ export function HRApp() {
         {tab === 'checkins' && (
           <HRCheckins
             employees={employees.filter(e => !e.archived)}
-            checkins={checkins}
-            reviews={reviews}
+            checkins={[]}
+            reviews={[]}
             onOpenModal={(type, eid) => setModal({ type, eid })}
-            onCheckinUpdated={loadCheckins}
-            onReviewUpdated={loadReviews}
+            onCheckinUpdated={() => {}}
+            onReviewUpdated={() => {}}
+          />
+        )}
+        {tab === 'career' && (
+          <CareerDevelopment
+            employees={employees.filter(e => !e.archived)}
+            pathways={pathways}
+            onViewEmployee={viewEmployee}
           />
         )}
         {tab === 'settings' && (
-          <HRSettings employees={employees.filter(e => !e.archived)} onCheckinUpdated={loadCheckins} onReviewUpdated={loadReviews} />
+          <HRSettings employees={employees.filter(e => !e.archived)} onCheckinUpdated={() => {}} onReviewUpdated={() => {}} onDepartmentChanged={loadDepartments} />
         )}
         {tab === 'detail' && selectedEmp && (
           <EmployeeDetail
@@ -432,10 +464,13 @@ export function HRApp() {
             tasks={tasks[selectedEmp.id] ?? []}
             documents={documents}
             schedules={schedules}
-            checkins={checkins.filter(c => c.employee_id === selectedEmp.id)}
-            reviews={reviews.filter(r => r.employee_id === selectedEmp.id)}
+            checkins={empCheckins[selectedEmp.id] ?? []}
+            reviews={empReviews[selectedEmp.id] ?? []}
+            developmentPlans={empDevPlans[selectedEmp.id] ?? []}
+            certifications={empCertifications[selectedEmp.id] ?? []}
             notes={notes[selectedEmp.id] ?? []}
             companies={companies}
+            pathways={pathways}
             onBack={() => setTab('employees')}
             onOpenModal={(type, eid) => setModal({ type, eid })}
             onToggleTask={toggleTask}
@@ -445,6 +480,12 @@ export function HRApp() {
             onRestore={restoreEmployee}
             onEditEmployee={id => setEditEmpId(id)}
             onDocumentsChanged={loadDocumentsForEmp}
+            onDataChanged={empId => {
+              loadEmpReviews(empId);
+              loadEmpDevPlans(empId);
+              loadEmpCertifications(empId);
+              loadEmpCheckins(empId);
+            }}
           />
         )}
       </div>
@@ -464,7 +505,7 @@ export function HRApp() {
         />
       )}
       {modal?.type === 'add-dept' && (
-        <AddDepartmentModal onClose={() => setModal(null)} onCreated={name => setDepartments(prev => [...prev, name].sort())} />
+        <AddDepartmentModal onClose={() => setModal(null)} onCreated={() => loadDepartments()} />
       )}
       {modal?.type === 'add-task' && modal.eid && (() => {
         const taskEmp = employees.find(e => e.id === modal.eid);
@@ -555,6 +596,7 @@ export function HRApp() {
             departments={departments}
             companies={companies}
             employees={employees}
+            pathways={pathways}
             onClose={() => setEditEmpId(null)}
             onSaved={async updated => {
               setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));

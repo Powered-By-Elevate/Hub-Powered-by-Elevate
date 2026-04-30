@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Employee, OnboardingTask, Document, Schedule, Contact, QuarterlyCheckin, AnnualReview, HRAnnouncement } from '../lib/database.types';
+import { Employee, OnboardingTask, Document, Schedule, Contact, HRAnnouncement, Review, DevelopmentPlan, Certification, Checkin, Pathway } from '../lib/database.types';
 import { useAuth } from '../contexts/AuthContext';
 import { EmpSidebar } from '../components/employee/Sidebar';
 import { EmpOverview } from '../components/employee/Overview';
@@ -10,6 +10,7 @@ import { EmpDocuments } from '../components/employee/Documents';
 import { EmpContacts } from '../components/employee/Contacts';
 import { EmpTeam } from '../components/employee/Team';
 import { EmpCheckins } from '../components/employee/Checkins';
+import { EmpMyGoals, EmpMyCertifications, EmpMyCheckins, EmpMyReviews } from '../components/employee/MyDevelopment';
 import { AddTaskModal } from '../components/hr/modals/AddTask';
 import { MobileLayout } from '../components/mobile/MobileLayout';
 import { MobileDashboard } from '../components/mobile/MobileDashboard';
@@ -29,7 +30,7 @@ function ini(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
-export type EmpTab = 'overview' | 'tasks' | 'schedule' | 'documents' | 'contacts' | 'team' | 'checkins' | 'more';
+export type EmpTab = 'overview' | 'tasks' | 'schedule' | 'documents' | 'contacts' | 'team' | 'checkins' | 'my-goals' | 'my-certifications' | 'my-checkins' | 'my-reviews' | 'more';
 
 async function logActivity(employeeId: string, action: string) {
   await supabase.from('activity_log').insert({ employee_id: employeeId, action, created_at: new Date().toISOString() });
@@ -45,8 +46,11 @@ export function EmployeeApp() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [teammates, setTeammates] = useState<Employee[]>([]);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
-  const [checkins, setCheckins] = useState<QuarterlyCheckin[]>([]);
-  const [reviews, setReviews] = useState<AnnualReview[]>([]);
+  const [myCheckins, setMyCheckins] = useState<Checkin[]>([]);
+  const [myReviews, setMyReviews] = useState<Review[]>([]);
+  const [myDevPlans, setMyDevPlans] = useState<DevelopmentPlan[]>([]);
+  const [myCertifications, setMyCertifications] = useState<Certification[]>([]);
+  const [myPathways, setMyPathways] = useState<Pathway[]>([]);
   const [announcements, setAnnouncements] = useState<HRAnnouncement[]>([]);
   const [showAddTask, setShowAddTask] = useState(false);
   const channelsRef = useRef<ReturnType<typeof supabase.channel>[]>([]);
@@ -66,13 +70,16 @@ export function EmployeeApp() {
     if (!profile?.employee_id) return;
     const empId = profile.employee_id;
 
-    const [empRes, taskRes, schedRes, contactRes, checkinRes, reviewRes, announcementRes] = await Promise.all([
+    const [empRes, taskRes, schedRes, contactRes, checkinRes, reviewRes, devPlanRes, certRes, pathwayRes, announcementRes] = await Promise.all([
       supabase.from('employees').select('*').eq('id', empId).single(),
       supabase.from('onboarding_tasks').select('*').eq('employee_id', empId).order('created_at'),
       supabase.from('schedules').select('*').or('employee_id.is.null,employee_id.eq.' + empId).order('schedule_date').order('time_label'),
       supabase.from('contacts').select('*').order('is_primary', { ascending: false }),
-      supabase.from('quarterly_checkins').select('*').eq('employee_id', empId).order('scheduled_at', { ascending: false }),
-      supabase.from('annual_reviews').select('*').eq('employee_id', empId).order('review_year', { ascending: false }),
+      supabase.from('checkins').select('*').eq('employee_id', empId).order('checkin_date', { ascending: false }),
+      supabase.from('reviews').select('*').eq('employee_id', empId).order('review_date', { ascending: false }),
+      supabase.from('development_plans').select('*').eq('employee_id', empId).order('created_at'),
+      supabase.from('certifications').select('*').eq('employee_id', empId).order('created_at'),
+      supabase.from('pathways').select('*').order('name'),
       supabase.from('hr_announcements').select('*').eq('active', true),
     ]);
 
@@ -80,8 +87,11 @@ export function EmployeeApp() {
     setTasks(allTasks);
     setSchedules(schedRes.data ?? []);
     setContacts(contactRes.data ?? []);
-    setCheckins(checkinRes.data ?? []);
-    setReviews(reviewRes.data ?? []);
+    setMyCheckins(checkinRes.data ?? []);
+    setMyReviews(reviewRes.data ?? []);
+    setMyDevPlans(devPlanRes.data ?? []);
+    setMyCertifications(certRes.data ?? []);
+    setMyPathways(pathwayRes.data ?? []);
     setAnnouncements(announcementRes.data ?? []);
 
     if (empRes.data) {
@@ -206,7 +216,10 @@ export function EmployeeApp() {
     ? [
         { id: 'team', label: 'My Team', icon: '👥' },
         { id: 'contacts', label: 'Contacts', icon: '👤' },
-        { id: 'checkins', label: 'Check-ins', icon: '📊' },
+        { id: 'my-goals', label: 'My Goals', icon: '🎯' },
+        { id: 'my-certifications', label: 'My Certifications', icon: '🏆' },
+        { id: 'my-checkins', label: 'My Check-ins', icon: '📋' },
+        { id: 'my-reviews', label: 'My Reviews', icon: '📊' },
       ]
     : [{ id: 'contacts', label: 'Contacts', icon: '👤' }];
 
@@ -234,6 +247,10 @@ export function EmployeeApp() {
       team: 'My Team',
       contacts: 'Contacts',
       checkins: 'Check-ins',
+      'my-goals': 'My Goals',
+      'my-certifications': 'My Certifications',
+      'my-checkins': 'My Check-ins',
+      'my-reviews': 'My Reviews',
       more: 'More',
     };
     const moreActiveTab = moreTabIds.includes(tab) ? tab : undefined;
@@ -266,7 +283,7 @@ export function EmployeeApp() {
             <EmpTasks tasks={tasks} onToggle={toggleTask} onAddTask={() => setShowAddTask(true)} employee={employee} />
           )}
           {tab === 'schedule' && (
-            <EmpSchedule employee={employee} schedules={schedules} checkins={checkins} reviews={reviews} />
+            <EmpSchedule employee={employee} schedules={schedules} checkins={[]} reviews={[]} />
           )}
           {tab === 'documents' && (
             <MobileDocuments
@@ -284,8 +301,12 @@ export function EmployeeApp() {
             <EmpTeam employee={employee} teammates={teammates} allEmployees={allEmployees} schedules={schedules} />
           )}
           {tab === 'checkins' && (
-            <EmpCheckins checkins={checkins} reviews={reviews} employee={employee} />
+            <EmpCheckins checkins={[]} reviews={[]} employee={employee} />
           )}
+          {tab === 'my-goals' && isActive && <EmpMyGoals plans={myDevPlans} pathways={myPathways} employee={employee} />}
+          {tab === 'my-certifications' && isActive && <EmpMyCertifications certifications={myCertifications} employee={employee} />}
+          {tab === 'my-checkins' && isActive && <EmpMyCheckins checkins={myCheckins} employee={employee} />}
+          {tab === 'my-reviews' && isActive && <EmpMyReviews reviews={myReviews} employee={employee} />}
         </MobileLayout>
         {showAddTask && (
           <AddTaskModal
@@ -317,6 +338,10 @@ export function EmployeeApp() {
             pct={pct}
             onTab={setTab}
             onToggle={toggleTask}
+            devGoalsCount={myDevPlans.length}
+            certCount={myCertifications.length}
+            checkinCount={myCheckins.length}
+            reviewCount={myReviews.length}
           />
         )}
         {tab === 'tasks' && (
@@ -331,14 +356,18 @@ export function EmployeeApp() {
           <EmpSchedule
             employee={employee}
             schedules={schedules}
-            checkins={checkins}
-            reviews={reviews}
+            checkins={[]}
+            reviews={[]}
           />
         )}
         {tab === 'documents' && <EmpDocuments documents={documents} />}
         {tab === 'contacts' && <EmpContacts contacts={contacts} employee={employee} allEmployees={allEmployees.length > 0 ? allEmployees : [employee, ...teammates]} />}
         {tab === 'team' && <EmpTeam employee={employee} teammates={teammates} allEmployees={allEmployees} schedules={schedules} />}
-        {tab === 'checkins' && <EmpCheckins checkins={checkins} reviews={reviews} employee={employee} />}
+        {tab === 'checkins' && <EmpCheckins checkins={[]} reviews={[]} employee={employee} />}
+        {tab === 'my-goals' && isActive && <EmpMyGoals plans={myDevPlans} pathways={myPathways} employee={employee} />}
+        {tab === 'my-certifications' && isActive && <EmpMyCertifications certifications={myCertifications} employee={employee} />}
+        {tab === 'my-checkins' && isActive && <EmpMyCheckins checkins={myCheckins} employee={employee} />}
+        {tab === 'my-reviews' && isActive && <EmpMyReviews reviews={myReviews} employee={employee} />}
       </div>
       {showAddTask && employee && (
         <AddTaskModal

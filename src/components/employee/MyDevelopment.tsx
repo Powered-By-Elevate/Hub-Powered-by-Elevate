@@ -1,0 +1,288 @@
+import { Employee, DevelopmentPlan, Certification, Checkin, Review, Pathway } from '../../lib/database.types';
+import { supabase } from '../../lib/supabase';
+import { FileText } from 'lucide-react';
+
+function fmt(d: string | null | undefined) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+const PLAN_STATUS_COLORS: Record<string, { bg: string; color: string }> = {
+  'Not Started': { bg: '#F2F1ED', color: '#6B6860' },
+  'In Progress': { bg: '#E8EFF8', color: '#1B3F6E' },
+  'Completed': { bg: '#D1FAE5', color: '#065F46' },
+};
+
+// ── My Goals (Development Plans) ─────────────────────────────────────────────
+// Employee view: shows current_level, pathway — NOT readiness_level, next_level, current_status
+
+interface MyGoalsProps {
+  plans: DevelopmentPlan[];
+  pathways: Pathway[];
+  employee: Employee;
+}
+
+export function EmpMyGoals({ plans, pathways, employee }: MyGoalsProps) {
+  const pathwayName = pathways.find(p => p.id === employee.pathway_id)?.name ?? null;
+  const active = plans.filter(p => p.status !== 'Completed');
+  const completed = plans.filter(p => p.status === 'Completed');
+
+  return (
+    <>
+      <div className="topbar">
+        <div className="topbar-left">
+          <h1>My Development Goals</h1>
+          <p>{active.length} active · {completed.length} completed</p>
+        </div>
+      </div>
+      <div className="content">
+        {/* Only show current_level and pathway — NOT next_level, readiness_level, current_status */}
+        {(employee.current_level || pathwayName) && (
+          <div className="card mb2" style={{ padding: '1rem 1.25rem' }}>
+            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+              {employee.current_level && (
+                <div>
+                  <div style={{ fontSize: 11, color: '#9B9890', marginBottom: 2 }}>My Current Level</div>
+                  <span style={{ fontWeight: 800, fontSize: 18, color: '#1B3F6E', background: '#E8EFF8', padding: '3px 12px', borderRadius: 8, display: 'inline-block' }}>{employee.current_level}</span>
+                </div>
+              )}
+              {pathwayName && (
+                <div>
+                  <div style={{ fontSize: 11, color: '#9B9890', marginBottom: 2 }}>My Pathway</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#1A1916' }}>{pathwayName}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {plans.length === 0 ? (
+          <div className="card">
+            <div className="empty-state">
+              <div className="empty-icon">🎯</div>
+              <p>No development goals yet</p>
+              <div className="esub">Your HR team will set up your development plan.</div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {active.length > 0 && (
+              <div className="card mb2">
+                <div className="card-header"><h3>Active Goals ({active.length})</h3></div>
+                {active.map(p => {
+                  const sc = PLAN_STATUS_COLORS[p.status] ?? PLAN_STATUS_COLORS['Not Started'];
+                  return (
+                    <div key={p.id} style={{ padding: '14px 1.25rem', borderBottom: '1px solid #F2F1ED' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                            <span style={{ fontWeight: 700, fontSize: 14 }}>{p.goal_title}</span>
+                            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: sc.bg, color: sc.color, fontWeight: 700 }}>{p.status}</span>
+                          </div>
+                          {p.target_date && <div style={{ fontSize: 12, color: '#9B9890', marginBottom: 6 }}>Target: {fmt(p.target_date)}</div>}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                            <div style={{ flex: 1, maxWidth: 240, height: 8, background: '#F2F1ED', borderRadius: 4, overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: p.progress_pct + '%', background: '#1B3F6E', borderRadius: 4, transition: 'width 0.3s' }} />
+                            </div>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#6B6860' }}>{p.progress_pct}%</span>
+                          </div>
+                          {p.notes && <div style={{ fontSize: 12, color: '#6B6860', lineHeight: 1.5 }}>{p.notes}</div>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {completed.length > 0 && (
+              <div className="card">
+                <div className="card-header"><h3>Completed ({completed.length})</h3></div>
+                {completed.map(p => (
+                  <div key={p.id} style={{ padding: '12px 1.25rem', borderBottom: '1px solid #F2F1ED', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: '#1A1916' }}>{p.goal_title}</div>
+                      {p.target_date && <div style={{ fontSize: 11, color: '#9B9890', marginTop: 2 }}>Target: {fmt(p.target_date)}</div>}
+                    </div>
+                    <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: '#D1FAE5', color: '#065F46', fontWeight: 700 }}>Completed</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── My Certifications ────────────────────────────────────────────────────────
+// Employee view: shows all certification fields (these are earned by the employee)
+
+interface MyCertificationsProps {
+  certifications: Certification[];
+  employee: Employee;
+}
+
+export function EmpMyCertifications({ certifications }: MyCertificationsProps) {
+  async function viewProof(path: string) {
+    const { data } = await supabase.storage.from('certification-proofs').createSignedUrl(path, 3600);
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+  }
+
+  const completed = certifications.filter(c => c.status === 'Completed');
+  const inProgress = certifications.filter(c => c.status === 'In Progress');
+  const notStarted = certifications.filter(c => c.status === 'Not Started');
+
+  return (
+    <>
+      <div className="topbar">
+        <div className="topbar-left">
+          <h1>My Certifications</h1>
+          <p>{completed.length} completed · {inProgress.length} in progress · {notStarted.length} not started</p>
+        </div>
+      </div>
+      <div className="content">
+        {certifications.length === 0 ? (
+          <div className="card">
+            <div className="empty-state">
+              <div className="empty-icon">🏆</div>
+              <p>No certifications tracked yet</p>
+              <div className="esub">Certifications assigned by HR will appear here.</div>
+            </div>
+          </div>
+        ) : (
+          <div className="card">
+            {([['In Progress', inProgress], ['Completed', completed], ['Not Started', notStarted]] as [string, Certification[]][]).map(([label, group]) => {
+              if (group.length === 0) return null;
+              return (
+                <div key={label}>
+                  <div style={{ padding: '10px 1.25rem 6px', fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: '#9B9890', borderBottom: '1px solid #F2F1ED' }}>
+                    {label}
+                  </div>
+                  {group.map(c => {
+                    const sc = PLAN_STATUS_COLORS[c.status] ?? PLAN_STATUS_COLORS['Not Started'];
+                    return (
+                      <div key={c.id} style={{ padding: '12px 1.25rem', borderBottom: '1px solid #F9F8F5', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                            <span style={{ fontWeight: 700, fontSize: 14 }}>{c.course_name}</span>
+                            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: sc.bg, color: sc.color, fontWeight: 700 }}>{c.status}</span>
+                          </div>
+                          {c.completion_date && <div style={{ fontSize: 12, color: '#9B9890', marginBottom: 4 }}>Completed: {fmt(c.completion_date)}</div>}
+                          {c.proof_path && (
+                            <button className="btn-ghost sm" style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }} onClick={() => viewProof(c.proof_path!)}>
+                              <FileText size={12} /> View Proof
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── My Check-ins ─────────────────────────────────────────────────────────────
+// Employee view: shows date and pillar_focus ONLY
+// Hidden: motivation_level, decision, pillar_reflection, contribution_to_growth,
+//         business_dev_involvement, notes (all HR-internal)
+
+interface MyCheckinsProps {
+  checkins: Checkin[];
+  employee: Employee;
+}
+
+export function EmpMyCheckins({ checkins }: MyCheckinsProps) {
+  return (
+    <>
+      <div className="topbar">
+        <div className="topbar-left">
+          <h1>My Check-ins</h1>
+          <p>{checkins.length} check-in{checkins.length !== 1 ? 's' : ''} on record</p>
+        </div>
+      </div>
+      <div className="content">
+        {checkins.length === 0 ? (
+          <div className="card">
+            <div className="empty-state">
+              <div className="empty-icon">📋</div>
+              <p>No check-ins yet</p>
+              <div className="esub">Your quarterly check-ins with HR will appear here.</div>
+            </div>
+          </div>
+        ) : (
+          <div className="card">
+            {checkins.map(c => (
+              <div key={c.id} style={{ padding: '14px 1.25rem', borderBottom: '1px solid #F2F1ED', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{fmt(c.checkin_date)}</div>
+                  {c.pillar_focus && (
+                    <div style={{ marginTop: 5 }}>
+                      <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 10, background: '#E8EFF8', color: '#1B3F6E', fontWeight: 600 }}>
+                        {c.pillar_focus}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: '#9B9890' }}>Quarterly Check-in</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── My Reviews ───────────────────────────────────────────────────────────────
+// Employee view: shows date, type, year ONLY
+// Hidden: sentiment, notes, pdf_path (all HR-internal)
+
+interface MyReviewsProps {
+  reviews: Review[];
+  employee: Employee;
+}
+
+export function EmpMyReviews({ reviews }: MyReviewsProps) {
+  return (
+    <>
+      <div className="topbar">
+        <div className="topbar-left">
+          <h1>My Reviews</h1>
+          <p>{reviews.length} review{reviews.length !== 1 ? 's' : ''} on record</p>
+        </div>
+      </div>
+      <div className="content">
+        {reviews.length === 0 ? (
+          <div className="card">
+            <div className="empty-state">
+              <div className="empty-icon">📊</div>
+              <p>No reviews yet</p>
+              <div className="esub">Your performance reviews will appear here when completed.</div>
+            </div>
+          </div>
+        ) : (
+          <div className="card">
+            {reviews.map(r => (
+              <div key={r.id} style={{ padding: '14px 1.25rem', borderBottom: '1px solid #F2F1ED', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>{r.review_type} {r.review_year}</div>
+                  <div style={{ fontSize: 12, color: '#9B9890', marginTop: 3 }}>{fmt(r.review_date)}</div>
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#6B6860', background: '#F2F1ED', padding: '3px 10px', borderRadius: 8 }}>
+                  {r.review_type}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}

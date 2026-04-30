@@ -11,6 +11,10 @@ interface Props {
   pct: number;
   onTab: (tab: EmpTab) => void;
   onToggle: (id: string) => void;
+  devGoalsCount?: number;
+  certCount?: number;
+  checkinCount?: number;
+  reviewCount?: number;
 }
 
 function useLiveClock() {
@@ -61,7 +65,7 @@ function pickActiveBanner(announcements: HRAnnouncement[], employee: Employee): 
   return active.sort((a, b) => (priority[a.type] ?? 99) - (priority[b.type] ?? 99))[0];
 }
 
-export function EmpOverview({ employee, tasks, schedules, announcements, pct, onTab, onToggle }: Props) {
+export function EmpOverview({ employee, tasks, schedules, announcements, pct, onTab, onToggle, devGoalsCount = 0, certCount = 0, checkinCount = 0, reviewCount = 0 }: Props) {
   const now = useLiveClock();
   const isActive = employee.lifecycle_status === 'active';
   const activeTasks = tasks.filter(t => !t.archived && t.status !== 'complete');
@@ -187,6 +191,47 @@ export function EmpOverview({ employee, tasks, schedules, announcements, pct, on
             )}
           </div>
         </div>
+
+        {isActive && (employee.current_level || employee.pathway_id || devGoalsCount > 0 || certCount > 0 || checkinCount > 0 || reviewCount > 0) && (
+          <div className="card" style={{ marginTop: 16 }}>
+            <div className="card-header">
+              <h3>My Development</h3>
+            </div>
+            <div style={{ padding: '0 1.25rem 1.25rem' }}>
+              {/* Only show current_level and pathway — readiness_level, next_level, current_status are HR-only */}
+              {(employee.current_level || employee.pathway_id) && (
+                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid #F2F1ED' }}>
+                  {employee.current_level && (
+                    <div>
+                      <div style={{ fontSize: 11, color: '#9B9890', marginBottom: 3 }}>My Level</div>
+                      <span style={{ fontWeight: 800, fontSize: 18, color: '#1B3F6E', background: '#E8EFF8', padding: '3px 12px', borderRadius: 8, display: 'inline-block' }}>{employee.current_level}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
+                {([
+                  ['my-goals', '🎯', 'Goals', devGoalsCount],
+                  ['my-certifications', '🏆', 'Certifications', certCount],
+                  ['my-checkins', '📋', 'Check-ins', checkinCount],
+                  ['my-reviews', '📊', 'Reviews', reviewCount],
+                ] as [EmpTab, string, string, number][]).map(([tabId, icon, label, count]) => (
+                  <button
+                    key={tabId}
+                    onClick={() => onTab(tabId)}
+                    style={{ background: '#FAFAF8', border: '1px solid #E5E3DC', borderRadius: 10, padding: '12px 14px', cursor: 'pointer', textAlign: 'left', transition: 'border-color 0.15s' }}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = '#1B3F6E')}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = '#E5E3DC')}
+                  >
+                    <div style={{ fontSize: 18, marginBottom: 6 }}>{icon}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#1A1916' }}>{label}</div>
+                    <div style={{ fontSize: 11, color: '#9B9890', marginTop: 2 }}>{count} record{count !== 1 ? 's' : ''}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

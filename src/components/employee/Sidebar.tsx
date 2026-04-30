@@ -58,7 +58,10 @@ export function EmpSidebar({ employee, tab, onTab }: Props) {
     { id: 'schedule', icon: '📅', label: 'Schedule' },
     { id: 'documents', icon: '📄', label: 'Documents' },
     { id: 'contacts', icon: '👤', label: 'Contacts' },
-    { id: 'checkins', icon: '📊', label: 'Check-ins' },
+    { id: 'my-goals', icon: '🎯', label: 'My Goals' },
+    { id: 'my-certifications', icon: '🏆', label: 'My Certifications' },
+    { id: 'my-checkins', icon: '📋', label: 'My Check-ins' },
+    { id: 'my-reviews', icon: '📊', label: 'My Reviews' },
   ];
 
   const nav = isActive ? activeNav : onboardingNav;
@@ -116,7 +119,7 @@ export function EmpSidebar({ employee, tab, onTab }: Props) {
           <img src="/GetImage.png" alt="TrueNorth" style={{ height: 26, width: 'auto', background: '#fff', borderRadius: 6, padding: '3px 6px' }} />
         </div>
         <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontSize: 14, fontWeight: 700, color: '#fff', letterSpacing: -0.2, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-          {tab === 'overview' ? (isActive ? 'Dashboard' : 'My Onboarding') : tab === 'tasks' ? 'My Tasks' : tab === 'schedule' ? 'Schedule' : tab === 'documents' ? 'Documents' : tab === 'team' ? 'My Team' : tab === 'contacts' ? 'Contacts' : tab === 'checkins' ? 'Check-ins' : 'More'}
+          {tab === 'overview' ? (isActive ? 'Dashboard' : 'My Onboarding') : tab === 'tasks' ? 'My Tasks' : tab === 'schedule' ? 'Schedule' : tab === 'documents' ? 'Documents' : tab === 'team' ? 'My Team' : tab === 'contacts' ? 'Contacts' : tab === 'checkins' ? 'Check-ins' : tab === 'my-goals' ? 'My Goals' : tab === 'my-certifications' ? 'My Certifications' : tab === 'my-checkins' ? 'My Check-ins' : tab === 'my-reviews' ? 'My Reviews' : 'More'}
         </div>
         <div style={{ position: 'relative' }}>
           <button className="mobile-header-avatar" onClick={() => setShowAvatarDrop(v => !v)}>

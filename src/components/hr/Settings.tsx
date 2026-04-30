@@ -11,6 +11,7 @@ interface Props {
   employees: Employee[];
   onCheckinUpdated: () => void;
   onReviewUpdated: () => void;
+  onDepartmentChanged?: () => void;
 }
 
 interface ScheduleSettings {
@@ -37,7 +38,7 @@ const BANNER_TYPE_OPTS = ['announcement', 'critical', 'reminder', 'shoutout', 'b
 const DEPT_TYPES = ['Office and Corporate', 'Construction', 'Field Operations', 'Other'];
 const TITLE_CATEGORIES = ['Office and Corporate', 'Construction Leadership', 'Construction Field', 'Other'];
 
-export function HRSettings({ employees, onCheckinUpdated, onReviewUpdated }: Props) {
+export function HRSettings({ employees, onCheckinUpdated, onReviewUpdated, onDepartmentChanged }: Props) {
   const { profile } = useAuth();
   const [section, setSection] = useState<SettingsSection>('schedule');
   const [settings, setSettings] = useState<ScheduleSettings>({ annual_review_date: '', q1_checkin_date: '', q2_checkin_date: '', q3_checkin_date: '', q4_checkin_date: '' });
@@ -586,7 +587,7 @@ export function HRSettings({ employees, onCheckinUpdated, onReviewUpdated }: Pro
         <DeptModal
           dept={editDept}
           onClose={() => setShowDeptModal(false)}
-          onSaved={loadDepartments}
+          onSaved={() => { loadDepartments(); onDepartmentChanged?.(); }}
         />
       )}
 

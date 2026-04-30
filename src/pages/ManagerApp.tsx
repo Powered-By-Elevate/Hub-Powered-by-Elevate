@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { Employee, OnboardingTask, Document, Schedule } from '../lib/database.types';
+import { Employee, OnboardingTask, Document, Schedule, Pathway } from '../lib/database.types';
 import { useAuth } from '../contexts/AuthContext';
 import { ManagerSidebar } from '../components/manager/Sidebar';
 import { ManagerDashboard } from '../components/manager/Dashboard';
@@ -19,6 +19,7 @@ export function ManagerApp() {
   const [tasks, setTasks] = useState<Record<string, OnboardingTask[]>>({});
   const [documents, setDocuments] = useState<Document[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [pathways, setPathways] = useState<Pathway[]>([]);
   const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null);
   const [modal, setModal] = useState<{ type: string; eid?: string } | null>(null);
 
@@ -49,6 +50,7 @@ export function ManagerApp() {
     loadMyProfile();
     supabase.from('documents').select('*').eq('visible_to_employee', true).order('created_at').then(({ data }) => setDocuments(data ?? []));
     supabase.from('schedules').select('*').is('employee_id', null).order('time_label').then(({ data }) => setSchedules(data ?? []));
+    supabase.from('pathways').select('*').eq('active', true).order('name').then(({ data }) => setPathways(data ?? []));
   }, [loadTeam, loadMyProfile]);
 
   useEffect(() => {
@@ -125,6 +127,7 @@ export function ManagerApp() {
             tasks={tasks[selectedEmp.id] ?? []}
             documents={documents}
             schedules={schedules}
+            pathways={pathways}
             onBack={() => setTab('team')}
             onOpenModal={(type, eid) => setModal({ type, eid })}
             onToggleTask={toggleTask}

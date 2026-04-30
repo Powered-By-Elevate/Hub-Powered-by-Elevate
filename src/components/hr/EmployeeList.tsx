@@ -7,24 +7,27 @@ import { ChevronDown } from 'lucide-react';
 interface Props {
   employees: Employee[];
   companies: Company[];
+  departments: string[];
   onViewEmployee: (id: string) => void;
   onOpenModal: (type: string, eid?: string) => void;
   onRestoreEmployee: (id: string) => void;
   onEditEmployee: (id: string) => void;
 }
 
-export function EmployeeList({ employees, companies, onViewEmployee, onOpenModal, onRestoreEmployee, onEditEmployee }: Props) {
+export function EmployeeList({ employees, companies, departments, onViewEmployee, onOpenModal, onRestoreEmployee, onEditEmployee }: Props) {
   const [listTab, setListTab] = useState<'active' | 'archived'>('active');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterDept, setFilterDept] = useState('all');
   const [filterCompany, setFilterCompany] = useState('all');
+  const [filterCurrentStatus, setFilterCurrentStatus] = useState('all');
   const [search, setSearch] = useState('');
   const [dropOpen, setDropOpen] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
+  const addDropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropOpen(false);
+      if (addDropRef.current && !addDropRef.current.contains(e.target as Node)) setDropOpen(false);
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -33,7 +36,7 @@ export function EmployeeList({ employees, companies, onViewEmployee, onOpenModal
   const activeEmps = employees.filter(e => !e.archived);
   const archivedEmps = employees.filter(e => e.archived);
   const pool = listTab === 'archived' ? archivedEmps : activeEmps;
-  const depts = ['all', ...Array.from(new Set(pool.map(e => e.department).filter(Boolean))) as string[]];
+  const depts = ['all', ...departments];
   // Only show companies that have employees in the current pool
   const activeCompanyIds = new Set(pool.map(e => e.company_id).filter(Boolean));
   const visibleCompanies = companies.filter(c => activeCompanyIds.has(c.id));
@@ -42,6 +45,7 @@ export function EmployeeList({ employees, companies, onViewEmployee, onOpenModal
   if (listTab === 'active' && filterStatus !== 'all') list = list.filter(e => e.status === filterStatus);
   if (filterDept !== 'all') list = list.filter(e => e.department === filterDept);
   if (filterCompany !== 'all') list = list.filter(e => e.company_id === filterCompany);
+  if (filterCurrentStatus !== 'all') list = list.filter(e => e.current_status === filterCurrentStatus);
   if (search) list = list.filter(e =>
     e.name.toLowerCase().includes(search.toLowerCase()) ||
     e.role.toLowerCase().includes(search.toLowerCase()) ||
@@ -56,7 +60,7 @@ export function EmployeeList({ employees, companies, onViewEmployee, onOpenModal
           <p>{activeEmps.length} active · {archivedEmps.length} archived</p>
         </div>
         <div className="topbar-actions">
-          <div ref={dropRef} style={{ position: 'relative' }}>
+          <div ref={addDropRef} style={{ position: 'relative' }}>
             <div style={{ display: 'flex', borderRadius: 7, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
               <button
                 className="btn-primary"
@@ -99,14 +103,14 @@ export function EmployeeList({ employees, companies, onViewEmployee, onOpenModal
             <button
               className={`tab-btn${listTab === 'active' ? ' active' : ''}`}
               style={{ fontSize: 13, padding: '10px 18px' }}
-              onClick={() => { setListTab('active'); setFilterStatus('all'); setFilterDept('all'); setFilterCompany('all'); setSearch(''); }}
+              onClick={() => { setListTab('active'); setFilterStatus('all'); setFilterDept('all'); setFilterCompany('all'); setFilterCurrentStatus('all'); setSearch(''); }}
             >
               Active <span style={{ marginLeft: 6, padding: '2px 7px', borderRadius: 10, fontSize: 11, fontWeight: 600, background: listTab === 'active' ? '#E8EFF8' : '#F2F1ED', color: listTab === 'active' ? '#1B3F6E' : '#9B9890' }}>{activeEmps.length}</span>
             </button>
             <button
               className={`tab-btn${listTab === 'archived' ? ' active' : ''}`}
               style={{ fontSize: 13, padding: '10px 18px' }}
-              onClick={() => { setListTab('archived'); setFilterStatus('all'); setFilterDept('all'); setFilterCompany('all'); setSearch(''); }}
+              onClick={() => { setListTab('archived'); setFilterStatus('all'); setFilterDept('all'); setFilterCompany('all'); setFilterCurrentStatus('all'); setSearch(''); }}
             >
               Archived <span style={{ marginLeft: 6, padding: '2px 7px', borderRadius: 10, fontSize: 11, fontWeight: 600, background: listTab === 'archived' ? '#E8EFF8' : '#F2F1ED', color: listTab === 'archived' ? '#1B3F6E' : '#9B9890' }}>{archivedEmps.length}</span>
             </button>
@@ -129,11 +133,15 @@ export function EmployeeList({ employees, companies, onViewEmployee, onOpenModal
               </>
             )}
             <span className="divider-label">Dept:</span>
-            {depts.map(d => (
-              <button key={d} className={`filter-chip${filterDept === d ? ' active' : ''}`} onClick={() => setFilterDept(d)}>
-                {d === 'all' ? 'All' : d}
-              </button>
-            ))}
+            <select
+              value={filterDept}
+              onChange={e => setFilterDept(e.target.value)}
+              style={{ fontSize: 12, padding: '4px 28px 4px 10px', borderRadius: 6, border: '1px solid #E5E3DC', background: '#fff', color: '#1A1916', cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239B9890' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', fontFamily: 'inherit' }}
+            >
+              {depts.map(d => (
+                <option key={d} value={d}>{d === 'all' ? 'All Departments' : d}</option>
+              ))}
+            </select>
             {visibleCompanies.length > 0 && (
               <>
                 <span className="divider-label">Company:</span>
@@ -145,6 +153,20 @@ export function EmployeeList({ employees, companies, onViewEmployee, onOpenModal
                 ))}
               </>
             )}
+            {listTab === 'active' && (() => {
+              const hasCurrentStatus = pool.some(e => e.current_status);
+              if (!hasCurrentStatus) return null;
+              return (
+                <>
+                  <span className="divider-label">Dev Status:</span>
+                  {['all', 'On Track', 'Needs Support', 'At Risk'].map(s => (
+                    <button key={s} className={`filter-chip${filterCurrentStatus === s ? ' active' : ''}`} onClick={() => setFilterCurrentStatus(s)}>
+                      {s === 'all' ? 'All' : s}
+                    </button>
+                  ))}
+                </>
+              );
+            })()}
           </div>
           {listTab === 'archived' && archivedEmps.length === 0 ? (
             <div className="empty-state">
@@ -160,11 +182,18 @@ export function EmployeeList({ employees, companies, onViewEmployee, onOpenModal
               <table className="emp-list-table">
                 <thead>
                   <tr>
-                    <th>Employee</th><th>Department</th><th>Manager</th><th>Start Date</th><th>Progress</th><th>Status</th><th>Actions</th>
+                    <th>Employee</th><th>Department</th><th>Manager</th><th>Start Date</th><th>Progress</th><th>Status</th><th>Dev Status</th><th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {list.map(e => (
+                  {list.map(e => {
+                    const csColors: Record<string, { bg: string; color: string }> = {
+                      'On Track': { bg: '#D1FAE5', color: '#065F46' },
+                      'Needs Support': { bg: '#FEF3C7', color: '#92400E' },
+                      'At Risk': { bg: '#FEE2E2', color: '#991B1B' },
+                    };
+                    const csc = e.current_status ? csColors[e.current_status] : null;
+                    return (
                     <tr key={e.id} className="tr-click" onClick={() => onViewEmployee(e.id)}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -185,6 +214,11 @@ export function EmployeeList({ employees, companies, onViewEmployee, onOpenModal
                       <td>
                         {listTab === 'archived' ? <span className="badge b-muted"><span className="dot-sm" /> Archived</span> : <StatusBadge status={e.status} />}
                       </td>
+                      <td>
+                        {csc ? (
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: csc.bg, color: csc.color, whiteSpace: 'nowrap' }}>{e.current_status}</span>
+                        ) : <span style={{ color: '#C5C3BB', fontSize: 12 }}>—</span>}
+                      </td>
                       <td onClick={ev => ev.stopPropagation()}>
                         <div style={{ display: 'flex', gap: 5 }}>
                           <button className="btn-ghost sm" onClick={() => onViewEmployee(e.id)}>View</button>
@@ -196,7 +230,8 @@ export function EmployeeList({ employees, companies, onViewEmployee, onOpenModal
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
 

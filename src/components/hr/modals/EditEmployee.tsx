@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { Modal } from '../../shared/Modal';
 import { JobTitleInput } from '../../shared/JobTitleInput';
 import { supabase } from '../../../lib/supabase';
-import { Employee, Company } from '../../../lib/database.types';
+import { Employee, Company, Pathway } from '../../../lib/database.types';
 
 interface Props {
   employee: Employee;
   departments: string[];
   companies: Company[];
   employees: Employee[];
+  pathways: Pathway[];
   onClose: () => void;
   onSaved: (updated: Employee) => void;
 }
@@ -16,8 +17,11 @@ interface Props {
 const EMPLOYMENT_TYPES = ['Full Time', 'Part Time', 'Contract', 'Seasonal'];
 const ROLES = ['Employee', 'Manager', 'HR Admin'];
 const LIFECYCLE_STATUSES = ['Onboarding', 'Active'];
+const LEVELS = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7'];
+const READINESS_LEVELS = ['Ready Now', 'Ready in One Year', 'Ready in 2-3 Years', 'Longer Term Development Needed'];
+const CURRENT_STATUSES = ['At Risk', 'Needs Support', 'On Track'];
 
-export function EditEmployeeModal({ employee: e, departments, companies, employees, onClose, onSaved }: Props) {
+export function EditEmployeeModal({ employee: e, departments, companies, employees, pathways, onClose, onSaved }: Props) {
   const [form, setForm] = useState({
     name: e.name ?? '',
     email: e.email ?? '',
@@ -26,10 +30,15 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
     manager: e.manager ?? '',
     start_date: e.start_date ?? '',
     phone: e.phone ?? '',
-    employment_type: (e as any).employment_type ?? 'Full Time',
+    employment_type: e.employment_type ?? 'Full Time',
     auth_role: (e as any).auth_role ?? 'Employee',
     lifecycle_status: e.lifecycle_status ?? 'onboarding',
     company_id: e.company_id ?? '',
+    current_level: e.current_level ?? '',
+    next_level: e.next_level ?? '',
+    pathway_id: e.pathway_id ?? '',
+    readiness_level: e.readiness_level ?? '',
+    current_status: e.current_status ?? '',
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(e.avatar_url ?? null);
@@ -87,11 +96,15 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
       phone: form.phone || null,
       lifecycle_status: form.lifecycle_status,
       company_id: form.company_id || null,
+      employment_type: form.employment_type || null,
+      current_level: form.current_level || null,
+      next_level: form.next_level || null,
+      pathway_id: form.pathway_id || null,
+      readiness_level: form.readiness_level || null,
+      current_status: form.current_status || null,
       avatar_url,
     };
 
-    // Store employment_type and auth_role if columns exist — ignore errors silently
-    (updates as any).employment_type = form.employment_type;
     (updates as any).auth_role = form.auth_role;
 
     const { data, error: saveErr } = await supabase
@@ -104,20 +117,8 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
     setSaving(false);
 
     if (saveErr) {
-      // If extra columns don't exist, retry without them
-      const safeUpdates = { ...updates };
-      delete (safeUpdates as any).employment_type;
-      delete (safeUpdates as any).auth_role;
-      const { data: data2, error: err2 } = await supabase
-        .from('employees')
-        .update(safeUpdates)
-        .eq('id', e.id)
-        .select()
-        .single();
-      if (err2) { setError(err2.message); setSaving(false); return; }
-      setSuccess('Changes saved successfully.');
-      onSaved(data2 as Employee);
-      setTimeout(onClose, 1200);
+      setError(saveErr.message);
+      setSaving(false);
       return;
     }
 
@@ -248,6 +249,47 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
             </select>
           </div>
         )}
+      </div>
+
+      <div style={{ fontWeight: 700, fontSize: 13, color: '#6B6860', letterSpacing: 0.3, textTransform: 'uppercase', marginTop: 20, marginBottom: 12, paddingTop: 16, borderTop: '1px solid #F2F1ED' }}>Career Development</div>
+      <div className="form-grid">
+        <div className="field">
+          <label>Current Level</label>
+          <select value={form.current_level} onChange={set('current_level')}>
+            <option value="">— None —</option>
+            {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+          </select>
+        </div>
+        <div className="field">
+          <label>Next Level</label>
+          <select value={form.next_level} onChange={set('next_level')}>
+            <option value="">— None —</option>
+            {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+          </select>
+        </div>
+        <div className="field full">
+          <label>Pathway</label>
+          <select value={form.pathway_id} onChange={set('pathway_id')}>
+            <option value="">— None —</option>
+            {pathways.filter(p => p.active).map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="field">
+          <label>Readiness Level</label>
+          <select value={form.readiness_level} onChange={set('readiness_level')}>
+            <option value="">— None —</option>
+            {READINESS_LEVELS.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </div>
+        <div className="field">
+          <label>Current Status</label>
+          <select value={form.current_status} onChange={set('current_status')}>
+            <option value="">— None —</option>
+            {CURRENT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
       </div>
     </Modal>
   );
