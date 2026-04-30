@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Onboard TrueNorth — Preview</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#F8F7F4;color:#1A1916;font-size:14px;line-height:1.5;font-family:'DM Sans',system-ui,sans-serif;min-height:100vh}
+button,input,select,textarea{font-family:inherit}
+
+/* LOGIN */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#E8F4FD 0%,#F8F7F4 50%,#E8F7EF 100%);padding:2rem}
+.login-card{background:#fff;border-radius:20px;border:1px solid #E5E3DC;padding:2.5rem 2rem;width:100%;max-width:390px;box-shadow:0 8px 32px rgba(0,0,0,0.12)}
+.login-logo{display:flex;align-items:center;gap:13px;margin-bottom:2rem}
+.login-logo-icon{width:46px;height:46px;background:#1B3F6E;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.login-logo-icon svg{width:28px;height:28px}
+.login-logo-text .l1{font-size:17px;font-weight:800;color:#1B3F6E;letter-spacing:-0.4px;line-height:1.1;display:block}
+.login-logo-text .l2{font-size:10px;font-weight:600;color:#6B9BC3;letter-spacing:1.2px;text-transform:uppercase;line-height:1;display:block;margin-top:3px}
+.login-card h2{font-size:22px;font-weight:700;margin-bottom:5px;letter-spacing:-0.4px;color:#1A1916}
+.login-sub{color:#6B6860;font-size:13px;margin-bottom:1.5rem}
+.role-tabs{display:flex;background:#F2F1ED;border-radius:10px;padding:3px;margin-bottom:1.5rem;gap:3px}
+.role-tab{flex:1;padding:9px;text-align:center;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:#6B6860;transition:all .2s;user-select:none}
+.role-tab.active{background:#fff;color:#1A1916;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+.field{margin-bottom:1rem}
+.field label{display:block;font-size:12px;font-weight:600;color:#6B6860;margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;padding:10px 14px;border:1.5px solid #E5E3DC;border-radius:10px;font-size:14px;background:#fff;color:#1A1916;outline:none;transition:border-color .2s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#1B3F6E}
+.field textarea{resize:vertical;min-height:80px}
+.field select{cursor:pointer}
+.demo-hint{margin-top:1rem;padding:12px 14px;background:#E8EFF8;border-radius:10px;border:1px solid #B8CCE4;font-size:12px;color:#1B3F6E;line-height:1.7}
+.demo-hint strong{font-weight:600}
+
+/* BUTTONS */
+button.btn-signin{display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;width:100%!important;padding:14px!important;background-color:#1B3F6E!important;color:#ffffff!important;border:none!important;border-radius:10px!important;font-size:16px!important;font-weight:600!important;cursor:pointer!important;box-shadow:0 4px 14px rgba(27,63,110,0.35)!important;margin-top:4px!important}
+button.btn-signin:hover{background-color:#122B4D!important}
+button.btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;background-color:#1B3F6E;color:#ffffff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:background-color .15s}
+button.btn-primary:hover{background-color:#122B4D}
+button.btn-primary.sm{padding:5px 11px;font-size:12px;border-radius:7px}
+button.btn-ghost{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;background-color:#ffffff;color:#1A1916;border:1px solid #E5E3DC;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:background-color .15s}
+button.btn-ghost:hover{background-color:#F2F1ED}
+button.btn-ghost.sm{padding:5px 11px;font-size:12px;border-radius:7px}
+button.btn-danger-soft{display:inline-flex;align-items:center;justify-content:center;padding:7px 14px;background-color:#FEE2E2;color:#DC2626;border:1px solid #FECACA;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:background-color .15s}
+button.btn-danger-soft:hover{background-color:#FECACA}
+button.btn-danger-soft.sm{padding:5px 11px;font-size:12px;border-radius:7px}
+button.close-x{width:30px;height:30px;border-radius:50%;border:1.5px solid #E5E3DC;background:#F8F7F4;color:#6B6860;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;line-height:1}
+button.close-x:hover{background:#FEE2E2;color:#DC2626;border-color:#FECACA}
+button.nav-btn{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;color:rgba(255,255,255,0.6);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:1px;background:none;border:none;width:100%;text-align:left}
+button.nav-btn:hover{background:rgba(255,255,255,0.1);color:#fff}
+button.nav-btn.active{background:rgba(255,255,255,0.16);color:#fff;font-weight:600}
+button.tab-btn{padding:10px 16px;font-size:13px;font-weight:500;color:#6B6860;cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;margin-bottom:-1px;transition:color .15s,border-color .15s}
+button.tab-btn:hover{color:#1A1916}
+button.tab-btn.active{color:#1B3F6E;border-bottom-color:#1B3F6E;font-weight:600}
+button.check-box-btn{width:19px;height:19px;border:1.5px solid #D0CEC8;border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:#fff;color:transparent;font-size:11px;font-weight:700;flex-shrink:0;transition:all .15s;margin-top:1px}
+button.check-box-btn.checked{background:#2D9A60;border-color:#2D9A60;color:#fff}
+button.filter-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid #E5E3DC;background:#fff;cursor:pointer;color:#6B6860;transition:all .15s}
+button.filter-chip:hover{border-color:#1B3F6E;color:#1B3F6E}
+button.filter-chip.active{background:#E8EFF8;border-color:#1B3F6E;color:#1B3F6E;font-weight:600}
+button.logout-btn-inner{display:flex;align-items:center;gap:8px;background:none;border:none;color:rgba(255,255,255,0.5);font-size:13px;cursor:pointer;padding:7px 8px;border-radius:8px;width:100%;transition:all .15s}
+button.logout-btn-inner:hover{color:#fff;background:rgba(255,255,255,0.1)}
+
+/* APP SHELL */
+.app-shell{display:flex;min-height:100vh}
+.sidebar{width:226px;background:#1B3F6E;display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;bottom:0;z-index:10}
+.sidebar-header{padding:15px 14px 13px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.sidebar-logo{display:flex;align-items:center;gap:10px}
+.sidebar-logo-icon{width:30px;height:30px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sidebar-logo-icon svg{width:18px;height:18px}
+.sidebar-logo-text .s1{font-size:13px;font-weight:700;color:#fff;letter-spacing:-0.2px;display:block;line-height:1.2;white-space:nowrap}
+.sidebar-logo-text .s2{font-size:9px;font-weight:600;color:rgba(255,255,255,0.4);letter-spacing:1px;text-transform:uppercase;display:block;margin-top:2px;white-space:nowrap}
+.sidebar-user{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;gap:9px}
+.sidebar-nav{flex:1;padding:.6rem .5rem;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;color:rgba(255,255,255,0.35);letter-spacing:1px;text-transform:uppercase;padding:0 10px;margin-bottom:4px;margin-top:12px}
+.nav-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.sidebar-footer{padding:.75rem 14px;border-top:1px solid rgba(255,255,255,0.1)}
+.main-area{margin-left:226px;flex:1;overflow:auto;display:flex;flex-direction:column;min-height:100vh}
+.topbar{padding:1rem 1.5rem;border-bottom:1px solid #E5E3DC;background:#fff;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5;gap:1rem}
+.topbar-left h1{font-size:18px;font-weight:700;letter-spacing:-0.3px;color:#1A1916;line-height:1.2}
+.topbar-left p{font-size:12px;color:#9B9890;margin-top:2px}
+.topbar-actions{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.content{padding:1.5rem;flex:1;background:#F8F7F4}
+
+/* AVATARS */
+.avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0}
+.av-light{background:rgba(255,255,255,0.18);color:#fff}
+.av-navy{background:#E8EFF8;color:#1B3F6E}
+.av-32{width:32px;height:32px;font-size:12px}
+.av-38{width:38px;height:38px;font-size:14px}
+.av-52{width:52px;height:52px;font-size:18px}
+
+/* CARDS */
+.card{background:#fff;border-radius:14px;border:1px solid #E5E3DC;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
+.card-header{padding:1rem 1.25rem;border-bottom:1px solid #E5E3DC;display:flex;align-items:center;justify-content:space-between}
+.card-header h3{font-size:14px;font-weight:600;color:#1A1916;letter-spacing:-0.1px}
+.card-body{padding:1.25rem}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
+.stat-card{background:#fff;border:1px solid #E5E3DC;border-radius:14px;padding:1rem 1.25rem;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
+.stat-label{font-size:11px;color:#9B9890;font-weight:500;letter-spacing:0.3px;text-transform:uppercase;margin-bottom:6px}
+.stat-value{font-size:28px;font-weight:700;letter-spacing:-0.5px;line-height:1}
+.stat-sub{font-size:11px;color:#6B6860;margin-top:4px}
+.c-navy{color:#1B3F6E}.c-green{color:#2D9A60}.c-amber{color:#D97706}.c-red{color:#DC2626}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;line-height:1.4;white-space:nowrap}
+.b-success{background:#DCFCE7;color:#16A34A}
+.b-navy{background:#E8EFF8;color:#1B3F6E}
+.b-danger{background:#FEE2E2;color:#DC2626}
+.b-amber{background:#FEF3C7;color:#B45309}
+.b-muted{background:#F2F1ED;color:#6B6860}
+.dot-sm{width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;flex-shrink:0}
+
+/* PROGRESS */
+.prog-bar{height:6px;background:#F2F1ED;border-radius:3px;overflow:hidden;min-width:70px}
+.prog-fill{height:100%;border-radius:3px;transition:width .4s}
+.pf-navy{background:#1B3F6E}.pf-green{background:#2D9A60}.pf-red{background:#DC2626}.pf-amber{background:#D97706}
+.prog-label{font-size:11px;color:#6B6860;margin-top:3px}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 14px;font-size:11px;font-weight:600;color:#9B9890;letter-spacing:0.4px;text-transform:uppercase;border-bottom:1px solid #E5E3DC;background:#FAFAF9}
+td{padding:11px 14px;border-bottom:1px solid #E5E3DC;vertical-align:middle;color:#1A1916}
+tr:last-child td{border-bottom:none}
+tr.tr-click:hover td{background:#F8F7F4;cursor:pointer}
+.emp-name{font-weight:500;font-size:13px;color:#1A1916}
+.emp-email{font-size:11px;color:#9B9890;margin-top:1px}
+
+/* CHECKLIST */
+.check-item{display:flex;align-items:flex-start;gap:11px;padding:12px 1.25rem;border-bottom:1px solid #F2F1ED}
+.check-item:last-child{border-bottom:none}
+.check-body{flex:1;min-width:0}
+.check-title{font-size:13px;font-weight:500;color:#1A1916;line-height:1.4}
+.check-title.done{text-decoration:line-through;color:#9B9890;font-weight:400}
+.check-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:5px}
+.due-label{font-size:11px;color:#9B9890}
+.due-overdue{color:#DC2626;font-weight:500}
+.check-note{font-size:11px;color:#6B6860;margin-top:4px}
+
+/* SCHEDULE */
+.sched-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #F2F1ED;align-items:flex-start}
+.sched-item:last-child{border-bottom:none}
+.sched-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.sched-time{min-width:68px;font-size:11px;color:#9B9890;padding-top:2px;font-weight:500}
+.sched-title{font-size:13px;font-weight:500;color:#1A1916}
+.sched-sub{font-size:11px;color:#9B9890;margin-top:2px}
+
+/* DOCS */
+.doc-row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid #F2F1ED}
+.doc-row:last-child{border-bottom:none}
+.doc-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.di-pdf{background:#FEE2E2}.di-doc{background:#E8EFF8}.di-form{background:#E8F7EF}
+.doc-name{font-size:13px;font-weight:500;color:#1A1916}
+.doc-meta{font-size:11px;color:#9B9890;margin-top:2px}
+
+/* ACTIVITY */
+.act-row{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #F2F1ED;align-items:flex-start}
+.act-row:last-child{border-bottom:none}
+.act-dot{width:8px;height:8px;border-radius:50%;background:#1B3F6E;flex-shrink:0;margin-top:5px}
+.act-text{font-size:13px;color:#1A1916;line-height:1.4}
+.act-time{font-size:11px;color:#9B9890;margin-top:2px}
+
+/* CONTACTS */
+.contact-row{display:flex;align-items:center;gap:12px;padding:12px;background:#F8F7F4;border-radius:10px;margin-bottom:8px;border:1px solid #F0EFEB}
+.contact-row:last-child{margin-bottom:0}
+.contact-name{font-size:13px;font-weight:600;color:#1A1916}
+.contact-role{font-size:11px;color:#9B9890;margin-top:1px}
+.contact-email{font-size:11px;color:#1B3F6E;margin-top:2px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem}
+.modal{background:#fff;border-radius:20px;box-shadow:0 16px 60px rgba(0,0,0,0.2);width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
+.modal-header{padding:1.25rem 1.5rem;border-bottom:1px solid #E5E3DC;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1;border-radius:20px 20px 0 0}
+.modal-header h3{font-size:16px;font-weight:700;color:#1A1916;letter-spacing:-0.2px}
+.modal-body{padding:1.5rem}
+.modal-footer{padding:1rem 1.5rem;border-top:1px solid #E5E3DC;display:flex;justify-content:flex-end;gap:8px;background:#FAFAF9;border-radius:0 0 20px 20px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.form-grid .full{grid-column:1/-1}
+.modal-info-box{padding:10px 12px;background:#FEF3C7;border-radius:8px;border:1px solid #FDE68A;font-size:12px;color:#92400E;margin-top:10px;line-height:1.5}
+
+/* WELCOME BANNER */
+.welcome-banner{background:linear-gradient(135deg,#1B3F6E 0%,#2563EB 100%);border-radius:14px;padding:1.5rem 1.75rem;color:#fff;margin-bottom:1.5rem;position:relative;overflow:hidden}
+.welcome-banner h2{font-size:20px;font-weight:700;letter-spacing:-0.3px;margin-bottom:4px}
+.welcome-banner p{font-size:13px;opacity:.82;line-height:1.5}
+.wb-row{margin-top:14px;display:flex;align-items:center;gap:12px}
+.wb-bar{flex:1;height:7px;background:rgba(255,255,255,.22);border-radius:4px;overflow:hidden}
+.wb-fill{height:100%;background:#fff;border-radius:4px}
+.wb-pct{font-size:14px;font-weight:700;color:#fff;min-width:36px}
+
+/* LAYOUT HELPERS */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.two-col-sm{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem}
+.detail-grid{display:grid;grid-template-columns:216px 1fr;gap:1.5rem}
+.mb2{margin-bottom:1.25rem}
+.tabs-row{display:flex;border-bottom:1px solid #E5E3DC;margin-bottom:1.5rem}
+.empty-state{text-align:center;padding:3rem 1rem}
+.empty-icon{font-size:32px;margin-bottom:8px}
+.empty-state p{font-size:14px;font-weight:500;color:#6B6860}
+.empty-state .esub{font-size:12px;color:#9B9890;margin-top:4px}
+.filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:1rem 1.25rem;border-bottom:1px solid #E5E3DC}
+input.search-input{max-width:210px;padding:7px 11px;border:1.5px solid #E5E3DC;border-radius:8px;font-size:13px;outline:none;background:#fff;color:#1A1916;transition:border-color .15s}
+input.search-input:focus{border-color:#1B3F6E}
+.divider-label{font-size:11px;font-weight:600;color:#9B9890;letter-spacing:0.4px;flex-shrink:0}
+.info-row{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid #F2F1ED}
+.info-row:last-child{border-bottom:none}
+.info-key{font-size:11px;color:#9B9890;font-weight:500;flex-shrink:0}
+.info-val{font-size:12px;font-weight:500;color:#1A1916;text-align:right;word-break:break-all;max-width:62%}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:#E5E3DC;border-radius:2px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const SVG_W=`<svg viewBox="0 0 22 22" fill="none"><polygon points="11,2 20,18 11,14 2,18" fill="#fff" opacity=".95"/><polygon points="11,2 11,14 2,18" fill="#fff" opacity=".5"/></svg>`;
+const SVG_D=`<svg viewBox="0 0 22 22" fill="none"><polygon points="11,2 20,18 11,14 2,18" fill="#1B3F6E" opacity=".9"/><polygon points="11,2 11,14 2,18" fill="#1B3F6E" opacity=".45"/></svg>`;
+
+const DB={
+  employees:[
+    {id:'e1',name:'Sarah Chen',email:'sarah.chen@true-north-companies.com',role:'UX Designer',dept:'Product',manager:'Alex Rivera',start:'Feb 5, 2024',status:'in-progress',pct:65,phone:'(555) 010-1001'},
+    {id:'e2',name:'Marcus Johnson',email:'marcus.j@true-north-companies.com',role:'Software Engineer',dept:'Engineering',manager:'Priya Patel',start:'Feb 12, 2024',status:'in-progress',pct:30,phone:'(555) 010-1002'},
+    {id:'e3',name:'Aisha Williams',email:'aisha.w@true-north-companies.com',role:'Marketing Analyst',dept:'Marketing',manager:'Tom Brooks',start:'Jan 29, 2024',status:'complete',pct:100,phone:'(555) 010-1003'},
+    {id:'e4',name:'Devon Park',email:'devon.p@true-north-companies.com',role:'Data Scientist',dept:'Engineering',manager:'Priya Patel',start:'Feb 19, 2024',status:'not-started',pct:0,phone:'(555) 010-1004'},
+    {id:'e5',name:'Olivia Reyes',email:'o.reyes@true-north-companies.com',role:'HR Coordinator',dept:'HR',manager:'Alex Rivera',start:'Feb 1, 2024',status:'overdue',pct:45,phone:'(555) 010-1005'},
+  ],
+  tasks:{
+    e1:[
+      {id:'t1',title:'Sign offer letter and NDA',cat:'document',due:'Feb 6, 2024',status:'complete',req:true,notes:''},
+      {id:'t2',title:'IT equipment setup and onboarding',cat:'training',due:'Feb 7, 2024',status:'complete',req:true,notes:'Meet IT team at Desk 3B'},
+      {id:'t3',title:'Complete benefits enrollment',cat:'form',due:'Feb 9, 2024',status:'complete',req:true,notes:''},
+      {id:'t4',title:'Introductory meeting with UX team',cat:'meeting',due:'Feb 8, 2024',status:'complete',req:false,notes:'Conference Room B, 10:00 AM'},
+      {id:'t5',title:'Product design system training',cat:'training',due:'Feb 14, 2024',status:'in-progress',req:true,notes:''},
+      {id:'t6',title:'Review brand guidelines document',cat:'document',due:'Feb 15, 2024',status:'pending',req:true,notes:''},
+      {id:'t7',title:'30-day check-in with manager',cat:'meeting',due:'Mar 5, 2024',status:'pending',req:false,notes:''},
+    ],
+    e2:[
+      {id:'t1',title:'Sign offer letter and NDA',cat:'document',due:'Feb 13, 2024',status:'complete',req:true,notes:''},
+      {id:'t2',title:'Development environment setup',cat:'training',due:'Feb 14, 2024',status:'in-progress',req:true,notes:'Engineering onboarding doc shared via email'},
+      {id:'t3',title:'Complete benefits enrollment',cat:'form',due:'Feb 16, 2024',status:'pending',req:true,notes:''},
+      {id:'t4',title:'Code review standards training',cat:'training',due:'Feb 21, 2024',status:'pending',req:true,notes:''},
+      {id:'t5',title:'Introductory meeting with engineering team',cat:'meeting',due:'Feb 15, 2024',status:'overdue',req:false,notes:''},
+    ],
+    e3:[
+      {id:'t1',title:'Sign offer letter and NDA',cat:'document',due:'Jan 30, 2024',status:'complete',req:true,notes:''},
+      {id:'t2',title:'Marketing tools access and setup',cat:'training',due:'Jan 31, 2024',status:'complete',req:true,notes:''},
+      {id:'t3',title:'Complete benefits enrollment',cat:'form',due:'Feb 2, 2024',status:'complete',req:true,notes:''},
+      {id:'t4',title:'Campaign review meeting',cat:'meeting',due:'Feb 5, 2024',status:'complete',req:true,notes:''},
+      {id:'t5',title:'Brand training module',cat:'training',due:'Feb 8, 2024',status:'complete',req:true,notes:''},
+    ],
+    e4:[
+      {id:'t1',title:'Sign offer letter and NDA',cat:'document',due:'Feb 20, 2024',status:'pending',req:true,notes:''},
+      {id:'t2',title:'IT equipment setup',cat:'training',due:'Feb 21, 2024',status:'pending',req:true,notes:''},
+      {id:'t3',title:'Complete benefits enrollment',cat:'form',due:'Feb 23, 2024',status:'pending',req:true,notes:''},
+    ],
+    e5:[
+      {id:'t1',title:'Sign offer letter and NDA',cat:'document',due:'Feb 2, 2024',status:'complete',req:true,notes:''},
+      {id:'t2',title:'HRIS system training',cat:'training',due:'Feb 5, 2024',status:'complete',req:true,notes:''},
+      {id:'t3',title:'Complete benefits enrollment',cat:'form',due:'Feb 7, 2024',status:'overdue',req:true,notes:'Follow-up email sent Feb 8'},
+      {id:'t4',title:'Payroll system access setup',cat:'training',due:'Feb 9, 2024',status:'overdue',req:true,notes:''},
+      {id:'t5',title:'HR policy document review',cat:'document',due:'Feb 12, 2024',status:'pending',req:true,notes:''},
+    ],
+  },
+  docs:[
+    {id:'d1',name:'Employee Handbook 2024',type:'pdf',size:'2.4 MB'},
+    {id:'d2',name:'Benefits Enrollment Guide',type:'pdf',size:'1.1 MB'},
+    {id:'d3',name:'IT Security Policy',type:'doc',size:'890 KB'},
+    {id:'d4',name:'Code of Conduct',type:'pdf',size:'620 KB'},
+    {id:'d5',name:'NDA Agreement',type:'form',size:'340 KB'},
+    {id:'d6',name:'Benefits Enrollment Form',type:'form',size:'280 KB'},
+  ],
+  schedule:[
+    {time:'9:00 AM',title:'Welcome Breakfast',loc:'Café, Building A',color:'#1B3F6E'},
+    {time:'10:00 AM',title:'IT Setup and Equipment',loc:'IT Desk 3B',color:'#7C3AED'},
+    {time:'12:00 PM',title:'Team Lunch',loc:'Main Cafeteria',color:'#2D9A60'},
+    {time:'2:00 PM',title:'HR Orientation',loc:'Conference Room A',color:'#D97706'},
+    {time:'3:30 PM',title:'Meet Your Manager',loc:"Manager's Office",color:'#DC2626'},
+  ],
+  contacts:[
+    {name:'Alex Rivera',role:'HR Manager',email:'a.rivera@true-north-companies.com',ini:'AR'},
+    {name:'Priya Patel',role:'Engineering Lead',email:'p.patel@true-north-companies.com',ini:'PP'},
+    {name:'IT Help Desk',role:'Technical Support',email:'it@true-north-companies.com',ini:'IT'},
+  ],
+  templates:[
+    {id:'tpl1',name:'Standard Onboarding',dept:'All departments',used:4,desc:'Covers HR paperwork, IT setup, benefits enrollment, and company culture introduction.',tasks:[
+      {id:'s1',title:'Sign offer letter and NDA',cat:'document',req:true,days:1},
+      {id:'s2',title:'IT equipment setup and account creation',cat:'training',req:true,days:1},
+      {id:'s3',title:'Complete benefits enrollment form',cat:'form',req:true,days:3},
+      {id:'s4',title:'Building and badge access setup',cat:'training',req:true,days:2},
+      {id:'s5',title:'Complete payroll direct deposit form',cat:'form',req:true,days:5},
+      {id:'s6',title:'Review employee handbook',cat:'document',req:true,days:7},
+      {id:'s7',title:'Review code of conduct',cat:'document',req:true,days:7},
+      {id:'s8',title:'IT security policy acknowledgment',cat:'form',req:true,days:10},
+      {id:'s9',title:'Introductory meeting with HR',cat:'meeting',req:true,days:2},
+      {id:'s10',title:'Meet your manager and team',cat:'meeting',req:true,days:3},
+      {id:'s11',title:'30-day check-in with manager',cat:'meeting',req:false,days:30},
+      {id:'s12',title:'90-day review with HR',cat:'meeting',req:false,days:90},
+    ]},
+    {id:'tpl2',name:'Engineering Track',dept:'Engineering',used:2,desc:'Development environment, code review standards, architecture overview, and tooling setup.',tasks:[
+      {id:'e1',title:'Sign offer letter and NDA',cat:'document',req:true,days:1},
+      {id:'e2',title:'Development environment setup',cat:'training',req:true,days:2},
+      {id:'e3',title:'GitHub and repository access',cat:'training',req:true,days:2},
+      {id:'e4',title:'Complete benefits enrollment form',cat:'form',req:true,days:3},
+      {id:'e5',title:'Jira and project management tool access',cat:'training',req:true,days:3},
+      {id:'e6',title:'Code review standards training',cat:'training',req:true,days:7},
+      {id:'e7',title:'Architecture overview session',cat:'meeting',req:true,days:5},
+      {id:'e8',title:'Meet engineering team',cat:'meeting',req:true,days:3},
+      {id:'e9',title:'Review coding style guide',cat:'document',req:true,days:7},
+      {id:'e10',title:'Complete first pull request review',cat:'training',req:true,days:14},
+      {id:'e11',title:'Security and access control training',cat:'training',req:true,days:10},
+      {id:'e12',title:'On-call rotation onboarding',cat:'training',req:false,days:21},
+      {id:'e13',title:'Product roadmap overview with PM',cat:'meeting',req:false,days:14},
+      {id:'e14',title:'Deploy first staging change',cat:'training',req:false,days:21},
+      {id:'e15',title:'30-day engineering check-in',cat:'meeting',req:false,days:30},
+      {id:'e16',title:'90-day performance review',cat:'meeting',req:false,days:90},
+    ]},
+    {id:'tpl3',name:'Sales Onboarding',dept:'Sales',used:0,desc:'CRM training, product demos, territory assignments, and customer engagement basics.',tasks:[
+      {id:'sa1',title:'Sign offer letter and NDA',cat:'document',req:true,days:1},
+      {id:'sa2',title:'Complete benefits enrollment form',cat:'form',req:true,days:3},
+      {id:'sa3',title:'CRM system training and access',cat:'training',req:true,days:3},
+      {id:'sa4',title:'Product demo certification',cat:'training',req:true,days:10},
+      {id:'sa5',title:'Territory and quota assignment review',cat:'meeting',req:true,days:5},
+      {id:'sa6',title:'Review sales playbook',cat:'document',req:true,days:7},
+      {id:'sa7',title:'Shadow a senior sales call',cat:'training',req:true,days:14},
+      {id:'sa8',title:'Meet sales leadership',cat:'meeting',req:true,days:5},
+      {id:'sa9',title:'Commission structure review',cat:'document',req:true,days:7},
+      {id:'sa10',title:'30-day sales pipeline review',cat:'meeting',req:false,days:30},
+    ]},
+    {id:'tpl4',name:'Leadership Track',dept:'Management',used:0,desc:'People management, executive introductions, strategy alignment, and team onboarding.',tasks:[
+      {id:'l1',title:'Sign offer letter and NDA',cat:'document',req:true,days:1},
+      {id:'l2',title:'Complete benefits enrollment form',cat:'form',req:true,days:3},
+      {id:'l3',title:'Executive leadership introductions',cat:'meeting',req:true,days:3},
+      {id:'l4',title:'Review company strategy and OKRs',cat:'document',req:true,days:7},
+      {id:'l5',title:'Meet direct reports individually',cat:'meeting',req:true,days:5},
+      {id:'l6',title:'HR policies and people management training',cat:'training',req:true,days:7},
+      {id:'l7',title:'Budget and resource planning overview',cat:'meeting',req:true,days:10},
+      {id:'l8',title:'30-day leadership check-in',cat:'meeting',req:false,days:30},
+      {id:'l9',title:'90-day strategy alignment review',cat:'meeting',req:false,days:90},
+    ]},
+  ],
+};
+
+let S={
+  view:'login',role:null,loginRole:'hr',
+  empId:'e1',hrTab:'dashboard',empTab:'overview',
+  detailId:null,detailTab:'overview',
+  filterStatus:'all',filterDept:'all',search:'',
+  empListTab:'active', // 'active' | 'archived'
+  departments:['Engineering','Product','Marketing','Sales','HR','Finance'],
+  modal:null,
+  employees:JSON.parse(JSON.stringify(DB.employees)),
+  tasks:JSON.parse(JSON.stringify(DB.tasks)),
+  templates:JSON.parse(JSON.stringify(DB.templates)),
+};
+
+const ini=n=>n.trim().split(' ').map(x=>x[0].toUpperCase()).join('');
+const pfC=(p,s)=>p>=80?'pf-green':s==='overdue'?'pf-red':'pf-navy';
+
+function sBadge(s){
+  const m={complete:['b-success','Complete'],'in-progress':['b-navy','In Progress'],overdue:['b-danger','Overdue'],'not-started':['b-muted','Not Started'],pending:['b-muted','Not Started']};
+  const[c,l]=m[s]||['b-muted',s];
+  return`<span class="badge ${c}"><span class="dot-sm"></span> ${l}</span>`;
+}
+function catPill(c){
+  const m={document:['#E8EFF8','#1B3F6E','Document'],training:['#E8F7EF','#2D9A60','Training'],form:['#FEF3C7','#B45309','Form'],meeting:['#EDE9FE','#7C3AED','Meeting']};
+  const[bg,col,lbl]=m[c]||['#F2F1ED','#6B6860',c];
+  return`<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:${bg};color:${col}">${lbl}</span>`;
+}
+function recalc(eid){
+  const e=S.employees.find(x=>x.id===eid);if(!e)return;
+  const ts=S.tasks[eid]||[];
+  const done=ts.filter(t=>t.status==='complete').length;
+  e.pct=ts.length?Math.round(done/ts.length*100):0;
+  if(!ts.length)e.status='not-started';
+  else if(ts.every(t=>t.status==='complete'))e.status='complete';
+  else if(ts.some(t=>t.status==='overdue'))e.status='overdue';
+  else if(ts.some(t=>t.status==='in-progress'))e.status='in-progress';
+  else e.status='not-started';
+}
+function findTpl(id){
+  return S.templates.find(x=>x.id===id)||(S.modal&&S.modal.draft&&S.modal.draft.id===id?S.modal.draft:null);
+}
+function closeModal(){S.modal=null;render();}
+window.closeModal=closeModal;
+
+function render(){
+  document.getElementById('root').innerHTML=
+    S.view==='login'?rLogin():
+    S.role==='hr'?rHR():rEmp();
+  bind();
+}
+
+function rLogin(){
+  return`<div class="login-wrap"><div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">${SVG_W}</div>
+      <div class="login-logo-text"><span class="l1">Onboard TrueNorth</span><span class="l2">People Operations Platform</span></div>
+    </div>
+    <h2>Welcome back</h2>
+    <p class="login-sub">Sign in to your workspace to continue</p>
+    <div class="role-tabs">
+      <div class="role-tab${S.loginRole==='hr'?' active':''}" data-a="lr" data-v="hr">HR / Admin</div>
+      <div class="role-tab${S.loginRole==='emp'?' active':''}" data-a="lr" data-v="emp">New Hire</div>
+    </div>
+    <div class="field"><label>Email address</label><input type="email" value="${S.loginRole==='emp'?'sarah.chen@true-north-companies.com':'hr@true-north-companies.com'}" placeholder="you@true-north-companies.com"></div>
+    <div class="field"><label>Password</label><input type="password" value="password" placeholder="Your password"></div>
+    <button class="btn-signin" data-a="login">Sign in →</button>
+    <div class="demo-hint"><strong>Demo mode —</strong> any credentials work.<br>${S.loginRole==='emp'?'Loads Sarah Chen\'s personal new-hire portal.':'Opens the full HR admin dashboard.'}</div>
+  </div></div>`;
+}
+
+function rHR(){
+  const body=S.hrTab==='employees'?rHREmps():S.hrTab==='detail'?rHRDetail():S.hrTab==='templates'?rHRTemplates():rHRDash();
+  return`<div class="app-shell">${rHRSide()}<div class="main-area">${body}</div>${S.modal?rModal():''}</div>`;
+}
+
+function rHRSide(){
+  const cur=S.hrTab;
+  const isA=id=>cur===id||(id==='dashboard'&&!['employees','templates','detail'].includes(cur));
+  return`<div class="sidebar">
+    <div class="sidebar-header"><div class="sidebar-logo"><div class="sidebar-logo-icon">${SVG_D}</div><div class="sidebar-logo-text"><span class="s1">Onboard TrueNorth</span><span class="s2">People Operations</span></div></div></div>
+    <div class="sidebar-user"><div class="avatar av-light av-32">HR</div><div><div style="font-weight:600;font-size:13px;color:#fff;line-height:1.2">Alex Rivera</div><div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:1px">HR Administrator</div></div></div>
+    <div class="sidebar-nav"><div class="nav-section-label">Main Menu</div>
+      ${[['dashboard','▦','Dashboard'],['employees','👥','All Employees'],['templates','📋','Templates']].map(([id,icon,lbl])=>`
+      <button class="nav-btn${isA(id)?' active':''}" data-a="hrnav" data-v="${id}"><span class="nav-icon">${icon}</span>${lbl}</button>`).join('')}
+    </div>
+    <div class="sidebar-footer"><button class="logout-btn-inner" data-a="logout">↩&nbsp; Sign out</button></div>
+  </div>`;
+}
+
+function rHRDash(){
+  const emps=S.employees.filter(e=>!e.archived);
+  const archived=S.employees.filter(e=>e.archived).length;
+  const c={complete:0,'in-progress':0,overdue:0,'not-started':0};
+  emps.forEach(e=>{c[e.status]=(c[e.status]||0)+1;});
+  return`
+  <div class="topbar"><div class="topbar-left"><h1>Dashboard</h1><p>Overview of all active onboarding activity</p></div><div class="topbar-actions"><button class="btn-primary" data-a="modal" data-v="add-emp">+ Add Employee</button></div></div>
+  <div class="content">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Active New Hires</div><div class="stat-value">${emps.length}</div><div class="stat-sub">${archived} archived</div></div>
+      <div class="stat-card"><div class="stat-label">In Progress</div><div class="stat-value c-navy">${c['in-progress']||0}</div><div class="stat-sub">Actively onboarding</div></div>
+      <div class="stat-card"><div class="stat-label">Completed</div><div class="stat-value c-green">${c['complete']||0}</div><div class="stat-sub">Ready to archive</div></div>
+      <div class="stat-card"><div class="stat-label">Needs Attention</div><div class="stat-value c-red">${c['overdue']||0}</div><div class="stat-sub">Overdue tasks</div></div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><h3>Recent Employees</h3><button class="btn-ghost sm" data-a="hrnav" data-v="employees">View all</button></div>
+        <table><tbody>${emps.slice(0,4).map(e=>`
+        <tr class="tr-click" data-a="viewemp" data-v="${e.id}">
+          <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar av-navy av-32">${ini(e.name)}</div><div><div class="emp-name">${e.name}</div><div class="emp-email">${e.role}</div></div></div></td>
+          <td><div class="prog-bar"><div class="prog-fill ${pfC(e.pct,e.status)}" style="width:${e.pct}%"></div></div><div class="prog-label">${e.pct}% complete</div></td>
+          <td>${sBadge(e.status)}</td>
+        </tr>`).join('')}</tbody></table>
+      </div>
+      <div>
+        <div class="card mb2">
+          <div class="card-header"><h3>Recent Activity</h3></div>
+          <div class="card-body" style="padding:.5rem 1.25rem">
+            ${[['Sarah Chen completed "Design system training"','2 hours ago'],['Marcus Johnson started "Dev environment setup"','5 hours ago'],['Devon Park account created and ready','1 day ago'],['Olivia Reyes has 2 overdue tasks','2 days ago']].map(([t,time])=>`
+            <div class="act-row"><div class="act-dot"></div><div><div class="act-text">${t}</div><div class="act-time">${time}</div></div></div>`).join('')}
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Upcoming This Week</h3></div>
+          <div class="card-body" style="padding:.5rem 1.25rem">
+            ${[['#1B3F6E','Mon, 9:00 AM','Devon Park — First Day','Data Scientist · Engineering'],['#D97706','Wed, 2:00 PM','Marcus Johnson — 1-Week Check-in','Conference Room B'],['#DC2626','Friday','Olivia Reyes — Overdue Tasks','Benefits enrollment + Payroll access']].map(([col,t,ti,su])=>`
+            <div class="sched-item"><div class="sched-dot" style="background:${col}"></div><div class="sched-time">${t}</div><div><div class="sched-title">${ti}</div><div class="sched-sub">${su}</div></div></div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function rHREmps(){
+  const isArchived = S.empListTab==='archived';
+  const pool = S.employees.filter(e=>isArchived ? e.archived : !e.archived);
+  const depts=['all',...new Set(pool.map(e=>e.dept))];
+  let list=pool;
+  if(!isArchived && S.filterStatus!=='all') list=list.filter(e=>e.status===S.filterStatus);
+  if(S.filterDept!=='all') list=list.filter(e=>e.dept===S.filterDept);
+  if(S.search) list=list.filter(e=>e.name.toLowerCase().includes(S.search.toLowerCase())||e.role.toLowerCase().includes(S.search.toLowerCase())||e.dept.toLowerCase().includes(S.search.toLowerCase()));
+  const activeCount=S.employees.filter(e=>!e.archived).length;
+  const archiveCount=S.employees.filter(e=>e.archived).length;
+  return`
+  <div class="topbar"><div class="topbar-left"><h1>All Employees</h1><p>${activeCount} active · ${archiveCount} archived</p></div><div class="topbar-actions"><button class="btn-primary" data-a="modal" data-v="add-emp">+ Add Employee</button></div></div>
+  <div class="content"><div class="card">
+    <div style="display:flex;border-bottom:1px solid #E5E3DC;">
+      <button class="tab-btn${!isArchived?' active':''}" data-a="emp-list-tab" data-v="active" style="font-size:13px;padding:10px 18px">Active <span style="margin-left:6px;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600;background:${!isArchived?'#E8EFF8':'#F2F1ED'};color:${!isArchived?'#1B3F6E':'#9B9890'}">${activeCount}</span></button>
+      <button class="tab-btn${isArchived?' active':''}" data-a="emp-list-tab" data-v="archived" style="font-size:13px;padding:10px 18px">Archived <span style="margin-left:6px;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600;background:${isArchived?'#E8EFF8':'#F2F1ED'};color:${isArchived?'#1B3F6E':'#9B9890'}">${archiveCount}</span></button>
+    </div>
+    <div class="filter-bar">
+      <input class="search-input" id="emp-search" placeholder="Search by name, role, or dept…" value="${S.search}">
+      ${!isArchived?`<span class="divider-label">Status:</span>
+      ${['all','in-progress','complete','overdue','not-started'].map(s=>`<button class="filter-chip${S.filterStatus===s?' active':''}" data-a="fs" data-v="${s}">${s==='all'?'All':s==='not-started'?'Not Started':s==='in-progress'?'In Progress':s[0].toUpperCase()+s.slice(1)}</button>`).join('')}`:''}
+      <span class="divider-label">Dept:</span>
+      ${depts.map(d=>`<button class="filter-chip${S.filterDept===d?' active':''}" data-a="fd" data-v="${d}">${d==='all'?'All':d}</button>`).join('')}
+    </div>
+    ${isArchived && archiveCount===0 ? `<div class="empty-state"><div class="empty-icon">📦</div><p>No archived employees</p><div class="esub">Employees who have completed onboarding can be archived from their profile.</div></div>` : `
+    <table>
+      <thead><tr><th>Employee</th><th>Department</th><th>Manager</th><th>Start Date</th><th>Progress</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>${list.length===0?`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔍</div><p>No employees match your filters</p><div class="esub">Try adjusting the filters above</div></div></td></tr>`:
+      list.map(e=>`<tr class="tr-click" data-a="viewemp" data-v="${e.id}">
+        <td><div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar av-navy av-32" style="${isArchived?'opacity:0.6':''}">${ini(e.name)}</div>
+          <div><div class="emp-name" style="${isArchived?'color:#6B6860':''}">${e.name}</div><div class="emp-email">${e.email}</div></div>
+        </div></td>
+        <td>${e.dept}</td><td style="color:#6B6860">${e.manager}</td><td style="font-size:12px;color:#6B6860">${e.start}</td>
+        <td><div class="prog-bar"><div class="prog-fill ${pfC(e.pct,e.status)}" style="width:${e.pct}%"></div></div><div class="prog-label">${e.pct}%</div></td>
+        <td>${isArchived?'<span class="badge b-muted"><span class="dot-sm"></span> Archived</span>':sBadge(e.status)}</td>
+        <td onclick="event.stopPropagation()"><div style="display:flex;gap:5px">
+          <button class="btn-ghost sm" data-a="viewemp" data-v="${e.id}">View</button>
+          ${isArchived
+            ?`<button class="btn-ghost sm" data-a="restore-emp" data-eid="${e.id}">Restore</button>`
+            :`<button class="btn-ghost sm" data-a="modal" data-v="reset-pw" data-eid="${e.id}">Reset PW</button>`}
+        </div></td>
+      </tr>`).join('')}</tbody>
+    </table>`}
+  </div></div>`;
+}
+
+function rHRDetail(){
+  const e=S.employees.find(x=>x.id===S.detailId);if(!e)return rHREmps();
+  const tasks=S.tasks[e.id]||[];
+  const done=tasks.filter(t=>t.status==='complete').length;
+  return`
+  <div class="topbar">
+    <div class="topbar-left"><div style="display:flex;align-items:center;gap:10px;margin-bottom:3px"><button class="btn-ghost sm" data-a="hrnav" data-v="employees">← Back</button><h1>${e.name}</h1>${sBadge(e.status)}</div><p>${e.role} · ${e.dept} · Started ${e.start}</p></div>
+    <div class="topbar-actions"><button class="btn-ghost" data-a="modal" data-v="add-task" data-eid="${e.id}">+ Add Task</button><button class="btn-ghost" data-a="modal" data-v="add-note" data-eid="${e.id}">Add Note</button><button class="btn-primary" data-a="modal" data-v="edit-emp" data-eid="${e.id}">Edit Profile</button></div>
+  </div>
+  <div class="content"><div class="detail-grid">
+    <div>
+      <div class="card mb2"><div class="card-body" style="text-align:center;padding:1.5rem 1.25rem">
+        <div class="avatar av-navy av-52" style="margin:0 auto 12px">${ini(e.name)}</div>
+        <div style="font-weight:700;font-size:16px;color:#1A1916">${e.name}</div>
+        <div style="color:#6B6860;font-size:13px;margin-top:3px">${e.role}</div>
+        <div style="margin:14px 0"><div class="prog-bar" style="height:8px"><div class="prog-fill ${pfC(e.pct,e.status)}" style="width:${e.pct}%"></div></div><div style="font-size:12px;color:#6B6860;margin-top:5px">${e.pct}% complete — ${done} of ${tasks.length} tasks done</div></div>
+        ${sBadge(e.status)}
+      </div></div>
+      <div class="card mb2"><div class="card-header"><h3>Employee Info</h3></div><div class="card-body" style="padding:.5rem 1.25rem">
+        ${[['Email',e.email],['Phone',e.phone],['Department',e.dept],['Manager',e.manager],['Start date',e.start]].map(([k,v])=>`<div class="info-row"><span class="info-key">${k}</span><span class="info-val">${v}</span></div>`).join('')}
+      </div></div>
+      <div class="card"><div class="card-header"><h3>Actions</h3></div><div class="card-body" style="display:flex;flex-direction:column;gap:7px;padding:.75rem 1.25rem">
+        <button class="btn-ghost sm" data-a="modal" data-v="add-note" data-eid="${e.id}" style="justify-content:flex-start">Add HR Note</button>
+        <button class="btn-ghost sm" data-a="modal" data-v="reset-pw" data-eid="${e.id}" style="justify-content:flex-start">Reset Password</button>
+        <button class="btn-danger-soft sm" style="justify-content:flex-start">Send Reminder Email</button>
+        ${e.archived
+          ?`<button class="btn-ghost sm" data-a="restore-emp" data-eid="${e.id}" style="justify-content:flex-start;border-color:#2D9A60;color:#2D9A60">Restore to Active</button>`
+          :e.status==='complete'
+            ?`<hr style="border:none;border-top:1px solid #F2F1ED;margin:4px 0"><button class="btn-ghost sm" data-a="archive-emp" data-eid="${e.id}" style="justify-content:flex-start;border-color:#9B9890;color:#6B6860">Archive Employee</button>`
+            :`<div style="font-size:11px;color:#9B9890;padding:2px 0">Archive available when onboarding is 100% complete.</div>`}
+      </div></div>
+    </div>
+    <div>
+      <div class="tabs-row">${['overview','tasks','documents','schedule'].map(t=>`<button class="tab-btn${S.detailTab===t?' active':''}" data-a="dtab" data-v="${t}">${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}</div>
+      ${rDetailBody(e,tasks)}
+    </div>
+  </div></div>`;
+}
+
+function rDetailBody(e,tasks){
+  const pending=tasks.filter(t=>t.status==='pending').length;
+  const inprog=tasks.filter(t=>t.status==='in-progress').length;
+  const done=tasks.filter(t=>t.status==='complete').length;
+  const over=tasks.filter(t=>t.status==='overdue').length;
+  if(S.detailTab==='overview')return`
+    <div class="two-col-sm">
+      <div class="stat-card"><div class="stat-label">Not Started</div><div class="stat-value">${pending}</div></div>
+      <div class="stat-card"><div class="stat-label">In Progress</div><div class="stat-value c-navy">${inprog}</div></div>
+      <div class="stat-card"><div class="stat-label">Complete</div><div class="stat-value c-green">${done}</div></div>
+      <div class="stat-card"><div class="stat-label">Overdue</div><div class="stat-value c-red">${over}</div></div>
+    </div>
+    <div class="card"><div class="card-header"><h3>Task Summary</h3><button class="btn-ghost sm" data-a="dtab" data-v="tasks">View all tasks</button></div>${tasks.slice(0,5).map(t=>rCheck(t,e.id,true)).join('')}</div>`;
+  if(S.detailTab==='tasks')return`
+    <div class="card"><div class="card-header"><h3>All Tasks (${tasks.length})</h3><button class="btn-primary sm" data-a="modal" data-v="add-task" data-eid="${e.id}">+ Add Task</button></div>
+    ${tasks.length===0?`<div class="empty-state"><div class="empty-icon">📋</div><p>No tasks assigned yet</p><div class="esub">Use "+ Add Task" to get started</div></div>`:tasks.map(t=>rCheck(t,e.id,true)).join('')}</div>`;
+  if(S.detailTab==='documents')return`
+    <div class="card"><div class="card-header"><h3>Assigned Documents</h3><button class="btn-ghost sm">Upload Document</button></div><div style="padding:0 1.25rem">${DB.docs.map(rDoc).join('')}</div></div>`;
+  if(S.detailTab==='schedule')return`
+    <div class="card"><div class="card-header"><h3>Day 1 Schedule</h3></div><div style="padding:0 1.25rem">${DB.schedule.map(s=>`<div class="sched-item"><div class="sched-dot" style="background:${s.color}"></div><div class="sched-time">${s.time}</div><div><div class="sched-title">${s.title}</div><div class="sched-sub">${s.loc}</div></div></div>`).join('')}</div></div>`;
+  return'';
+}
+
+function rHRTemplates(){
+  return`
+  <div class="topbar"><div class="topbar-left"><h1>Onboarding Templates</h1><p>Reusable task lists that can be applied to any new hire</p></div><div class="topbar-actions"><button class="btn-primary" data-a="modal" data-v="new-template">+ Create Template</button></div></div>
+  <div class="content"><div class="two-col">${S.templates.map(t=>`
+  <div class="card"><div class="card-header"><div><h3>${t.name}</h3><div style="font-size:11px;color:#9B9890;margin-top:2px">${t.dept}</div></div><span class="badge b-navy">${t.tasks.length} task${t.tasks.length!==1?'s':''}</span></div>
+  <div class="card-body"><p style="font-size:13px;color:#6B6860;line-height:1.55;margin-bottom:1rem">${t.desc}</p>
+  <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#9B9890">Used for ${t.used} employee${t.used!==1?'s':''}</span>
+  <div style="display:flex;gap:6px"><button class="btn-ghost sm" data-a="modal" data-v="edit-template" data-eid="${t.id}">Edit</button><button class="btn-primary sm" data-a="modal" data-v="apply-template" data-eid="${t.id}">Apply to Employee</button></div></div></div></div>`).join('')}</div></div>`;
+}
+
+function rEmp(){
+  const e=S.employees.find(x=>x.id===S.empId)||S.employees[0];
+  const tasks=S.tasks[e.id]||[];
+  const done=tasks.filter(t=>t.status==='complete').length;
+  const pct=tasks.length?Math.round(done/tasks.length*100):0;
+  return`<div class="app-shell">
+    <div class="sidebar">
+      <div class="sidebar-header"><div class="sidebar-logo"><div class="sidebar-logo-icon">${SVG_D}</div><div class="sidebar-logo-text"><span class="s1">Onboard TrueNorth</span><span class="s2">People Operations</span></div></div></div>
+      <div class="sidebar-user"><div class="avatar av-light av-32">${ini(e.name)}</div><div><div style="font-weight:600;font-size:13px;color:#fff;line-height:1.2">${e.name}</div><div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:1px">New Hire</div></div></div>
+      <div class="sidebar-nav"><div class="nav-section-label">My Onboarding</div>
+        ${[['overview','▦','My Overview'],['tasks','✓','My Tasks'],['schedule','📅','Schedule'],['documents','📄','Documents'],['contacts','👤','Contacts']].map(([id,icon,lbl])=>`
+        <button class="nav-btn${S.empTab===id?' active':''}" data-a="etab" data-v="${id}"><span class="nav-icon">${icon}</span>${lbl}</button>`).join('')}
+      </div>
+      <div class="sidebar-footer"><button class="logout-btn-inner" data-a="logout">↩&nbsp; Sign out</button></div>
+    </div>
+    <div class="main-area">${rEmpBody(e,tasks,pct)}</div>
+    ${S.modal?rModal():''}
+  </div>`;
+}
+
+function rEmpBody(e,tasks,pct){
+  const upcoming=tasks.filter(t=>t.status!=='complete').slice(0,3);
+  if(S.empTab==='overview')return`
+    <div class="topbar"><div class="topbar-left"><h1>Welcome, ${e.name.split(' ')[0]}!</h1><p>Your personal onboarding hub · Started ${e.start}</p></div><div class="topbar-actions"><button class="btn-ghost sm" data-a="modal" data-v="change-pw">Change Password</button></div></div>
+    <div class="content">
+      <div class="welcome-banner"><h2>You're ${pct}% onboarded!</h2><p>${tasks.filter(t=>t.status!=='complete').length} task${tasks.filter(t=>t.status!=='complete').length!==1?'s':''} remaining — you're doing great.</p><div class="wb-row"><div class="wb-bar"><div class="wb-fill" style="width:${pct}%"></div></div><span class="wb-pct">${pct}%</span></div></div>
+      <div class="two-col">
+        <div class="card"><div class="card-header"><h3>Up Next</h3><button class="btn-ghost sm" data-a="etab" data-v="tasks">View all tasks</button></div>
+          ${upcoming.length===0?`<div class="empty-state"><div class="empty-icon">🎉</div><p>All tasks complete!</p><div class="esub">Congratulations — you've finished your onboarding checklist.</div></div>`:upcoming.map(t=>rCheck(t,e.id,false)).join('')}
+        </div>
+        <div>
+          <div class="card mb2"><div class="card-header"><h3>Today's Schedule</h3></div><div style="padding:0 1.25rem">${DB.schedule.slice(0,3).map(s=>`<div class="sched-item"><div class="sched-dot" style="background:${s.color}"></div><div class="sched-time">${s.time}</div><div><div class="sched-title">${s.title}</div><div class="sched-sub">${s.loc}</div></div></div>`).join('')}</div></div>
+          <div class="card"><div class="card-header"><h3>My Progress</h3></div><div class="card-body">
+            ${[['Complete',tasks.filter(t=>t.status==='complete').length,'pf-green','c-green'],['In Progress',tasks.filter(t=>t.status==='in-progress').length,'pf-navy','c-navy'],['Not Started',tasks.filter(t=>t.status==='pending').length,'pf-amber',''],['Overdue',tasks.filter(t=>t.status==='overdue').length,'pf-red','c-red']].map(([l,v,fc,tc])=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:13px;color:#6B6860">${l}</span><div style="display:flex;align-items:center;gap:9px"><div class="prog-bar" style="width:80px"><div class="prog-fill ${fc}" style="width:${tasks.length?Math.round(v/tasks.length*100):0}%"></div></div><span style="font-size:13px;font-weight:600;min-width:14px;text-align:right" class="${tc}">${v}</span></div></div>`).join('')}
+          </div></div>
+        </div>
+      </div>
+    </div>`;
+  if(S.empTab==='tasks')return`
+    <div class="topbar"><div class="topbar-left"><h1>My Tasks</h1><p>${tasks.filter(t=>t.status==='complete').length} of ${tasks.length} tasks complete</p></div></div>
+    <div class="content"><div class="card"><div class="card-header"><h3>All Onboarding Tasks</h3></div>${tasks.length===0?`<div class="empty-state"><div class="empty-icon">📋</div><p>No tasks assigned yet</p></div>`:tasks.map(t=>rCheck(t,e.id,false)).join('')}</div></div>`;
+  if(S.empTab==='schedule')return`
+    <div class="topbar"><div class="topbar-left"><h1>My Schedule</h1><p>Day 1 agenda and upcoming check-ins</p></div></div>
+    <div class="content">
+      <div class="card mb2"><div class="card-header"><h3>Day 1 — ${e.start}</h3></div><div style="padding:0 1.25rem">${DB.schedule.map(s=>`<div class="sched-item"><div class="sched-dot" style="background:${s.color}"></div><div class="sched-time">${s.time}</div><div><div class="sched-title">${s.title}</div><div class="sched-sub">${s.loc}</div></div></div>`).join('')}</div></div>
+      <div class="card"><div class="card-header"><h3>Upcoming Check-ins</h3></div><div style="padding:0 1.25rem">${[['Week 1','Meet Your Team','Introductory calls with all team members'],['Week 2','Manager 1:1','Review goals and priorities for your first 30 days'],['Day 30','30-Day Review','Formal check-in with your HR contact and manager'],['Day 90','90-Day Review','Career goals, project ownership, and feedback session']].map(([t,ti,su])=>`<div class="sched-item"><div class="sched-dot" style="background:#1B3F6E"></div><div class="sched-time">${t}</div><div><div class="sched-title">${ti}</div><div class="sched-sub">${su}</div></div></div>`).join('')}</div></div>
+    </div>`;
+  if(S.empTab==='documents')return`
+    <div class="topbar"><div class="topbar-left"><h1>Documents</h1><p>Files and forms you need to review or complete</p></div></div>
+    <div class="content"><div class="card"><div class="card-header"><h3>Required Documents</h3><span class="badge b-danger">Action needed</span></div><div style="padding:0 1.25rem">${DB.docs.map(rDoc).join('')}</div></div></div>`;
+  if(S.empTab==='contacts')return`
+    <div class="topbar"><div class="topbar-left"><h1>Key Contacts</h1><p>People to reach out to during your onboarding</p></div></div>
+    <div class="content"><div class="card"><div class="card-header"><h3>Your Onboarding Team</h3></div><div class="card-body">${DB.contacts.map(c=>`<div class="contact-row"><div class="avatar av-navy av-38">${c.ini}</div><div style="flex:1"><div class="contact-name">${c.name}</div><div class="contact-role">${c.role}</div><div class="contact-email">${c.email}</div></div><button class="btn-ghost sm">Send Email</button></div>`).join('')}</div></div></div>`;
+  return'';
+}
+
+function rCheck(t,eid,isHR){
+  const done=t.status==='complete',over=t.status==='overdue';
+  return`<div class="check-item">
+    <button class="check-box-btn${done?' checked':''}" data-a="toggle" data-eid="${eid}" data-tid="${t.id}">${done?'✓':''}</button>
+    <div class="check-body">
+      <div class="check-title${done?' done':''}">${t.title}</div>
+      <div class="check-meta">
+        <span class="due-label${over?' due-overdue':''}">Due ${t.due}</span>
+        ${catPill(t.cat)}
+        ${over?`<span class="badge b-danger" style="font-size:10px;padding:2px 7px">Overdue</span>`:''}
+        ${t.req?`<span class="badge b-muted" style="font-size:10px;padding:2px 7px">Required</span>`:''}
+      </div>
+      ${t.notes?`<div class="check-note">📍 ${t.notes}</div>`:''}
+    </div>
+    ${isHR?`<select style="font-size:11px;padding:5px 8px;border:1.5px solid #E5E3DC;border-radius:7px;cursor:pointer;background:#fff;color:#1A1916;flex-shrink:0" data-a="tstatus" data-eid="${eid}" data-tid="${t.id}">
+      <option value="pending"${t.status==='pending'?' selected':''}>Not Started</option>
+      <option value="in-progress"${t.status==='in-progress'?' selected':''}>In Progress</option>
+      <option value="complete"${t.status==='complete'?' selected':''}>Complete</option>
+      <option value="overdue"${t.status==='overdue'?' selected':''}>Overdue</option>
+    </select>`:''}
+  </div>`;
+}
+
+function rDoc(d){
+  const icons={pdf:'📄',doc:'📝',form:'📋'};
+  const cls={pdf:'di-pdf',doc:'di-doc',form:'di-form'};
+  const typeLabel={pdf:'PDF',doc:'Document',form:'Form'};
+  return`<div class="doc-row"><div class="doc-icon ${cls[d.type]||'di-doc'}">${icons[d.type]||'📄'}</div><div style="flex:1;min-width:0"><div class="doc-name">${d.name}</div><div class="doc-meta">${d.size} · ${typeLabel[d.type]||d.type}</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn-ghost sm">View</button><button class="btn-ghost sm">Download</button></div></div>`;
+}
+
+
+function dayLabel(d){
+  if(d===1)return'Day 1';
+  if(d<8)return'Day '+d;
+  if(d<30){const w=Math.round(d/7);return'Week '+w;}
+  if(d===30)return'Day 30';
+  if(d===60)return'Day 60';
+  if(d===90)return'Day 90';
+  return'Day '+d;
+}
+
+function rTemplateEditor(tpl){
+  const catOpts=sel=>'<option value="document"'+(sel==='document'?' selected':'')+'>Document</option>'
+    +'<option value="training"'+(sel==='training'?' selected':'')+'>Training</option>'
+    +'<option value="form"'+(sel==='form'?' selected':'')+'>Form</option>'
+    +'<option value="meeting"'+(sel==='meeting'?' selected':'')+'>Meeting</option>';
+  const dayOpts=sel=>[1,2,3,5,7,10,14,21,30,45,60,90].map(d=>
+    '<option value="'+d+'"'+(d===sel?' selected':'')+'>'+dayLabel(d)+'</option>').join('');
+  const taskRows=tpl.tasks.map((t,i)=>
+    '<div style="display:flex;align-items:flex-start;gap:8px;padding:10px 0;border-bottom:1px solid #F2F1ED">'
+      +'<span style="font-size:11px;color:#9B9890;font-weight:600;min-width:18px;text-align:right;padding-top:8px">'+(i+1)+'</span>'
+      +'<div style="flex:1;display:flex;flex-direction:column;gap:6px">'
+        +'<input type="text" value="'+t.title+'" data-a="tpl-task-title" data-tplid="'+tpl.id+'" data-tid="'+t.id+'"'
+          +' style="width:100%;padding:7px 10px;border:1.5px solid #E5E3DC;border-radius:8px;font-size:13px;outline:none;background:#fff;color:#1A1916" placeholder="Task title">'
+        +'<div style="display:flex;gap:6px;align-items:center">'
+          +'<select data-a="tpl-task-cat" data-tplid="'+tpl.id+'" data-tid="'+t.id+'"'
+            +' style="padding:6px 8px;border:1.5px solid #E5E3DC;border-radius:8px;font-size:12px;cursor:pointer;background:#fff;color:#1A1916">'+catOpts(t.cat)+'</select>'
+          +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">'
+            +'<span style="font-size:11px;color:#9B9890;white-space:nowrap">Day</span>'
+            +'<input type="number" min="1" max="365" value="'+(t.days||1)+'"'
+              +' data-a="tpl-task-days" data-tplid="'+tpl.id+'" data-tid="'+t.id+'"'
+              +' style="width:60px;padding:6px 8px;border:1.5px solid #E5E3DC;border-radius:8px;font-size:12px;background:#fff;color:#1A1916;outline:none;text-align:center">'
+            +'<span style="font-size:11px;color:#9B9890;white-space:nowrap">from start</span>'
+          +'</div>'
+          +'<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#6B6860;cursor:pointer;white-space:nowrap;margin-left:auto">'
+            +'<input type="checkbox" '+(t.req?'checked':'')+' data-a="tpl-task-req" data-tplid="'+tpl.id+'" data-tid="'+t.id+'" style="cursor:pointer"> Required'
+          +'</label>'
+        +'</div>'
+      +'</div>'
+      +'<button data-a="tpl-task-del" data-tplid="'+tpl.id+'" data-tid="'+t.id+'"'
+        +' style="width:26px;height:26px;border-radius:50%;border:1px solid #FECACA;background:#FEE2E2;color:#DC2626;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;margin-top:4px">×</button>'
+    +'</div>'
+  ).join('');
+  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem">'
+    +'<div class="field" style="margin:0"><label>Template name</label><input type="text" value="'+tpl.name+'" data-a="tpl-name" data-tplid="'+tpl.id+'" placeholder="e.g. Engineering Track"></div>'
+    +'<div class="field" style="margin:0"><label>Target department</label>'
+      +'<select data-a="tpl-dept" data-tplid="'+tpl.id+'" onchange="handleTplDeptSelect(this)">'
+      +['All Departments',...S.departments].map(d=>'<option value="'+d+'"'+(tpl.dept===d?' selected':'')+'>'+d+'</option>').join('')+'<option value="__new__">+ Add new department…</option>'
+      +'</select></div>'
+    +'<div class="field" style="grid-column:1/-1;margin:0"><label>Description</label>'
+      +'<textarea data-a="tpl-desc" data-tplid="'+tpl.id+'" style="min-height:60px">'+tpl.desc+'</textarea></div>'
+    +'</div>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+      +'<div style="font-size:13px;font-weight:600;color:#1A1916">Task Schedule <span style="font-weight:400;color:#9B9890;font-size:12px">('+tpl.tasks.length+' tasks)</span></div>'
+      +'<button class="btn-primary sm" data-a="tpl-task-add" data-tplid="'+tpl.id+'">+ Add Task</button>'
+    +'</div>'
+    +'<div style="font-size:11px;color:#9B9890;margin-bottom:8px">Due dates are relative to the employee&#39;s start date and will be auto-calculated when this template is applied.</div>'
+    +'<div style="max-height:320px;overflow-y:auto;border:1px solid #E5E3DC;border-radius:10px;padding:0 12px">'
+      +(taskRows||'<div style="padding:2rem;text-align:center;color:#9B9890;font-size:13px">No tasks yet — click "+ Add Task" above to build the schedule.</div>')
+    +'</div>';
+}
+
+function rModal(){
+  const m=S.modal;
+  function wrap(title,body,footer){
+    return`<div class="modal-overlay" id="mol">
+      <div class="modal">
+        <div class="modal-header"><h3>${title}</h3><button class="close-x" onclick="closeModal()">✕</button></div>
+        <div class="modal-body">${body}</div>
+        <div class="modal-footer">${footer}</div>
+      </div>
+    </div>`;
+  }
+  const cancelBtn=`<button class="btn-ghost" onclick="closeModal()">Cancel</button>`;
+
+  if(m.type==='add-emp')return wrap('Add New Employee',`
+    <div class="form-grid">
+      <div class="field"><label>First name</label><input type="text" id="m-fn" placeholder="Jane"></div>
+      <div class="field"><label>Last name</label><input type="text" id="m-ln" placeholder="Smith"></div>
+      <div class="field full"><label>Work email</label><input type="email" id="m-em" placeholder="jane.smith@true-north-companies.com"></div>
+      <div class="field"><label>Job title</label><input type="text" id="m-ro" placeholder="e.g. Software Engineer"></div>
+      <div class="field"><label>Department</label><select id="m-dp" onchange="handleDeptSelect(this,'m-dp')">${S.departments.map(d=>"<option value='"+d+"'>"+d+"</option>").join("")}<option value="__new__">+ Add new department…</option></select></div>
+      <div class="field"><label>Manager</label><input type="text" id="m-mg" placeholder="Manager's full name"></div>
+      <div class="field"><label>Start date</label><input type="date" id="m-sd"></div>
+      <div class="field"><label>Onboarding template</label><select id="m-tp"><option>Standard Onboarding</option><option>Engineering Track</option><option>Sales Onboarding</option><option>Leadership Track</option></select></div>
+      <div class="field full"><label>Notes for HR</label><textarea id="m-no" placeholder="Any special accommodations, equipment requests, or notes…"></textarea></div>
+    </div>`,
+    `${cancelBtn}<button class="btn-primary" data-a="saveemp">Create Employee</button>`);
+
+  if(m.type==='add-task')return wrap('Add Onboarding Task',`
+    <div class="form-grid">
+      <div class="field full"><label>Task title</label><input type="text" id="t-ti" placeholder="e.g. Complete benefits enrollment form"></div>
+      <div class="field"><label>Category</label><select id="t-ca"><option value="document">Document</option><option value="training">Training</option><option value="form">Form</option><option value="meeting">Meeting</option></select></div>
+      <div class="field"><label>Due date</label><input type="date" id="t-du"></div>
+      <div class="field full"><label>Notes or location</label><textarea id="t-no" placeholder="Add any helpful notes, room numbers, or instructions…"></textarea></div>
+      <div class="field full"><label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13px;color:#1A1916;font-weight:500"><input type="checkbox" id="t-rq" style="width:16px;height:16px;cursor:pointer"> Mark as required</label></div>
+    </div>`,
+    `${cancelBtn}<button class="btn-primary" data-a="savetask" data-eid="${m.eid}">Add Task</button>`);
+
+  if(m.type==='reset-pw'){
+    const emp=S.employees.find(x=>x.id===m.eid);
+    return wrap('Reset Employee Password',`
+      <p style="font-size:13px;color:#6B6860;margin-bottom:1.25rem">You are resetting the login password for <strong style="color:#1A1916">${emp?.name||'this employee'}</strong>.</p>
+      <div class="field"><label>New temporary password</label><input type="text" value="Welcome${new Date().getFullYear()}!"></div>
+      <div class="modal-info-box">The employee will be prompted to create a new password when they next sign in.</div>`,
+      `${cancelBtn}<button class="btn-primary" onclick="closeModal()">Reset Password</button>`);}
+
+  if(m.type==='edit-emp'){
+    const emp=S.employees.find(x=>x.id===m.eid);
+    return wrap(`Edit Profile — ${emp?.name||'Employee'}`,`
+      <div class="form-grid">
+        <div class="field"><label>First name</label><input type="text" value="${(emp?.name||'').split(' ')[0]}"></div>
+        <div class="field"><label>Last name</label><input type="text" value="${(emp?.name||'').split(' ')[1]||''}"></div>
+        <div class="field full"><label>Work email</label><input type="email" value="${emp?.email||''}"></div>
+        <div class="field"><label>Job title</label><input type="text" value="${emp?.role||''}"></div>
+        <div class="field"><label>Department</label><input type="text" value="${emp?.dept||''}"></div>
+        <div class="field"><label>Manager</label><input type="text" value="${emp?.manager||''}"></div>
+        <div class="field"><label>Phone</label><input type="text" value="${emp?.phone||''}"></div>
+        <div class="field"><label>Start date</label><input type="text" value="${emp?.start||''}"></div>
+      </div>`,
+      `${cancelBtn}<button class="btn-primary" onclick="closeModal()">Save Changes</button>`);}
+
+  if(m.type==='add-note'){
+    const emp=S.employees.find(x=>x.id===m.eid);
+    return wrap(`Add Note — ${emp?.name||'Employee'}`,`
+      <div class="field"><label>Note</label><textarea style="min-height:120px" placeholder="Write your HR note here…"></textarea></div>
+      <div class="field"><label>Who can see this?</label><select><option>HR only (private)</option><option>Visible to employee</option></select></div>`,
+      `${cancelBtn}<button class="btn-primary" onclick="closeModal()">Save Note</button>`);}
+
+  if(m.type==='change-pw')return wrap('Change Your Password',`
+    <div class="field"><label>Current password</label><input type="password" placeholder="Enter your current password"></div>
+    <div class="field"><label>New password</label><input type="password" placeholder="Choose a new password"></div>
+    <div class="field"><label>Confirm new password</label><input type="password" placeholder="Re-enter your new password"></div>`,
+    `${cancelBtn}<button class="btn-primary" onclick="closeModal()">Update Password</button>`);
+
+  if(m.type==='new-template'){
+    // Store draft on modal state — NOT in S.templates until saved
+    if(!S.modal.draft){
+      S.modal.draft={id:'tpl'+Date.now(),name:'',dept:'All Departments',used:0,desc:'',tasks:[]};
+    }
+    const tpl=S.modal.draft;
+    return wrap('Create Onboarding Template', rTemplateEditor(tpl),
+      cancelBtn+
+      '<button class="btn-primary" data-a="save-new-template">Create Template</button>');}
+
+  if(m.type==='apply-template'){
+    const tpl=S.templates.find(x=>x.id===m.eid);
+    return wrap('Apply Template to Employee',`
+      <div class="field"><label>Template</label><select id="ap-tpl">${S.templates.map(t=>`<option value="${t.id}"${tpl&&t.id===tpl.id?' selected':''}>${t.name} (${t.tasks.length} tasks)</option>`).join('')}</select></div>
+      <div class="field"><label>Select employee</label><select id="ap-emp">${S.employees.map(e=>`<option value="${e.id}">${e.name} — ${e.role}</option>`).join('')}</select></div>
+      <div class="modal-info-box">This will add all tasks from the selected template to the employee's checklist. Their existing tasks will not be removed.</div>`,
+      `${cancelBtn}<button class="btn-primary" data-a="do-apply-template">Apply Template</button>`);}
+
+  if(m.type==='edit-template'){
+    const tpl=S.templates.find(x=>x.id===m.eid);
+    if(!tpl)return wrap('Template not found','<p>Could not load template.</p>',cancelBtn);
+    return wrap('Edit Template — '+tpl.name, rTemplateEditor(tpl),
+      cancelBtn+
+      '<button class="btn-danger-soft sm" data-a="tpl-delete" data-tplid="'+tpl.id+'" style="margin-right:auto">Delete Template</button>'+
+      '<button class="btn-primary" onclick="closeModal()">Done</button>');}
+
+  return'';
+}
+
+function bind(){
+  // search input only — click/change listeners are set once at init (see bottom)
+  const s=document.getElementById('emp-search');
+  if(s)s.addEventListener('input',e=>{S.search=e.target.value;render();});
+  // overlay close — set fresh each render since mol is recreated
+  setTimeout(()=>{const ov=document.getElementById('mol');if(ov)ov.addEventListener('click',e=>{if(e.target===ov)closeModal();});},30);
+}
+
+function onClick(e){
+  // close modal if clicking the dark overlay background directly
+  if(e.target&&e.target.id==='mol'){closeModal();return;}
+  const el=e.target.closest('[data-a]');if(!el)return;
+  const{a,v,eid,tid}=el.dataset;
+  if(a==='lr'){S.loginRole=v;render();return;}
+  if(a==='login'){S.role=S.loginRole;S.view=S.loginRole;if(S.loginRole==='emp'){S.empId='e1';S.empTab='overview';}else{S.hrTab='dashboard';}render();return;}
+  if(a==='logout'){S.view='login';S.role=null;render();return;}
+  if(a==='emp-list-tab'){S.empListTab=v;S.filterStatus='all';S.filterDept='all';S.search='';render();return;}
+  if(a==='archive-emp'){
+    const emp=S.employees.find(x=>x.id===eid);
+    if(emp&&emp.status==='complete'){
+      emp.archived=true;
+      S.hrTab='employees';S.empListTab='archived';S.detailId=null;render();}
+    return;}
+  if(a==='restore-emp'){
+    const emp=S.employees.find(x=>x.id===eid);
+    if(emp){emp.archived=false;S.empListTab='active';S.hrTab='employees';S.detailId=null;render();}return;}
+  if(a==='hrnav'){S.hrTab=v;S.detailId=null;render();return;}
+  if(a==='etab'){S.empTab=v;render();return;}
+  if(a==='viewemp'){S.hrTab='detail';S.detailId=v;S.detailTab='overview';render();return;}
+  if(a==='dtab'){S.detailTab=v;render();return;}
+  if(a==='fs'){S.filterStatus=v;render();return;}
+  if(a==='fd'){S.filterDept=v;render();return;}
+  if(a==='modal'){S.modal={type:v,eid};render();return;}
+  if(a==='toggle'){const t=S.tasks[eid]?.find(x=>x.id===tid);if(t){t.status=t.status==='complete'?'pending':'complete';recalc(eid);render();}return;}
+  if(a==='saveemp'){
+    const fn=document.getElementById('m-fn')?.value.trim(),ln=document.getElementById('m-ln')?.value.trim(),em=document.getElementById('m-em')?.value.trim();
+    if(fn&&ln&&em){const ne={id:'e'+Date.now(),name:`${fn} ${ln}`,email:em,role:document.getElementById('m-ro')?.value||'Employee',dept:document.getElementById('m-dp')?.value||'General',manager:document.getElementById('m-mg')?.value||'TBD',start:document.getElementById('m-sd')?.value||'TBD',status:'not-started',pct:0,phone:'—'};S.employees.push(ne);S.tasks[ne.id]=[];closeModal();S.hrTab='employees';render();}return;}
+  if(a==='savetask'){
+    const ti=document.getElementById('t-ti')?.value.trim();
+    if(ti&&eid){if(!S.tasks[eid])S.tasks[eid]=[];S.tasks[eid].push({id:'t'+Date.now(),title:ti,cat:document.getElementById('t-ca')?.value||'document',due:document.getElementById('t-du')?.value||'TBD',status:'pending',req:!!document.getElementById('t-rq')?.checked,notes:document.getElementById('t-no')?.value.trim()||''});recalc(eid);closeModal();render();}return;}
+  if(a==='save-new-template'){
+    const draft=S.modal&&S.modal.draft;
+    if(draft){
+      if(!draft.name.trim()){alert('Please enter a template name before saving.');return;}
+      S.templates.push(draft);
+    }
+    closeModal();return;}
+  /* ── Template task editor ── */
+  if(a==='tpl-task-add'){
+    const tpl=findTpl(el.dataset.tplid);
+    if(tpl){tpl.tasks.push({id:'tk'+Date.now(),title:'',cat:'document',req:false,days:1});render();}return;}
+  if(a==='tpl-task-del'){
+    const tpl=findTpl(el.dataset.tplid);
+    if(tpl){tpl.tasks=tpl.tasks.filter(x=>x.id!==tid);render();}return;}
+  if(a==='tpl-delete'){
+    S.templates=S.templates.filter(x=>x.id!==el.dataset.tplid);
+    closeModal();return;}
+  if(a==='do-apply-template'){
+    const tplId=document.getElementById('ap-tpl')?.value;
+    const empId=document.getElementById('ap-emp')?.value;
+    const tpl=S.templates.find(x=>x.id===tplId);
+    const emp=S.employees.find(x=>x.id===empId);
+    if(tpl&&emp){
+      if(!S.tasks[empId])S.tasks[empId]=[];
+      tpl.tasks.forEach(t=>{
+        // compute calendar due date from start date + days offset
+        let dueStr='Day '+(t.days||1)+' from start';
+        try{
+          const base=new Date(emp.start);
+          if(!isNaN(base)){
+            base.setDate(base.getDate()+(t.days||1)-1);
+            dueStr=base.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+          }
+        }catch(e){}
+        S.tasks[empId].push({id:'t'+Date.now()+Math.random(),title:t.title,cat:t.cat,due:dueStr,status:'pending',req:t.req,notes:''});
+      });
+      tpl.used=(tpl.used||0)+1;
+      recalc(empId);closeModal();S.hrTab='detail';S.detailId=empId;S.detailTab='tasks';render();}return;}
+}
+function onChange(e){
+  const el=e.target;if(!el.dataset.a)return;
+  if(el.dataset.a==='tstatus'){const t=S.tasks[el.dataset.eid]?.find(x=>x.id===el.dataset.tid);if(t){t.status=el.value;recalc(el.dataset.eid);render();}return;}
+  /* Template task live edits — update in place, no re-render to avoid losing focus */
+  if(el.dataset.a==='tpl-task-title'){const tpl=findTpl(el.dataset.tplid);if(tpl){const t=tpl.tasks.find(x=>x.id===el.dataset.tid);if(t)t.title=el.value;}return;}
+  if(el.dataset.a==='tpl-task-cat'){const tpl=findTpl(el.dataset.tplid);if(tpl){const t=tpl.tasks.find(x=>x.id===el.dataset.tid);if(t)t.cat=el.value;}return;}
+  if(el.dataset.a==='tpl-task-req'){const tpl=findTpl(el.dataset.tplid);if(tpl){const t=tpl.tasks.find(x=>x.id===el.dataset.tid);if(t)t.req=el.checked;}return;}
+  if(el.dataset.a==='tpl-task-days'){const tpl=findTpl(el.dataset.tplid);if(tpl){const t=tpl.tasks.find(x=>x.id===el.dataset.tid);if(t)t.days=parseInt(el.value)||1;}return;}
+  if(el.dataset.a==='tpl-name'){const tpl=findTpl(el.dataset.tplid);if(tpl)tpl.name=el.value;return;}
+  if(el.dataset.a==='tpl-dept'){const tpl=findTpl(el.dataset.tplid);if(tpl)tpl.dept=el.value;return;}
+  if(el.dataset.a==='tpl-desc'){const tpl=findTpl(el.dataset.tplid);if(tpl)tpl.desc=el.value;return;}
+}
+function handleTplDeptSelect(sel){
+  if(sel.value==='__new__'){
+    const name=(prompt('Enter new department name:')||'').trim();
+    if(name&&!S.departments.includes(name)){
+      S.departments.push(name);
+      const tplid=sel.dataset.tplid;
+      const tpl=S.templates.find(x=>x.id===tplid);
+      if(tpl)tpl.dept=name;
+      render();
+    } else {
+      sel.value=sel.options[0].value;
+    }
+  }
+}
+
+function handleDeptSelect(sel, id){
+  if(sel.value==='__new__'){
+    const name=(prompt('Enter new department name:')||'').trim();
+    if(name&&!S.departments.includes(name)){
+      S.departments.push(name);
+      render();
+      // reselect the new dept after re-render
+      const el=document.getElementById(id);
+      if(el)el.value=name;
+    } else if(name){
+      alert('That department already exists.');
+      sel.value=S.departments[0];
+    } else {
+      sel.value=S.departments[0];
+    }
+  }
+}
+
+// Attach click/change listeners once — never re-added on re-render
+document.addEventListener('click',onClick);
+document.addEventListener('change',onChange);
+render();
+</script>
+</body>
+</html>
