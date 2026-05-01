@@ -1291,3 +1291,127 @@ input.search-input:focus{border-color:#1B3F6E}
     padding: 32px 16px !important;
   }
 } 
+/* ─────────────────────────────────────────────────────
+   MOBILE FIXES — HR CHECK-INS PAGE
+   ───────────────────────────────────────────────────── */
+   @media (max-width: 767px) {
+    /* Override inline 4-column grid on Check-ins page */
+    .stats-grid[style*="repeat(4,1fr)"],
+    .stats-grid[style*="repeat(4, 1fr)"] {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+  
+    /* Topbar actions on Check-ins should stack/wrap properly */
+    .topbar-actions {
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+    }
+    .topbar-actions .btn-ghost,
+    .topbar-actions .btn-primary {
+      flex: 1 !important;
+      min-width: 0 !important;
+      white-space: nowrap !important;
+      font-size: 12px !important;
+      padding: 8px 10px !important;
+    }
+  
+    /* Stat cards tighter */
+    .stat-card {
+      padding: 12px 14px !important;
+    }
+    .stat-label {
+      font-size: 10px !important;
+      margin-bottom: 4px !important;
+    }
+    .stat-value {
+      font-size: 22px !important;
+    }
+    .stat-sub {
+      font-size: 10px !important;
+    }
+  
+    /* Quarter/Year columns should display value clearly even when stacked */
+    td[style*="fontWeight: 600"][style*="fontSize: 13"] {
+      font-size: 14px !important;
+      color: #1B3F6E !important;
+    }
+  
+    /* Notes column — let it wrap on mobile */
+    td[style*="maxWidth: 200"] {
+      max-width: none !important;
+      white-space: normal !important;
+    }
+  }
+  /* ─────────────────────────────────────────────────────
+   MOBILE FIX — CHECK-INS TOPBAR & ACTION BUTTONS
+   ───────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Stack topbar vertically and put actions below the title */
+  .topbar {
+    padding: 14px 16px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+  .topbar-left {
+    width: 100% !important;
+  }
+  .topbar-left h1 {
+    font-size: 19px !important;
+    margin: 0 !important;
+  }
+  .topbar-left p {
+    font-size: 12px !important;
+    margin: 2px 0 0 !important;
+  }
+
+  /* Action buttons go below title, full-width row */
+  .topbar-actions {
+    display: flex !important;
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    margin: 0 !important;
+  }
+  .topbar-actions .btn-ghost,
+  .topbar-actions .btn-primary {
+    flex: 1 !important;
+    min-width: 0 !important;
+    font-size: 12px !important;
+    padding: 10px 8px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    min-height: 40px !important;
+  }
+
+  /* Tab buttons centered within card */
+  .card > div[style*="border-bottom"] {
+    justify-content: stretch !important;
+  }
+  .card .tab-btn {
+    flex: 1 !important;
+    text-align: center !important;
+    padding: 12px 8px !important;
+  }
+}
+@media (max-width: 767px) {
+  .topbar-actions {
+    display: flex !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+  .topbar-actions > * {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  .topbar-actions .btn-primary,
+  .topbar-actions .btn-ghost {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    display: inline-flex !important;
+  }
+}

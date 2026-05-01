@@ -387,6 +387,34 @@ export function HRApp() {
             }}
           />
         )}
+        {modal?.type === 'add-checkin' && (
+          <AddCheckinModal
+            employees={employees.filter(e => !e.archived)}
+            defaultEmpId={modal.eid}
+            onClose={() => setModal(null)}
+            onCreated={async () => {
+              if (modal.eid) {
+                const emp = employees.find(e => e.id === modal.eid);
+                await logActivity(modal.eid ?? null, `Scheduled check-in for ${emp?.name ?? modal.eid}`);
+                await loadActivity();
+              }
+            }}
+          />
+        )}
+        {modal?.type === 'add-review' && (
+          <AddReviewModal
+            employees={employees.filter(e => !e.archived)}
+            defaultEmpId={modal.eid}
+            onClose={() => setModal(null)}
+            onCreated={async () => {
+              if (modal.eid) {
+                const emp = employees.find(e => e.id === modal.eid);
+                await logActivity(modal.eid ?? null, `Scheduled annual review for ${emp?.name ?? modal.eid}`);
+                await loadActivity();
+              }
+            }}
+          />
+        )}
         {editEmpId && (() => {
           const emp = employees.find(e => e.id === editEmpId);
           return emp ? (
