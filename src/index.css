@@ -1168,4 +1168,126 @@ input.search-input:focus{border-color:#1B3F6E}
     .more-sheet-overlay { display: none !important; }
     .mobile-only { display: none !important; }
   }
-  
+ /* ─────────────────────────────────────────────────────
+   MOBILE SETTINGS SUB-SCREEN POLISH
+   When HRSettings is rendered inside MobileHRSettings
+   with hideSidebar=true, fix the cramped desktop layout
+   ───────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Hide the duplicate desktop topbar inside settings sub-screens */
+  .m-screen + * .topbar,
+  div:has(> .m-screen) ~ * .topbar {
+    display: none !important;
+  }
+
+  /* When the back header is present, the topbar below should be hidden */
+  div[style*="border-bottom: 1px solid"] + .topbar {
+    display: none !important;
+  }
+
+  /* Settings content area on mobile */
+  .content {
+    padding: 12px !important;
+  }
+
+  /* Detail grid becomes single column */
+  .detail-grid {
+    display: block !important;
+    gap: 0 !important;
+  }
+
+  /* Card padding tighter */
+  .card {
+    border-radius: 12px !important;
+    margin-bottom: 12px !important;
+  }
+  .card-header {
+    padding: 12px 14px !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .card-header h3 {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+  }
+  .card-header > div:first-child {
+    flex: 1;
+    min-width: 0;
+  }
+  .card-body {
+    padding: 14px !important;
+  }
+
+  /* Form grid one column */
+  .form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Tables become card-like rows on mobile */
+  table {
+    width: 100% !important;
+    display: block !important;
+  }
+  thead {
+    display: none !important;
+  }
+  tbody, tr {
+    display: block !important;
+    width: 100% !important;
+  }
+  tr {
+    background: #fff !important;
+    border-radius: 10px !important;
+    border: 1px solid #E5E3DC !important;
+    margin-bottom: 8px !important;
+    padding: 12px 14px !important;
+  }
+  td {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 6px 0 !important;
+    border-bottom: none !important;
+    font-size: 13px !important;
+    gap: 10px !important;
+  }
+  td:first-child {
+    border-bottom: 1px solid #F2F1ED !important;
+    margin-bottom: 6px !important;
+    padding-bottom: 10px !important;
+  }
+  td:last-child {
+    padding-top: 8px !important;
+    border-top: 1px solid #F2F1ED !important;
+    margin-top: 6px !important;
+  }
+  td .emp-name {
+    font-weight: 600 !important;
+    font-size: 14px !important;
+  }
+
+  /* Tab buttons in org section */
+  .tab-btn {
+    flex: 1 !important;
+    padding: 10px 6px !important;
+    font-size: 12px !important;
+    text-align: center !important;
+  }
+
+  /* Buttons in tables stack nicely */
+  td > div[style*="display: flex"] {
+    width: 100% !important;
+    justify-content: flex-end !important;
+  }
+
+  /* Push to all employees button */
+  .btn-primary {
+    min-height: 44px !important;
+  }
+
+  /* Empty state padding */
+  .empty-state {
+    padding: 32px 16px !important;
+  }
+} 
