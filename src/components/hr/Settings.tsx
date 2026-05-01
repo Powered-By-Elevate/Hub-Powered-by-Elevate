@@ -12,6 +12,9 @@ interface Props {
   onCheckinUpdated: () => void;
   onReviewUpdated: () => void;
   onDepartmentChanged?: () => void;
+  initialSection?: 'schedule' | 'banners' | 'organization';
+  initialOrgTab?: 'departments' | 'job-titles' | 'companies';
+  hideSidebar?: boolean;
 }
 
 interface ScheduleSettings {
@@ -38,9 +41,9 @@ const BANNER_TYPE_OPTS = ['announcement', 'critical', 'reminder', 'shoutout', 'b
 const DEPT_TYPES = ['Office and Corporate', 'Construction', 'Field Operations', 'Other'];
 const TITLE_CATEGORIES = ['Office and Corporate', 'Construction Leadership', 'Construction Field', 'Other'];
 
-export function HRSettings({ employees, onCheckinUpdated, onReviewUpdated, onDepartmentChanged }: Props) {
+export function HRSettings({ employees, onCheckinUpdated, onReviewUpdated, onDepartmentChanged, initialSection, initialOrgTab, hideSidebar }: Props) {
   const { profile } = useAuth();
-  const [section, setSection] = useState<SettingsSection>('schedule');
+  const [section, setSection] = useState<SettingsSection>(initialSection ?? 'schedule');
   const [settings, setSettings] = useState<ScheduleSettings>({ annual_review_date: '', q1_checkin_date: '', q2_checkin_date: '', q3_checkin_date: '', q4_checkin_date: '' });
   const [saving, setSaving] = useState(false);
   const [pushing, setPushing] = useState(false);
@@ -49,11 +52,10 @@ export function HRSettings({ employees, onCheckinUpdated, onReviewUpdated, onDep
   const [showBannerModal, setShowBannerModal] = useState(false);
   const [editBanner, setEditBanner] = useState<HRAnnouncement | null>(null);
 
-  // Organization state
   const [departments, setDepartments] = useState<Department[]>([]);
   const [jobTitles, setJobTitles] = useState<JobTitle[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [orgTab, setOrgTab] = useState<'departments' | 'job-titles' | 'companies'>('departments');
+  const [orgTab, setOrgTab] = useState<'departments' | 'job-titles' | 'companies'>(initialOrgTab ?? 'departments');
   const [showDeptModal, setShowDeptModal] = useState(false);
   const [editDept, setEditDept] = useState<Department | null>(null);
   const [showTitleModal, setShowTitleModal] = useState(false);
@@ -200,7 +202,6 @@ export function HRSettings({ employees, onCheckinUpdated, onReviewUpdated, onDep
     { id: 'organization', label: 'Organization Setup' },
   ];
 
-  // Group job titles by category
   const titlesByCategory: Record<string, JobTitle[]> = {};
   for (const jt of jobTitles) {
     if (!titlesByCategory[jt.category]) titlesByCategory[jt.category] = [];
@@ -216,24 +217,26 @@ export function HRSettings({ employees, onCheckinUpdated, onReviewUpdated, onDep
         </div>
       </div>
       <div className="content">
-        <div className="detail-grid" style={{ gridTemplateColumns: '200px 1fr' }}>
-          <div className="card" style={{ height: 'fit-content', padding: '.5rem' }}>
-            {sections.map(s => (
-              <button
-                key={s.id}
-                onClick={() => setSection(s.id)}
-                style={{
-                  display: 'block', width: '100%', textAlign: 'left', padding: '9px 12px',
-                  borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500,
-                  background: section === s.id ? '#E8EFF8' : 'none',
-                  color: section === s.id ? '#1B3F6E' : '#6B6860',
-                  transition: 'background .15s',
-                }}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
+        <div className="detail-grid" style={{ gridTemplateColumns: hideSidebar ? '1fr' : '200px 1fr' }}>
+          {!hideSidebar && (
+            <div className="card" style={{ height: 'fit-content', padding: '.5rem' }}>
+              {sections.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => setSection(s.id)}
+                  style={{
+                    display: 'block', width: '100%', textAlign: 'left', padding: '9px 12px',
+                    borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                    background: section === s.id ? '#E8EFF8' : 'none',
+                    color: section === s.id ? '#1B3F6E' : '#6B6860',
+                    transition: 'background .15s',
+                  }}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div>
             {section === 'schedule' && (
@@ -341,7 +344,6 @@ export function HRSettings({ employees, onCheckinUpdated, onReviewUpdated, onDep
 
             {section === 'organization' && (
               <div>
-                {/* Org sub-tabs */}
                 <div className="card" style={{ marginBottom: 16 }}>
                   <div style={{ display: 'flex', borderBottom: '1px solid #E5E3DC' }}>
                     {([
@@ -610,8 +612,6 @@ export function HRSettings({ employees, onCheckinUpdated, onReviewUpdated, onDep
   );
 }
 
-// ─── Banner Modal ────────────────────────────────────────────────────────────
-
 interface BannerModalProps {
   banner: HRAnnouncement | null;
   employees: Employee[];
@@ -730,8 +730,6 @@ function BannerModal({ banner, employees, createdBy, onClose, onSaved }: BannerM
   );
 }
 
-// ─── Department Modal ─────────────────────────────────────────────────────────
-
 interface DeptModalProps {
   dept: Department | null;
   onClose: () => void;
@@ -797,8 +795,6 @@ function DeptModal({ dept, onClose, onSaved }: DeptModalProps) {
     </Modal>
   );
 }
-
-// ─── Company Modal ────────────────────────────────────────────────────────────
 
 const COMPANY_TYPES = ['General Contractor', 'Subcontractor', 'Specialty Contractor', 'Corporate', 'Other'];
 
@@ -878,8 +874,6 @@ function CompanyModal({ company, onClose, onSaved }: CompanyModalProps) {
     </Modal>
   );
 }
-
-// ─── Job Title Modal ──────────────────────────────────────────────────────────
 
 interface TitleModalProps {
   jobTitle: JobTitle | null;

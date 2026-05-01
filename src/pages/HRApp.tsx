@@ -329,7 +329,7 @@ export function HRApp() {
           userInitials="HR"
           onSignOut={signOut}
           activeTab={tab}
-          onTabChange={t => { setTab(t as HRTab); if (t !== 'detail') setSelectedEmpId(null); }}
+          onTabChange={(t: string) => { setTab(t as HRTab); if (t !== 'detail') setSelectedEmpId(null); }}
           fabActions={
             tab === 'employees' || tab === 'dashboard'
               ? [{ label: 'Add Employee', onClick: () => setModal({ type: 'add-emp' }) }]
@@ -338,7 +338,7 @@ export function HRApp() {
         >
           {tab === 'dashboard' && (
             <MobileDashboard
-              employee={{ id: '', name: profile?.email?.split('@')[0] ?? 'HR', email: profile?.email ?? '', phone: null, role: 'HR Administrator', department: null, team_id: null, manager: null, manager_user_id: null, start_date: null, status: 'complete', phase: 'active', progress: 100, archived: false, user_id: null, avatar_url: null, bio: null, onboarding_completed_at: null, lifecycle_status: 'active', birthday_month: null, birthday_day: null, company_id: null, created_at: '' }}
+              employee={{ id: '', name: profile?.email?.split('@')[0] ?? 'HR', email: profile?.email ?? '', phone: null, role: 'HR Administrator', department: null, team_id: null, manager: null, manager_user_id: null, start_date: null, status: 'complete', phase: 'active', progress: 100, archived: false, user_id: null, avatar_url: null, bio: null, onboarding_completed_at: null, lifecycle_status: 'active', birthday_month: null, birthday_day: null, company_id: null, created_at: '', current_level: null, next_level: null, pathway_id: null, readiness_level: null, current_status: null, employment_type: null }}
               tasks={[]}
               schedules={[]}
               announcement={null}
@@ -349,14 +349,16 @@ export function HRApp() {
           {(tab === 'employees' || tab === 'detail') && (
             <MobileHREmployees
               employees={employees}
-              onView={id => viewEmployee(id)}
-              onEdit={id => setEditEmpId(id)}
+              onView={(id: string) => viewEmployee(id)}
+              onEdit={(id: string) => setEditEmpId(id)}
             />
           )}
           {tab === 'settings' && (
             <MobileHRSettings
               onOrgTab={() => setTab('settings')}
               onSignOut={signOut}
+              employees={employees.filter(e => !e.archived)}
+              onDepartmentChanged={loadDepartments}
             />
           )}
           {tab === 'templates' && (
@@ -550,7 +552,6 @@ export function HRApp() {
           defaultEmpId={modal.eid}
           onClose={() => setModal(null)}
           onCreated={async () => {
-            await loadCheckins();
             if (modal.eid) {
               const emp = employees.find(e => e.id === modal.eid);
               await logActivity(modal.eid ?? null, `Scheduled check-in for ${emp?.name ?? modal.eid}`);
@@ -565,7 +566,6 @@ export function HRApp() {
           defaultEmpId={modal.eid}
           onClose={() => setModal(null)}
           onCreated={async () => {
-            await loadReviews();
             if (modal.eid) {
               const emp = employees.find(e => e.id === modal.eid);
               await logActivity(modal.eid ?? null, `Scheduled annual review for ${emp?.name ?? modal.eid}`);
