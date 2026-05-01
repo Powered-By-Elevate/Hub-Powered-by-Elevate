@@ -712,4 +712,460 @@ input.search-input:focus{border-color:#1B3F6E}
 .m-set-icon{width:34px;height:34px;border-radius:8px;background:#F2F1ED;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
 .m-set-label{flex:1;font-size:14px;font-weight:500;color:#1A1916}
 .m-set-arrow{font-size:20px;color:#C5C3BB}
+/* ═══════════════════════════════════════════════════════════════════
+   TRUENORTH MOBILE STYLES — DROP IN
+   Add to the bottom of src/index.css
+   Targets existing class names in the codebase. No component changes needed.
+   ═══════════════════════════════════════════════════════════════════ */
 
+   @media (max-width: 767px) {
+
+    /* ── HIDE DESKTOP SIDEBAR & FOOTER ──────────────────────────────── */
+    .sidebar { display: none !important; }
+    .sidebar-footer { display: none !important; }
+  
+    /* ── SHOW MOBILE HEADER & NAV ───────────────────────────────────── */
+    .mobile-header {
+      display: flex !important;
+      height: 52px !important;
+      background: #1B3F6E !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      padding: 0 16px !important;
+      position: sticky !important;
+      top: 0 !important;
+      z-index: 50 !important;
+      flex-shrink: 0 !important;
+    }
+    .mobile-header-logo { flex-shrink: 0 !important; }
+    .mobile-header-logo img {
+      height: 26px !important;
+      background: #fff !important;
+      border-radius: 6px !important;
+      padding: 3px 6px !important;
+    }
+    .mobile-header-avatar {
+      width: 32px !important; height: 32px !important;
+      border-radius: 50% !important;
+      background: rgba(255,255,255,0.2) !important;
+      color: #fff !important;
+      font-size: 11px !important; font-weight: 600 !important;
+      border: none !important; cursor: pointer !important;
+      display: flex !important; align-items: center !important; justify-content: center !important;
+      flex-shrink: 0 !important;
+    }
+  
+    /* ── BOTTOM NAV ─────────────────────────────────────────────────── */
+    .mobile-bottom-nav {
+      display: block !important;
+      position: fixed !important;
+      bottom: 0 !important; left: 0 !important; right: 0 !important;
+      height: 60px !important;
+      background: #1B3F6E !important;
+      z-index: 50 !important;
+      border-top: 1px solid rgba(255,255,255,0.1) !important;
+      padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    }
+    .mobile-bottom-nav-inner {
+      display: flex !important;
+      height: 60px !important;
+      width: 100% !important;
+    }
+    .mobile-nav-btn {
+      flex: 1 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 3px !important;
+      background: transparent !important;
+      border: none !important;
+      color: rgba(255,255,255,0.5) !important;
+      font-size: 9px !important;
+      font-weight: 500 !important;
+      cursor: pointer !important;
+      padding: 6px 2px !important;
+      position: relative !important;
+      transition: color 0.15s !important;
+    }
+    .mobile-nav-btn .nav-m-icon {
+      font-size: 18px !important;
+      line-height: 1 !important;
+    }
+    .mobile-nav-btn.active {
+      color: #fff !important;
+    }
+    .mobile-nav-btn.active::after {
+      content: '' !important;
+      position: absolute !important;
+      bottom: 0 !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      width: 22px !important; height: 2px !important;
+      background: #fff !important;
+      border-radius: 1px !important;
+    }
+  
+    /* ── APP SHELL & MAIN AREA ──────────────────────────────────────── */
+    .app-shell {
+      flex-direction: column !important;
+      min-height: 100dvh !important;
+      background: #F8F7F4 !important;
+    }
+    .main-area {
+      margin-left: 0 !important;
+      padding: 0 !important;
+      padding-bottom: 80px !important;
+      background: #F8F7F4 !important;
+      min-height: calc(100dvh - 52px) !important;
+    }
+  
+    /* ── TOPBAR INSIDE PAGES ────────────────────────────────────────── */
+    .topbar {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      padding: 14px 16px 12px !important;
+      border-bottom: 1px solid #E5E3DC !important;
+      background: #fff !important;
+      gap: 4px !important;
+    }
+    .topbar-left h1 {
+      font-size: 19px !important;
+      font-weight: 700 !important;
+      line-height: 1.2 !important;
+      margin: 0 !important;
+    }
+    .topbar-left p {
+      font-size: 12px !important;
+      color: #9B9890 !important;
+      margin: 0 !important;
+    }
+    .topbar-clock {
+      font-size: 11px !important;
+      color: #9B9890 !important;
+      font-weight: 500 !important;
+      margin-top: 4px !important;
+    }
+  
+    /* ── CONTENT WRAPPER ────────────────────────────────────────────── */
+    .content {
+      padding: 14px !important;
+    }
+  
+    /* ── WELCOME BANNER ─────────────────────────────────────────────── */
+    .welcome-banner {
+      border-radius: 12px !important;
+      padding: 14px !important;
+      margin-bottom: 14px !important;
+      color: #fff !important;
+      background: linear-gradient(135deg, #1B3F6E 0%, #2563EB 100%) !important;
+    }
+    .welcome-banner h2 {
+      font-size: 17px !important;
+      font-weight: 700 !important;
+      margin-bottom: 4px !important;
+      line-height: 1.25 !important;
+    }
+    .welcome-banner p {
+      font-size: 12px !important;
+      opacity: 0.85 !important;
+      line-height: 1.45 !important;
+    }
+    .wb-row {
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
+      margin-top: 12px !important;
+    }
+    .wb-bar {
+      flex: 1 !important;
+      height: 6px !important;
+      background: rgba(255,255,255,0.25) !important;
+      border-radius: 3px !important;
+      overflow: hidden !important;
+    }
+    .wb-fill {
+      height: 100% !important;
+      background: #fff !important;
+      border-radius: 3px !important;
+    }
+    .wb-pct {
+      font-size: 13px !important;
+      font-weight: 700 !important;
+      color: #fff !important;
+      min-width: 32px !important;
+      text-align: right !important;
+    }
+    .ob-btn-solid, .ob-btn-outline {
+      padding: 9px 14px !important;
+      font-size: 13px !important;
+      border-radius: 8px !important;
+    }
+  
+    /* ── TWO-COLUMN LAYOUT BECOMES ONE COLUMN ───────────────────────── */
+    .two-col {
+      display: block !important;
+      grid-template-columns: 1fr !important;
+    }
+    .two-col > div,
+    .two-col > .card {
+      width: 100% !important;
+      margin-bottom: 12px !important;
+    }
+    .mb2 { margin-bottom: 10px !important; }
+  
+    /* ── CARDS ──────────────────────────────────────────────────────── */
+    .card {
+      border-radius: 12px !important;
+      border: 1px solid #E5E3DC !important;
+      background: #fff !important;
+      margin-bottom: 10px !important;
+      box-shadow: none !important;
+    }
+    .card-header {
+      padding: 12px 14px 8px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      border-bottom: 1px solid #F2F1ED !important;
+    }
+    .card-header h3 {
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      margin: 0 !important;
+    }
+    .card-body {
+      padding: 12px 14px !important;
+    }
+    .btn-ghost.sm {
+      font-size: 11px !important;
+      color: #1B3F6E !important;
+      padding: 4px 8px !important;
+    }
+  
+    /* ── CHECK ITEMS / TASK LIST ────────────────────────────────────── */
+    .check-item {
+      padding: 11px 14px !important;
+      border-bottom: 1px solid #F2F1ED !important;
+      gap: 10px !important;
+    }
+    .check-item:last-child { border-bottom: none !important; }
+  
+    /* ── STAT ROWS ──────────────────────────────────────────────────── */
+    .prog-bar {
+      width: 60px !important;
+      height: 5px !important;
+      background: #F2F1ED !important;
+      border-radius: 3px !important;
+      overflow: hidden !important;
+    }
+    .prog-fill { height: 100% !important; border-radius: 3px !important; }
+    .pf-green { background: #2D9A60 !important; }
+    .pf-navy { background: #1B3F6E !important; }
+    .pf-amber { background: #D97706 !important; }
+    .pf-red { background: #DC2626 !important; }
+  
+    /* ── SCHEDULE ITEMS ─────────────────────────────────────────────── */
+    .sched-item {
+      display: flex !important;
+      gap: 10px !important;
+      padding: 9px 0 !important;
+      border-bottom: 1px solid #F2F1ED !important;
+      align-items: flex-start !important;
+    }
+    .sched-item:last-child { border-bottom: none !important; }
+    .sched-dot {
+      width: 8px !important; height: 8px !important;
+      border-radius: 50% !important;
+      flex-shrink: 0 !important; margin-top: 5px !important;
+    }
+    .sched-time {
+      font-size: 11px !important;
+      color: #9B9890 !important;
+      font-weight: 500 !important;
+      min-width: 58px !important;
+      flex-shrink: 0 !important;
+    }
+    .sched-title {
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      color: #1A1916 !important;
+    }
+    .sched-sub {
+      font-size: 11px !important;
+      color: #9B9890 !important;
+      margin-top: 1px !important;
+    }
+  
+    /* ── EMPTY STATES ───────────────────────────────────────────────── */
+    .empty-state {
+      padding: 28px 14px !important;
+      text-align: center !important;
+    }
+    .empty-state p {
+      font-size: 14px !important;
+      color: #6B6860 !important;
+      margin: 0 0 4px !important;
+    }
+    .empty-state .esub {
+      font-size: 12px !important;
+      color: #9B9890 !important;
+    }
+  
+    /* ── MORE SHEET ─────────────────────────────────────────────────── */
+    .more-sheet-overlay {
+      position: fixed !important;
+      inset: 0 !important;
+      background: rgba(0,0,0,0.45) !important;
+      z-index: 199 !important;
+    }
+    .more-sheet {
+      position: fixed !important;
+      bottom: 60px !important;
+      left: 0 !important; right: 0 !important;
+      background: #fff !important;
+      border-radius: 20px 20px 0 0 !important;
+      z-index: 201 !important;
+      padding: 0 0 16px !important;
+      max-height: 70dvh !important;
+      overflow-y: auto !important;
+    }
+    .more-sheet-pill {
+      width: 36px !important; height: 4px !important;
+      background: #D0CEC8 !important;
+      border-radius: 2px !important;
+      margin: 10px auto 6px !important;
+    }
+    .more-sheet-title {
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      color: #9B9890 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.6px !important;
+      padding: 10px 20px 4px !important;
+    }
+    .more-sheet-divider {
+      height: 1px !important;
+      background: #F2F1ED !important;
+      margin: 6px 0 !important;
+    }
+    .more-sheet-item {
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      padding: 13px 20px !important;
+      background: none !important;
+      border: none !important;
+      width: 100% !important;
+      text-align: left !important;
+      font-size: 14px !important;
+      color: #1A1916 !important;
+      cursor: pointer !important;
+      border-bottom: 1px solid #F2F1ED !important;
+      min-height: 50px !important;
+    }
+    .more-sheet-item:last-child { border-bottom: none !important; }
+    .more-sheet-item.active { background: #F8F7F4 !important; }
+    .more-sheet-item-icon {
+      width: 32px !important; height: 32px !important;
+      border-radius: 9px !important;
+      background: #F2F1ED !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 15px !important;
+      flex-shrink: 0 !important;
+    }
+  
+    /* ── AVATAR DROPDOWN ────────────────────────────────────────────── */
+    .avatar-dropdown {
+      position: absolute !important;
+      top: 38px !important;
+      right: 0 !important;
+      background: #fff !important;
+      border: 1px solid #E5E3DC !important;
+      border-radius: 10px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
+      min-width: 180px !important;
+      z-index: 100 !important;
+      overflow: hidden !important;
+    }
+    .avatar-dropdown hr {
+      border: none !important;
+      border-top: 1px solid #F2F1ED !important;
+      margin: 0 !important;
+    }
+    .avatar-dropdown button {
+      display: block !important;
+      width: 100% !important;
+      padding: 11px 14px !important;
+      background: none !important;
+      border: none !important;
+      text-align: left !important;
+      font-size: 13px !important;
+      color: #1A1916 !important;
+      cursor: pointer !important;
+    }
+  
+    /* ── BUTTONS ────────────────────────────────────────────────────── */
+    button {
+      -webkit-tap-highlight-color: transparent !important;
+    }
+  
+    /* ── FORM FIELDS ────────────────────────────────────────────────── */
+    input, select, textarea {
+      font-size: 16px !important; /* prevents iOS zoom on focus */
+    }
+  
+    /* ── HR EMPLOYEE LIST — KEY SCREEN ──────────────────────────────── */
+    .employees-table { display: none !important; }
+  
+    /* ── SETTINGS ROWS ──────────────────────────────────────────────── */
+    .settings-section h3 {
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      color: #9B9890 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.6px !important;
+      margin: 16px 0 4px !important;
+    }
+    .settings-row {
+      padding: 14px 0 !important;
+      min-height: 52px !important;
+      border-bottom: 1px solid #F2F1ED !important;
+    }
+  
+    /* ── CARD HEADER STACKING ON MOBILE ─────────────────────────────── */
+    .card-header {
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+    }
+  
+    /* ── RESET MARGINS ──────────────────────────────────────────────── */
+    body, html {
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #F8F7F4 !important;
+      overflow-x: hidden !important;
+    }
+  
+    /* ── SCROLL CONTAINERS ──────────────────────────────────────────── */
+    .table-wrap,
+    .scroll-x {
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
+  
+    /* ── HIDE DESKTOP-ONLY ELEMENTS ─────────────────────────────────── */
+    .desktop-only { display: none !important; }
+  }
+  
+  /* ── HIDE MOBILE ELEMENTS ON DESKTOP ───────────────────────────────── */
+  @media (min-width: 768px) {
+    .mobile-header { display: none !important; }
+    .mobile-bottom-nav { display: none !important; }
+    .more-sheet { display: none !important; }
+    .more-sheet-overlay { display: none !important; }
+    .mobile-only { display: none !important; }
+  }
+  
