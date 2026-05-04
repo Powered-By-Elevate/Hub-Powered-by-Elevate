@@ -107,12 +107,20 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
       avatar_url,
     };
 
-    const { data, error: saveErr } = await supabase
+    let { data, error: saveErr } = await supabase
       .from('employees')
       .update(updates)
       .eq('id', e.id)
       .select()
       .single();
+
+    // Fallback: if schema cache doesn't recognize manager_id, retry without it
+    if (saveErr?.message?.includes('manager_id') && saveErr?.message?.includes('schema cache')) {
+      const { manager_id: _, ...fallbackUpdates } = updates;
+      const retry = await supabase.from('employees').update(fallbackUpdates).eq('id', e.id).select().single();
+      data = retry.data;
+      saveErr = retry.error;
+    }
 
     // Update auth role on the users table if the employee has a linked auth account
     if (!saveErr && e.user_id && form.auth_role) {
