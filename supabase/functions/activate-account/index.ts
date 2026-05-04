@@ -64,18 +64,34 @@ Deno.serve(async (req: Request) => {
     if (!createErr && newUser?.user) {
       userId = newUser.user.id;
     } else if (createErr?.message?.includes("already been registered")) {
-      // User exists - find by email and update password
-      const { data: userData } = await supabase.auth.admin.listUsers();
-      const existing = userData?.users?.find(
-        (u: { email?: string }) => u.email === email
-      );
-      if (!existing) {
+      // User exists - find by email using filtered listUsers (avoids loading all users)
+      const { data: userData, error: listErr } = await supabase.auth.admin.listUsers({
+        page: 1,
+        perPage: 1,
+      });
+
+      // Use the users table to find the user ID by email
+      const { data: existingUser } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
+
+      let existingId: string | null = existingUser?.id ?? null;
+
+      // Fallback: search auth users if not in public.users yet
+      if (!existingId && !listErr && userData?.users) {
+        const found = userData.users.find((u: { email?: string }) => u.email === email);
+        if (found) existingId = found.id;
+      }
+
+      if (!existingId) {
         return new Response(
-          JSON.stringify({ error: "Could not locate existing account." }),
+          JSON.stringify({ error: "Could not locate existing account. Please contact HR." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      userId = existing.id;
+      userId = existingId;
       const { error: upErr } = await supabase.auth.admin.updateUser(userId, {
         password,
         email_confirm: true,

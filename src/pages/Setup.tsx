@@ -54,20 +54,29 @@ export function SetupPage({ token, onDone }: Props) {
     setError('');
 
     try {
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/activate-account`;
-      const res = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password, employeeId, tokenId }),
+      // Use supabase.functions.invoke which shares the same connection as DB queries
+      const { data, error: invokeErr } = await supabase.functions.invoke('activate-account', {
+        body: { email, password, employeeId, tokenId },
       });
 
-      const result = await res.json();
-      if (!res.ok || result.error) {
-        setError(result.error || 'Failed to activate account.');
+      if (invokeErr) {
+        // For non-2xx responses, the error contains context with the response
+        let errMsg = 'Failed to activate account.';
+        try {
+          if (invokeErr.context && typeof invokeErr.context.json === 'function') {
+            const body = await invokeErr.context.json();
+            if (body?.error) errMsg = body.error;
+          } else if (invokeErr.message) {
+            errMsg = invokeErr.message;
+          }
+        } catch { /* use default */ }
+        setError(errMsg);
+        setSaving(false);
+        return;
+      }
+
+      if (data?.error) {
+        setError(data.error);
         setSaving(false);
         return;
       }
