@@ -16,7 +16,7 @@ interface Props {
 
 const EMPLOYMENT_TYPES = ['Full Time', 'Part Time', 'Contract', 'Seasonal'];
 const ROLES = ['Employee', 'Manager', 'HR Admin'];
-const LIFECYCLE_STATUSES = ['Onboarding', 'Active'];
+const LIFECYCLE_STATUSES = ['Applicant', 'Onboarding', 'Active'];
 const LEVELS = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7'];
 const READINESS_LEVELS = ['Ready Now', 'Ready in One Year', 'Ready in 2-3 Years', 'Longer Term Development Needed'];
 const CURRENT_STATUSES = ['At Risk', 'Needs Support', 'On Track'];

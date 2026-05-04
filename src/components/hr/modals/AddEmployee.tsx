@@ -33,7 +33,7 @@ export function AddEmployeeModal({ onClose, onCreated, departments, companies, e
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', role: '',
     department: departments[0] ?? '', manager: '', manager_id: '', startDate: '',
-    company_id: companies[0]?.id ?? '',
+    company_id: companies[0]?.id ?? '', lifecycle_status: 'onboarding' as string,
   });
   const activeEmployees = employees.filter(emp => !emp.archived);
   const [docs, setDocs] = useState<StagedDoc[]>([]);
@@ -86,6 +86,7 @@ export function AddEmployeeModal({ onClose, onCreated, departments, companies, e
       status: 'not-started',
       progress: 0,
       company_id: form.company_id || null,
+      lifecycle_status: form.lifecycle_status,
     }).select().single();
 
     if (empErr || !emp) {
@@ -188,6 +189,14 @@ export function AddEmployeeModal({ onClose, onCreated, departments, companies, e
         <div className="field">
           <label>Start date</label>
           <input type="date" value={form.startDate} onChange={set('startDate')} />
+        </div>
+        <div className="field">
+          <label>Status</label>
+          <select value={form.lifecycle_status} onChange={set('lifecycle_status')}>
+            <option value="applicant">Applicant</option>
+            <option value="onboarding">Onboarding</option>
+            <option value="active">Active</option>
+          </select>
         </div>
         {companies.length > 0 && (
           <div className="field">
