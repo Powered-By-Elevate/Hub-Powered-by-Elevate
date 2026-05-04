@@ -1,4 +1,4 @@
-const CACHE = 'truenorth-shell-v1';
+const CACHE = 'truenorth-shell-v2';
 const SHELL = ['/', '/index.html'];
 
 self.addEventListener('install', e => {
@@ -19,7 +19,9 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
+  // Only cache static assets, let navigation requests pass through normally
+  if (e.request.mode === 'navigate') return;
   e.respondWith(
-    fetch(e.request).catch(() => caches.match('/index.html'))
+    fetch(e.request).catch(() => caches.match(e.request))
   );
 });

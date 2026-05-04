@@ -54,37 +54,65 @@ export function SetupPage({ token, onDone }: Props) {
     setError('');
 
     try {
-      // Use supabase.functions.invoke which shares the same connection as DB queries
-      const { data, error: invokeErr } = await supabase.functions.invoke('activate-account', {
-        body: { email, password, employeeId, tokenId },
+      // Step 1: Sign up the user via Supabase Auth (email confirmation is disabled)
+      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+        email,
+        password,
       });
 
-      if (invokeErr) {
-        // For non-2xx responses, the error contains context with the response
-        let errMsg = 'Failed to activate account.';
-        try {
-          if (invokeErr.context && typeof invokeErr.context.json === 'function') {
-            const body = await invokeErr.context.json();
-            if (body?.error) errMsg = body.error;
-          } else if (invokeErr.message) {
-            errMsg = invokeErr.message;
+      let userId: string | undefined;
+
+      if (signUpErr) {
+        // If user already exists, try signing in
+        if (signUpErr.message?.includes('already been registered') || signUpErr.message?.includes('already registered')) {
+          const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+          if (signInErr) {
+            setError(signInErr.message);
+            setSaving(false);
+            return;
           }
-        } catch { /* use default */ }
-        setError(errMsg);
+          userId = signInData.user?.id;
+        } else {
+          setError(signUpErr.message);
+          setSaving(false);
+          return;
+        }
+      } else {
+        userId = signUpData?.user?.id;
+        // signUp with email confirmation disabled auto-signs-in, but if not:
+        if (!signUpData?.session) {
+          const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+          if (signInErr) {
+            setError(signInErr.message);
+            setSaving(false);
+            return;
+          }
+          userId = signInData.user?.id;
+        }
+      }
+
+      if (!userId) {
+        setError('Account created but could not retrieve user ID. Please try logging in.');
         setSaving(false);
         return;
       }
 
-      if (data?.error) {
-        setError(data.error);
+      // Step 2: Call RPC to link user, create users record, and mark token used
+      const { data: rpcResult, error: rpcErr } = await supabase.rpc('activate_account', {
+        p_token_id: tokenId,
+        p_employee_id: employeeId,
+        p_user_id: userId,
+        p_email: email,
+      });
+
+      if (rpcErr) {
+        setError(rpcErr.message);
         setSaving(false);
         return;
       }
 
-      // Auto sign-in now that the account is confirmed
-      const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInErr) {
-        setError(signInErr.message);
+      if (rpcResult && !rpcResult.success) {
+        setError(rpcResult.error || 'Activation failed.');
         setSaving(false);
         return;
       }
@@ -92,8 +120,8 @@ export function SetupPage({ token, onDone }: Props) {
       setSaving(false);
       setStep('done');
       setTimeout(onDone, 2000);
-    } catch {
-      setError('Connection error. Please check your internet and try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Connection error. Please check your internet and try again.');
       setSaving(false);
     }
   }

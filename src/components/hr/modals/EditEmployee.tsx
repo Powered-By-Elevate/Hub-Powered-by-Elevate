@@ -87,15 +87,19 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
       avatar_url = urlData.publicUrl;
     }
 
-    const updates: Record<string, unknown> = {
+    const coreUpdates: Record<string, unknown> = {
       name: form.name.trim(),
       email: form.email.trim(),
       role: form.role.trim(),
       department: form.department || null,
       manager: form.manager || null,
-      manager_id: form.manager_id || null,
       start_date: form.start_date || null,
       phone: form.phone || null,
+      avatar_url,
+    };
+
+    const extendedFields: Record<string, unknown> = {
+      manager_id: form.manager_id || null,
       lifecycle_status: form.lifecycle_status,
       company_id: form.company_id || null,
       employment_type: form.employment_type || null,
@@ -104,8 +108,9 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
       pathway_id: form.pathway_id || null,
       readiness_level: form.readiness_level || null,
       current_status: form.current_status || null,
-      avatar_url,
     };
+
+    const updates = { ...coreUpdates, ...extendedFields };
 
     let { data, error: saveErr } = await supabase
       .from('employees')
@@ -114,10 +119,9 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
       .select()
       .single();
 
-    // Fallback: if schema cache doesn't recognize manager_id, retry without it
-    if (saveErr?.message?.includes('manager_id') && saveErr?.message?.includes('schema cache')) {
-      const { manager_id: _, ...fallbackUpdates } = updates;
-      const retry = await supabase.from('employees').update(fallbackUpdates).eq('id', e.id).select().single();
+    // Fallback: if schema cache doesn't recognize newer columns, retry with core fields only
+    if (saveErr?.message?.includes('schema cache')) {
+      const retry = await supabase.from('employees').update(coreUpdates).eq('id', e.id).select().single();
       data = retry.data;
       saveErr = retry.error;
     }
