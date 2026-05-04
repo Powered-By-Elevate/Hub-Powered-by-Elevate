@@ -315,18 +315,38 @@ export function HRApp() {
   async function deleteEmployee(id: string) {
     const emp = employees.find(e => e.id === id);
     if (!emp) return;
-    await supabase.from('onboarding_tasks').delete().eq('employee_id', id);
-    await supabase.from('documents').delete().eq('employee_id', id);
-    await supabase.from('schedules').delete().eq('employee_id', id);
-    await supabase.from('employee_notes').delete().eq('employee_id', id);
-    await supabase.from('setup_tokens').delete().eq('employee_id', id);
-    await supabase.from('checkins').delete().eq('employee_id', id);
-    await supabase.from('reviews').delete().eq('employee_id', id);
-    await supabase.from('development_plans').delete().eq('employee_id', id);
-    await supabase.from('certifications').delete().eq('employee_id', id);
-    await supabase.from('activity_log').delete().eq('employee_id', id);
-    await supabase.from('users').delete().eq('employee_id', id);
-    await supabase.from('employees').delete().eq('id', id);
+    console.log('[deleteEmployee] starting for', emp.name, id);
+
+    const tables = [
+      'onboarding_tasks', 'documents', 'schedules', 'employee_notes',
+      'setup_tokens', 'checkins', 'reviews', 'development_plans',
+      'certifications', 'activity_log',
+    ];
+    for (const table of tables) {
+      const { error, count } = await supabase
+        .from(table)
+        .delete({ count: 'exact' })
+        .eq('employee_id', id);
+      console.log(`[deleteEmployee] ${table}:`, { count, error });
+    }
+
+    const { error: usersErr, count: usersCount } = await supabase
+      .from('users').delete({ count: 'exact' }).eq('employee_id', id);
+    console.log('[deleteEmployee] users:', { count: usersCount, error: usersErr });
+
+    const { data, error, count } = await supabase
+      .from('employees').delete({ count: 'exact' }).eq('id', id).select();
+    console.log('[deleteEmployee] employees:', { data, count, error });
+
+    if (error) {
+      alert(`Delete failed: ${error.message}`);
+      return;
+    }
+    if (!count || count === 0) {
+      alert('Delete returned 0 rows — likely an RLS policy is blocking it.');
+      return;
+    }
+
     setTab('employees');
   }
 
@@ -356,7 +376,7 @@ export function HRApp() {
         >
           {tab === 'dashboard' && (
             <MobileDashboard
-            employee={{ id: '', name: profile?.email?.split('@')[0] ?? 'HR', email: profile?.email ?? '', phone: null, role: 'HR Administrator', department: null, team_id: null, manager: null, manager_user_id: null, start_date: null, status: 'complete', phase: 'active', progress: 100, archived: false, user_id: null, avatar_url: null, bio: null, onboarding_completed_at: null, lifecycle_status: 'active', birthday_month: null, birthday_day: null, company_id: null, created_at: '', current_level: null, next_level: null, pathway_id: null, readiness_level: null, current_status: null, employment_type: null, access_role: null }}
+            employee={{ id: '', name: profile?.email?.split('@')[0] ?? 'HR', email: profile?.email ?? '', phone: null, role: 'HR Administrator', department: null, team_id: null, manager: null, manager_user_id: null, start_date: null, status: 'complete', phase: 'active', progress: 100, archived: false, user_id: null, avatar_url: null, bio: null, onboarding_completed_at: null, lifecycle_status: 'active', birthday_month: null, birthday_day: null, company_id: null, created_at: '', current_level: null, next_level: null, pathway_id: null, readiness_level: null, current_status: null, employment_type: null, pillar_focus: null }}
             tasks={[]}
               schedules={[]}
               announcement={null}
