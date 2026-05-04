@@ -58,6 +58,7 @@ interface Props {
   onTaskTriageChange?: (taskId: string, triage: 'critical' | 'normal') => void;
   onArchive: (id: string) => void;
   onRestore: (id: string) => void;
+  onDelete?: (id: string) => void;
   onEditEmployee: (id: string) => void;
   onDocumentsChanged: (empId: string) => void;
   onDataChanged: (empId: string) => void;
@@ -67,8 +68,9 @@ export function EmployeeDetail({
   employee: e, tasks, documents, schedules, notes, companies = [], pathways = [],
   reviews, developmentPlans, certifications, checkins,
   onBack, onOpenModal, onToggleTask, onTaskStatusChange, onTaskTriageChange,
-  onArchive, onRestore, onEditEmployee, onDocumentsChanged, onDataChanged,
+  onArchive, onRestore, onDelete, onEditEmployee, onDocumentsChanged, onDataChanged,
 }: Props) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const companyName = companies.find(c => c.id === e.company_id)?.name ?? null;
   const pathwayName = pathways.find(p => p.id === e.pathway_id)?.name ?? null;
   const [detailTab, setDetailTab] = useState<DetailTab>('overview');
@@ -194,6 +196,20 @@ export function EmployeeDetail({
                     <hr style={{ border: 'none', borderTop: '1px solid #F2F1ED', margin: '4px 0' }} />
                     <button className="btn-ghost sm" style={{ justifyContent: 'flex-start', borderColor: '#9B9890', color: '#6B6860' }} onClick={() => onArchive(e.id)}>Archive Employee</button>
                   </>
+                )}
+                <hr style={{ border: 'none', borderTop: '1px solid #F2F1ED', margin: '4px 0' }} />
+                {!confirmDelete ? (
+                  <button className="btn-ghost sm" style={{ justifyContent: 'flex-start', borderColor: '#C4420A', color: '#C4420A' }} onClick={() => setConfirmDelete(true)}>
+                    <Trash2 size={13} style={{ marginRight: 6 }} />Delete Employee
+                  </button>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '4px 0' }}>
+                    <span style={{ fontSize: 11, color: '#C4420A', fontWeight: 600 }}>Permanently delete this employee and all their data?</span>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button className="btn-ghost sm" style={{ flex: 1, borderColor: '#C4420A', color: '#C4420A', fontWeight: 600 }} onClick={() => { onDelete?.(e.id); setConfirmDelete(false); }}>Yes, Delete</button>
+                      <button className="btn-ghost sm" style={{ flex: 1 }} onClick={() => setConfirmDelete(false)}>Cancel</button>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
