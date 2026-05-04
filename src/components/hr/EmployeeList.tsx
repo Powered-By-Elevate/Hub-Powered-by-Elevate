@@ -42,7 +42,7 @@ export function EmployeeList({ employees, companies, departments, onViewEmployee
   const visibleCompanies = companies.filter(c => activeCompanyIds.has(c.id));
 
   let list = pool;
-  if (listTab === 'active' && filterStatus !== 'all') list = list.filter(e => e.status === filterStatus);
+  if (listTab === 'active' && filterStatus !== 'all') list = list.filter(e => e.lifecycle_status === filterStatus);
   if (filterDept !== 'all') list = list.filter(e => e.department === filterDept);
   if (filterCompany !== 'all') list = list.filter(e => e.company_id === filterCompany);
   if (filterCurrentStatus !== 'all') list = list.filter(e => e.current_status === filterCurrentStatus);
@@ -57,7 +57,7 @@ export function EmployeeList({ employees, companies, departments, onViewEmployee
       <div className="topbar">
         <div className="topbar-left">
           <h1>All Employees</h1>
-          <p>{activeEmps.length} active · {archivedEmps.length} archived</p>
+          <p>{activeEmps.length} active · {archivedEmps.length} non-active</p>
         </div>
         <div className="topbar-actions">
           <div ref={addDropRef} style={{ position: 'relative' }}>
@@ -112,7 +112,7 @@ export function EmployeeList({ employees, companies, departments, onViewEmployee
               style={{ fontSize: 13, padding: '10px 18px' }}
               onClick={() => { setListTab('archived'); setFilterStatus('all'); setFilterDept('all'); setFilterCompany('all'); setFilterCurrentStatus('all'); setSearch(''); }}
             >
-              Archived <span style={{ marginLeft: 6, padding: '2px 7px', borderRadius: 10, fontSize: 11, fontWeight: 600, background: listTab === 'archived' ? '#E8EFF8' : '#F2F1ED', color: listTab === 'archived' ? '#1B3F6E' : '#9B9890' }}>{archivedEmps.length}</span>
+              Non-Active <span style={{ marginLeft: 6, padding: '2px 7px', borderRadius: 10, fontSize: 11, fontWeight: 600, background: listTab === 'archived' ? '#E8EFF8' : '#F2F1ED', color: listTab === 'archived' ? '#1B3F6E' : '#9B9890' }}>{archivedEmps.length}</span>
             </button>
           </div>
           <div className="filter-bar">
@@ -129,10 +129,9 @@ export function EmployeeList({ employees, companies, departments, onViewEmployee
                 className="filter-select"
               >
                 <option value="all">All Statuses</option>
-                <option value="in-progress">In Progress</option>
-                <option value="complete">Complete</option>
-                <option value="overdue">Overdue</option>
-                <option value="not-started">Not Started</option>
+                <option value="active">Active</option>
+                <option value="onboarding">Onboarding</option>
+                <option value="applicant">Applicant</option>
               </select>
             )}
             <select
@@ -172,8 +171,8 @@ export function EmployeeList({ employees, companies, departments, onViewEmployee
           {listTab === 'archived' && archivedEmps.length === 0 ? (
             <div className="empty-state">
               <div className="empty-icon">📦</div>
-              <p>No archived employees</p>
-              <div className="esub">Employees who complete onboarding can be archived from their profile.</div>
+              <p>No non-active employees</p>
+              <div className="esub">Terminated or retired employees will appear here.</div>
             </div>
           ) : list.length === 0 ? (
             <div className="empty-state"><div className="empty-icon">🔍</div><p>No employees match your filters</p><div className="esub">Try adjusting the filters above</div></div>
@@ -209,8 +208,10 @@ export function EmployeeList({ employees, companies, departments, onViewEmployee
                       <td style={{ color: '#6B6860' }}>{e.manager}</td>
                       <td style={{ fontSize: 12, color: '#6B6860' }}>{e.start_date}</td>
                       <td>
-                      {e.lifecycle_status === 'active' ? (
+                        {e.lifecycle_status === 'active' ? (
                           <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#D1FAE5', color: '#065F46', whiteSpace: 'nowrap' }}>Active</span>
+                        ) : e.lifecycle_status === 'applicant' ? (
+                          <span style={{ fontSize: 12, color: '#9B9890' }}>&mdash;</span>
                         ) : (
                           <>
                             <div className="prog-bar"><div className={`prog-fill ${pfColor(e.progress, e.status)}`} style={{ width: e.progress + '%' }} /></div>
@@ -219,12 +220,15 @@ export function EmployeeList({ employees, companies, departments, onViewEmployee
                         )}
                       </td>
                       <td>
-                      {listTab === 'archived' 
-                          ? <span className="badge b-muted"><span className="dot-sm" /> Archived</span> 
-                          : e.lifecycle_status === 'active'
-                            ? <span className="badge b-success">Active Employee</span>
-                            : <StatusBadge status={e.status} />
-                        }                      </td>
+                        {listTab === 'archived'
+                          ? <span className="badge b-muted"><span className="dot-sm" /> Archived</span>
+                          : e.lifecycle_status === 'applicant'
+                            ? <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#E8EFF8', color: '#1B3F6E', whiteSpace: 'nowrap' }}>Applicant</span>
+                            : e.lifecycle_status === 'active'
+                              ? <span className="badge b-success">Active Employee</span>
+                              : <StatusBadge status={e.status} />
+                        }
+                      </td>
                       <td>
                         {csc ? (
                           <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: csc.bg, color: csc.color, whiteSpace: 'nowrap' }}>{e.current_status}</span>

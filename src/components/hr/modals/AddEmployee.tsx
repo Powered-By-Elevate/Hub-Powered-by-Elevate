@@ -33,7 +33,8 @@ export function AddEmployeeModal({ onClose, onCreated, departments, companies, e
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', role: '',
     department: departments[0] ?? '', manager: '', manager_id: '', startDate: '',
-    company_id: companies[0]?.id ?? '',
+    company_id: companies[0]?.id ?? '', lifecycle_status: 'onboarding' as string,
+    pillar_focus: '',
   });
   const activeEmployees = employees.filter(emp => !emp.archived);
   const [docs, setDocs] = useState<StagedDoc[]>([]);
@@ -86,6 +87,8 @@ export function AddEmployeeModal({ onClose, onCreated, departments, companies, e
       status: 'not-started',
       progress: 0,
       company_id: form.company_id || null,
+      lifecycle_status: form.lifecycle_status,
+      pillar_focus: form.pillar_focus || null,
     }).select().single();
 
     if (empErr || !emp) {
@@ -163,8 +166,8 @@ export function AddEmployeeModal({ onClose, onCreated, departments, companies, e
           <input type="text" value={form.lastName} onChange={set('lastName')} placeholder="Smith" />
         </div>
         <div className="field full">
-          <label>Work email <span style={{ color: '#E53E3E' }}>*</span></label>
-          <input type="email" value={form.email} onChange={set('email')} placeholder="jane.smith@company.com" />
+          <label>{form.lifecycle_status === 'applicant' ? 'Contact email' : 'Work email'} <span style={{ color: '#E53E3E' }}>*</span></label>
+          <input type="email" value={form.email} onChange={set('email')} placeholder={form.lifecycle_status === 'applicant' ? 'jane.smith@gmail.com' : 'jane.smith@company.com'} />
         </div>
         <div className="field full">
           <label>Job title</label>
@@ -188,6 +191,26 @@ export function AddEmployeeModal({ onClose, onCreated, departments, companies, e
         <div className="field">
           <label>Start date</label>
           <input type="date" value={form.startDate} onChange={set('startDate')} />
+        </div>
+        <div className="field">
+          <label>Status</label>
+          <select value={form.lifecycle_status} onChange={set('lifecycle_status')}>
+            <option value="applicant">Applicant</option>
+            <option value="onboarding">Onboarding</option>
+            <option value="active">Active</option>
+          </select>
+        </div>
+        <div className="field">
+          <label>Pillar Focus</label>
+          <select value={form.pillar_focus} onChange={set('pillar_focus')}>
+            <option value="">— None —</option>
+            <option value="Phileo Love">Phileo Love</option>
+            <option value="Trust">Trust</option>
+            <option value="Teamwork">Teamwork</option>
+            <option value="Big Goal">Big Goal</option>
+            <option value="Legacy">Legacy</option>
+            <option value="Identity">Identity</option>
+          </select>
         </div>
         {companies.length > 0 && (
           <div className="field">

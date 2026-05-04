@@ -7,7 +7,7 @@ export type TaskCategory = 'document' | 'training' | 'form' | 'meeting' | 'task'
 export type TaskPriority = 'low' | 'medium' | 'high';
 export type TaskTriage = 'critical' | 'normal';
 export type TaskPhase = 'onboarding' | 'active';
-export type LifecycleStatus = 'onboarding' | 'active';
+export type LifecycleStatus = 'onboarding' | 'active' | 'applicant';
 export type AssignedByRole = 'hr' | 'manager' | 'employee' | 'system';
 export type EmployeeStatus = 'not-started' | 'in-progress' | 'complete' | 'overdue';
 export type CheckinStatus = 'pending' | 'completed' | 'overdue';
@@ -97,6 +97,7 @@ export interface Employee {
   current_status: string | null;
   employment_type: string | null;
   access_role: string | null;
+  pillar_focus: string | null;
   created_at: string;
 }
 
