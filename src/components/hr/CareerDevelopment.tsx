@@ -35,6 +35,17 @@ function computePillarHealth(checkins: Checkin[], employees: Employee[]): Pillar
   const empMap = new Map(employees.map(e => [e.id, e]));
   const data: Record<string, { count: number; recent: string | null; empCounts: Record<string, { count: number; last: string }> }> = {};
   for (const p of PILLARS) data[p] = { count: 0, recent: null, empCounts: {} };
+
+  // Include employees with a direct pillar_focus assignment
+  for (const emp of employees) {
+    if (emp.pillar_focus && data[emp.pillar_focus] !== undefined) {
+      if (!data[emp.pillar_focus].empCounts[emp.id]) {
+        data[emp.pillar_focus].empCounts[emp.id] = { count: 0, last: '' };
+      }
+    }
+  }
+
+  // Layer in check-in data
   for (const c of checkins) {
     if (c.pillar_focus && data[c.pillar_focus] !== undefined) {
       data[c.pillar_focus].count += 1;
@@ -50,6 +61,7 @@ function computePillarHealth(checkins: Checkin[], employees: Employee[]): Pillar
       }
     }
   }
+
   return PILLARS.map(p => ({
     pillar: p,
     count: data[p].count,
@@ -126,7 +138,7 @@ export function CareerDevelopment({ employees, pathways, onViewEmployee, onRefre
   // Pillar analytics
   const totalCheckins = allCheckins.length;
   const empsWithPillarFocus = new Set(allCheckins.filter(c => c.pillar_focus).map(c => c.employee_id)).size;
-  const empsNeverFocused = activeEmps.filter(e => !allCheckins.some(c => c.employee_id === e.id && c.pillar_focus)).length;
+  const empsNeverFocused = activeEmps.filter(e => !e.pillar_focus && !allCheckins.some(c => c.employee_id === e.id && c.pillar_focus)).length;
 
   function startEdit(emp: Employee) {
     setEditingId(emp.id);
@@ -507,7 +519,7 @@ export function CareerDevelopment({ employees, pathways, onViewEmployee, onRefre
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {activeEmps
-                      .filter(e => !allCheckins.some(c => c.employee_id === e.id && c.pillar_focus))
+                      .filter(e => !e.pillar_focus && !allCheckins.some(c => c.employee_id === e.id && c.pillar_focus))
                       .slice(0, 20)
                       .map(emp => (
                         <div

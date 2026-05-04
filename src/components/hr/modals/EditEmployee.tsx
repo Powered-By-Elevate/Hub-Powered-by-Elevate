@@ -17,6 +17,7 @@ interface Props {
 const EMPLOYMENT_TYPES = ['Full Time', 'Part Time', 'Contract', 'Seasonal'];
 const ROLES = ['Employee', 'Manager', 'HR Admin'];
 const LIFECYCLE_STATUSES = ['Applicant', 'Onboarding', 'Active'];
+const PILLARS = ['Phileo Love', 'Trust', 'Teamwork', 'Big Goal', 'Legacy', 'Identity'];
 const LEVELS = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7'];
 const READINESS_LEVELS = ['Ready Now', 'Ready in One Year', 'Ready in 2-3 Years', 'Longer Term Development Needed'];
 const CURRENT_STATUSES = ['At Risk', 'Needs Support', 'On Track'];
@@ -40,6 +41,7 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
     pathway_id: e.pathway_id ?? '',
     readiness_level: e.readiness_level ?? '',
     current_status: e.current_status ?? '',
+    pillar_focus: e.pillar_focus ?? '',
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(e.avatar_url ?? null);
@@ -136,6 +138,7 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
       pathway_id: form.pathway_id || null,
       readiness_level: form.readiness_level || null,
       current_status: form.current_status || null,
+      pillar_focus: form.pillar_focus || null,
     };
 
     const updates = { ...coreUpdates, ...extendedFields };
@@ -349,6 +352,13 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
           <select value={form.current_status} onChange={set('current_status')}>
             <option value="">— None —</option>
             {CURRENT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        <div className="field full">
+          <label>Pillar Focus</label>
+          <select value={form.pillar_focus} onChange={set('pillar_focus')}>
+            <option value="">— None —</option>
+            {PILLARS.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
       </div>
