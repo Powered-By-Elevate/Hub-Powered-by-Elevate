@@ -104,8 +104,25 @@ export function EmployeeDetail({
   }
 
   async function deleteTask(taskId: string) {
-    if (!confirm('Delete this task permanently?')) return;
-    await supabase.from('onboarding_tasks').delete().eq('id', taskId);
+    console.log('[deleteTask] called for', taskId);
+    if (!confirm('Delete this task permanently?')) {
+      console.log('[deleteTask] user cancelled the confirm dialog');
+      return;
+    }
+    const { data, error, count } = await supabase
+      .from('onboarding_tasks')
+      .delete({ count: 'exact' })
+      .eq('id', taskId)
+      .select();
+    console.log('[deleteTask] result:', { data, count, error });
+    if (error) {
+      alert(`Delete failed: ${error.message}`);
+      return;
+    }
+    if (!count || count === 0) {
+      alert('Task delete returned 0 rows — likely an RLS policy is blocking it.');
+      return;
+    }
     onDataChanged(e.id);
   }
 
@@ -289,7 +306,7 @@ export function EmployeeDetail({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '4px 0' }}>
                     <span style={{ fontSize: 11, color: '#C4420A', fontWeight: 600 }}>Permanently delete this employee and all their data?</span>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button className="btn-ghost sm" style={{ flex: 1, borderColor: '#C4420A', color: '#C4420A', fontWeight: 600 }} onClick={() => { onDelete?.(e.id); setConfirmDelete(false); }}>Yes, Delete</button>
+                    <button className="btn-ghost sm" style={{ flex: 1, borderColor: '#C4420A', color: '#C4420A', fontWeight: 600 }} onClick={() => { console.log('[Yes, Delete] clicked. onDelete defined?', typeof onDelete, 'employee id:', e.id); onDelete?.(e.id); setConfirmDelete(false); }}>Yes, Delete</button>
                       <button className="btn-ghost sm" style={{ flex: 1 }} onClick={() => setConfirmDelete(false)}>Cancel</button>
                     </div>
                   </div>
