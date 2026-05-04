@@ -356,8 +356,8 @@ export function HRApp() {
         >
           {tab === 'dashboard' && (
             <MobileDashboard
-              employee={{ id: '', name: profile?.email?.split('@')[0] ?? 'HR', email: profile?.email ?? '', phone: null, role: 'HR Administrator', department: null, team_id: null, manager: null, manager_user_id: null, start_date: null, status: 'complete', phase: 'active', progress: 100, archived: false, user_id: null, avatar_url: null, bio: null, onboarding_completed_at: null, lifecycle_status: 'active', birthday_month: null, birthday_day: null, company_id: null, created_at: '', current_level: null, next_level: null, pathway_id: null, readiness_level: null, current_status: null, employment_type: null }}
-              tasks={[]}
+            employee={{ id: '', name: profile?.email?.split('@')[0] ?? 'HR', email: profile?.email ?? '', phone: null, role: 'HR Administrator', department: null, team_id: null, manager: null, manager_user_id: null, start_date: null, status: 'complete', phase: 'active', progress: 100, archived: false, user_id: null, avatar_url: null, bio: null, onboarding_completed_at: null, lifecycle_status: 'active', birthday_month: null, birthday_day: null, company_id: null, created_at: '', current_level: null, next_level: null, pathway_id: null, readiness_level: null, current_status: null, employment_type: null, access_role: null }}
+            tasks={[]}
               schedules={[]}
               announcement={null}
               onToggleTask={() => {}}
