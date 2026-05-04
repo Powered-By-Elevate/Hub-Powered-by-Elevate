@@ -34,10 +34,13 @@ function formatClock(d: Date) {
 
 function showOnboardingBanner(employee: Employee): boolean {
   if (employee.lifecycle_status !== 'active') return false;
-  if (!employee.onboarding_completed_at) return true;
+  // Only show if they have a completion timestamp (meaning they actually completed onboarding through the system)
+  // Imported active employees won't have this, so they get the regular launch banner instead
+  if (!employee.onboarding_completed_at) return false;
   const completedAt = new Date(employee.onboarding_completed_at);
-  const daysSince = (Date.now() - completedAt.getTime()) / (1000 * 60 * 60 * 24);
-  return daysSince <= 7;
+  const minutesSince = (Date.now() - completedAt.getTime()) / (1000 * 60);
+  // Show celebration for 30 minutes after completion
+  return minutesSince <= 30;
 }
 
 const ANNOUNCEMENT_COLORS: Record<string, { bg: string; border: string; text: string; isGrad?: boolean }> = {
@@ -128,7 +131,12 @@ export function EmpOverview({ employee, tasks, schedules, announcements, pct, on
             </div>
           );
         })()}
-
+{isActive && !showOBBanner && !activeBanner && (
+          <div className="welcome-banner" style={{ background: 'linear-gradient(135deg, #1B3F6E 0%, #2D5FA0 100%)' }}>
+            <h2>Welcome to Hub</h2>
+            <p>Your people development platform is now live. Explore your dashboard to manage your goals, check-ins, and growth journey.</p>
+          </div>
+        )}
         {!isActive && (
           <div className="welcome-banner">
             <h2>You're {pct}% onboarded!</h2>
