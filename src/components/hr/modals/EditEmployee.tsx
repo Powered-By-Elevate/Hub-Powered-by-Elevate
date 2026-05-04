@@ -45,33 +45,23 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
   const [avatarPreview, setAvatarPreview] = useState<string | null>(e.avatar_url ?? null);
   const [saving, setSaving] = useState(false);
   // Load the user's current access level
-  useEffect(() => {
-    const reverseMap: Record<string, string> = { hr: 'HR Admin', manager: 'Manager', employee: 'Employee' };
-    async function loadAccessLevel() {
-      // Try from users table first (linked account)
-      if (e.user_id) {
-        const { data } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', e.user_id)
-          .maybeSingle();
-        if (data?.role) {
-          setForm(f => ({ ...f, auth_role: reverseMap[data.role] || 'Employee' }));
-          return;
-        }
-      }
-      // Fallback: read access_role from employees table
-      const { data: empData } = await supabase
-        .from('employees')
-        .select('access_role')
-        .eq('id', e.id)
-        .maybeSingle();
-      if (empData?.access_role) {
-        setForm(f => ({ ...f, auth_role: reverseMap[empData.access_role] || 'Employee' }));
-      }
+ useEffect(() => {
+  const reverseMap: Record<string, string> = { hr: 'HR Admin', manager: 'Manager', employee: 'Employee' };
+  async function loadAccessLevel() {
+    if (!e.user_id) return;
+    const { data, error } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', e.user_id)
+      .maybeSingle();
+    console.log('loadAccessLevel:', { user_id: e.user_id, data, error });
+    if (data?.role) {
+      const role = String(data.role).toLowerCase().trim();
+      setForm(f => ({ ...f, auth_role: reverseMap[role] || 'Employee' }));
     }
-    loadAccessLevel();
-  }, [e.user_id, e.id]);
+  }
+  loadAccessLevel();
+}, [e.user_id]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -140,18 +130,23 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
 
     const updates = { ...coreUpdates, ...extendedFields };
 
+    console.log('[EditEmployee] updates payload:', updates);
+    console.log('[EditEmployee] employee id:', e.id);
     let { data, error: saveErr } = await supabase
       .from('employees')
       .update(updates)
       .eq('id', e.id)
       .select()
       .single();
+    console.log('[EditEmployee] first update result:', { data, saveErr });
 
     // Fallback: if schema cache doesn't recognize newer columns, retry with core fields only
     if (saveErr?.message?.includes('schema cache')) {
+      console.log('[EditEmployee] schema cache fallback triggered, retrying with coreUpdates');
       const retry = await supabase.from('employees').update(coreUpdates).eq('id', e.id).select().single();
       data = retry.data;
       saveErr = retry.error;
+      console.log('[EditEmployee] fallback result:', { data: retry.data, error: retry.error });
     }
 
     // Always persist access_role on the employees table
