@@ -74,16 +74,16 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
 
     if (avatarFile) {
       const ext = avatarFile.name.split('.').pop();
-      const path = `avatars/${e.id}-${Date.now()}.${ext}`;
+      const path = `${e.id}-${Date.now()}.${ext}`;
       const { error: uploadErr } = await supabase.storage
-        .from('employee-documents')
+        .from('avatars')
         .upload(path, avatarFile, { upsert: true });
       if (uploadErr) {
         setError('Failed to upload photo: ' + uploadErr.message);
         setSaving(false);
         return;
       }
-      const { data: urlData } = supabase.storage.from('employee-documents').getPublicUrl(path);
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
       avatar_url = urlData.publicUrl;
     }
 
