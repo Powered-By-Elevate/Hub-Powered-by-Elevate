@@ -22,80 +22,87 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify the token is valid and unused
-    const { data: tokenData } = await supabase
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    // Verify token is valid and unused
+    const { data: tokenData, error: tokenErr } = await supabase
       .from("setup_tokens")
       .select("id, employee_id, expires_at, used")
       .eq("id", tokenId)
       .eq("used", false)
       .maybeSingle();
 
-    if (!tokenData || new Date(tokenData.expires_at) < new Date()) {
+    if (tokenErr || !tokenData) {
       return new Response(
-        JSON.stringify({ error: "Token is invalid or expired" }),
+        JSON.stringify({ error: "Token is invalid or already used." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (new Date(tokenData.expires_at) < new Date()) {
+      return new Response(
+        JSON.stringify({ error: "Token has expired. Please ask HR to send a new invite." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     let userId: string | undefined;
 
-    // Try to create user with email pre-confirmed
-    const { data: authData, error: createErr } = await supabase.auth.admin.createUser({
+    // Try to create a new auth user with confirmed email
+    const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
     });
 
-    if (createErr) {
-      // User may already exist from a previous partial attempt
-      if (createErr.message.includes("already") || createErr.message.includes("exists") || createErr.message.includes("unique")) {
-        // Find existing user by email and update their password + confirm
-        const { data: listData } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1 });
-        // listUsers doesn't filter by email, so query auth.users directly
-        const { data: existingUser } = await supabase
-          .from("users")
-          .select("id")
-          .eq("email", email)
-          .maybeSingle();
+    if (!createErr && newUser?.user) {
+      userId = newUser.user.id;
+    } else {
+      // User already exists — find them and update password
+      const { data: listData } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      const existingUser = listData?.users?.find((u) => u.email === email);
 
-        if (existingUser) {
-          userId = existingUser.id;
-          await supabase.auth.admin.updateUser(userId, { password, email_confirm: true });
-        } else {
-          // Try to find in auth schema via admin API with a broader search
-          const { data: allUsers } = await supabase.auth.admin.listUsers({ page: 1, perPage: 50 });
-          const found = allUsers?.users?.find((u) => u.email === email);
-          if (found) {
-            userId = found.id;
-            await supabase.auth.admin.updateUser(userId, { password, email_confirm: true });
-          } else {
-            return new Response(
-              JSON.stringify({ error: "Account exists but could not be located. Contact HR." }),
-              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
+      if (existingUser) {
+        userId = existingUser.id;
+        const { error: updateErr } = await supabase.auth.admin.updateUser(userId, {
+          password,
+          email_confirm: true,
+        });
+        if (updateErr) {
+          return new Response(
+            JSON.stringify({ error: "Failed to update account: " + updateErr.message }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
       } else {
         return new Response(
-          JSON.stringify({ error: createErr.message }),
+          JSON.stringify({ error: "Could not create or locate account. Please contact HR." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-    } else {
-      userId = authData.user.id;
     }
 
-    if (userId) {
-      await supabase.from("employees").update({ user_id: userId }).eq("id", employeeId);
-      await supabase.from("users").upsert({ id: userId, email, role: "employee", employee_id: employeeId });
-      await supabase.from("setup_tokens").update({ used: true }).eq("id", tokenId);
-    }
+    // Link employee record to auth user
+    await supabase
+      .from("employees")
+      .update({ user_id: userId })
+      .eq("id", employeeId);
+
+    // Upsert into public.users table for role-based access
+    await supabase
+      .from("users")
+      .upsert({ id: userId, email, role: "employee", employee_id: employeeId });
+
+    // Mark setup token as used
+    await supabase
+      .from("setup_tokens")
+      .update({ used: true })
+      .eq("id", tokenId);
 
     return new Response(
       JSON.stringify({ success: true, userId }),
@@ -103,7 +110,7 @@ Deno.serve(async (req: Request) => {
     );
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: String(err) }),
+      JSON.stringify({ error: "Server error: " + String(err) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

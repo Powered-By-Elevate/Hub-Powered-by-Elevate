@@ -12,9 +12,39 @@ interface Props {
 function buildMailtoBody(employeeName: string, setupUrl: string, isNew: boolean): string {
   const firstName = employeeName.split(' ')[0];
   if (isNew) {
-    return `Hi ${firstName},\n\nWelcome to True North! We're so glad to have you on the team.\n\nPlease follow the link below to set up your account on Hub, our people development platform:\n\n${setupUrl}\n\nThis link will expire in 7 days. Once you click it, you'll be prompted to create a password and you'll be all set.\n\nLooking forward to working with you!\n\nBest,\nTrue North HR`;
+    return [
+      `Hi ${firstName},`,
+      ``,
+      `Welcome to True North! We're so glad to have you on the team.`,
+      ``,
+      `Please click the link below to set up your account on Hub, our people development platform:`,
+      ``,
+      setupUrl,
+      ``,
+      `This link will expire in 7 days. Once you click it, you'll be prompted to create a password and you'll be all set.`,
+      ``,
+      `Looking forward to working with you!`,
+      ``,
+      `Best,`,
+      `True North HR`,
+    ].join('\r\n');
   }
-  return `Hi ${firstName},\n\nWe're excited to introduce Hub, our new people development platform!\n\nPlease follow the link below to set up your account:\n\n${setupUrl}\n\nThis link will expire in 7 days. Once you click it, you'll be prompted to create a password and you'll have full access.\n\nLet us know if you have any questions!\n\nBest,\nTrue North HR`;
+  return [
+    `Hi ${firstName},`,
+    ``,
+    `We're excited to introduce Hub, our new people development platform!`,
+    ``,
+    `Please click the link below to set up your account:`,
+    ``,
+    setupUrl,
+    ``,
+    `This link will expire in 7 days. Once you click it, you'll be prompted to create a password and you'll have full access.`,
+    ``,
+    `Let us know if you have any questions!`,
+    ``,
+    `Best,`,
+    `True North HR`,
+  ].join('\r\n');
 }
 
 export function SendInviteModal({ employee, onClose, isNewEmployee = true }: Props) {
