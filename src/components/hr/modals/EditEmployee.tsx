@@ -147,10 +147,35 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
     }
 
     // Update auth role on the users table if the employee has a linked auth account
-    if (!saveErr && e.user_id && form.auth_role) {
-      const roleMap: Record<string, string> = { 'HR Admin': 'hr', 'Manager': 'manager', 'Employee': 'employee' };
-      await supabase.from('users').update({ role: roleMap[form.auth_role] || 'employee' }).eq('id', e.user_id);
-    }
+    // Update auth role on the users table if the employee has a linked auth account
+if (!saveErr && form.auth_role) {
+  if (!e.user_id) {
+    setError('This employee has no linked auth account, so access level cannot be changed. Invite them first.');
+    setSaving(false);
+    return;
+  }
+  const roleMap: Record<string, string> = { 'HR Admin': 'hr', 'Manager': 'manager', 'Employee': 'employee' };
+  const newRole = roleMap[form.auth_role] || 'employee';
+
+  const { data: roleData, error: roleErr, count } = await supabase
+    .from('users')
+    .update({ role: newRole }, { count: 'exact' })
+    .eq('id', e.user_id)
+    .select();
+
+  console.log('users.role update →', { newRole, user_id: e.user_id, count, roleData, roleErr });
+
+  if (roleErr) {
+    setError(`Could not update access level: ${roleErr.message}`);
+    setSaving(false);
+    return;
+  }
+  if (!roleData || roleData.length === 0) {
+    setError('Access level update affected 0 rows — likely an RLS policy on the users table is blocking it.');
+    setSaving(false);
+    return;
+  }
+}
 
     setSaving(false);
 
