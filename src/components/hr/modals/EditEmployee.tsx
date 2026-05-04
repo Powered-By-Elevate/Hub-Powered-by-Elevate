@@ -73,11 +73,11 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
     let avatar_url = e.avatar_url;
 
     if (avatarFile) {
-      const ext = avatarFile.name.split('.').pop();
-      const path = `${e.id}-${Date.now()}.${ext}`;
+      const compressedBlob = await compressImage(avatarFile, 600, 0.85);
+      const path = `${e.id}-${Date.now()}.jpg`;
       const { error: uploadErr } = await supabase.storage
         .from('avatars')
-        .upload(path, avatarFile, { upsert: true });
+        .upload(path, compressedBlob, { upsert: true, contentType: 'image/jpeg' });
       if (uploadErr) {
         setError('Failed to upload photo: ' + uploadErr.message);
         setSaving(false);
@@ -314,4 +314,41 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
       </div>
     </Modal>
   );
+}
+async function compressImage(file: File, maxWidth: number, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas context unavailable'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Compression failed'));
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => reject(new Error('Image load failed'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('File read failed'));
+    reader.readAsDataURL(file);
+  });
 }
