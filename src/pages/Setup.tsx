@@ -119,7 +119,8 @@ export function SetupPage({ token, onDone }: Props) {
 
       setSaving(false);
       setStep('done');
-      setTimeout(onDone, 2000);
+      // Force a full page reload after activation so AuthContext picks up the new session cleanly
+      setTimeout(() => { window.location.href = '/'; }, 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Connection error. Please check your internet and try again.');
       setSaving(false);
