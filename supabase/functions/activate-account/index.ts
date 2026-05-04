@@ -43,31 +43,43 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Create user with email_confirm: true so no verification is needed
+    let userId: string | undefined;
+
+    // Try to create user with email pre-confirmed
     const { data: authData, error: createErr } = await supabase.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
     });
 
-    let userId: string | undefined;
-
     if (createErr) {
-      if (createErr.message.includes("already") || createErr.message.includes("exists")) {
-        // User already exists - update their password and confirm email
-        const { data: existingUsers } = await supabase.auth.admin.listUsers();
-        const existing = existingUsers?.users?.find((u) => u.email === email);
-        if (existing) {
-          await supabase.auth.admin.updateUser(existing.id, {
-            password,
-            email_confirm: true,
-          });
-          userId = existing.id;
+      // User may already exist from a previous partial attempt
+      if (createErr.message.includes("already") || createErr.message.includes("exists") || createErr.message.includes("unique")) {
+        // Find existing user by email and update their password + confirm
+        const { data: listData } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1 });
+        // listUsers doesn't filter by email, so query auth.users directly
+        const { data: existingUser } = await supabase
+          .from("users")
+          .select("id")
+          .eq("email", email)
+          .maybeSingle();
+
+        if (existingUser) {
+          userId = existingUser.id;
+          await supabase.auth.admin.updateUser(userId, { password, email_confirm: true });
         } else {
-          return new Response(
-            JSON.stringify({ error: createErr.message }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          // Try to find in auth schema via admin API with a broader search
+          const { data: allUsers } = await supabase.auth.admin.listUsers({ page: 1, perPage: 50 });
+          const found = allUsers?.users?.find((u) => u.email === email);
+          if (found) {
+            userId = found.id;
+            await supabase.auth.admin.updateUser(userId, { password, email_confirm: true });
+          } else {
+            return new Response(
+              JSON.stringify({ error: "Account exists but could not be located. Contact HR." }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
         }
       } else {
         return new Response(
@@ -80,7 +92,6 @@ Deno.serve(async (req: Request) => {
     }
 
     if (userId) {
-      // Link auth user to employee record
       await supabase.from("employees").update({ user_id: userId }).eq("id", employeeId);
       await supabase.from("users").upsert({ id: userId, email, role: "employee", employee_id: employeeId });
       await supabase.from("setup_tokens").update({ used: true }).eq("id", tokenId);

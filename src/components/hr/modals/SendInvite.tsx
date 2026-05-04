@@ -6,12 +6,21 @@ import { Employee } from '../../../lib/database.types';
 interface Props {
   employee: Employee;
   onClose: () => void;
+  isNewEmployee?: boolean;
 }
 
-export function SendInviteModal({ employee, onClose }: Props) {
+function buildMailtoBody(employeeName: string, setupUrl: string, isNew: boolean): string {
+  const firstName = employeeName.split(' ')[0];
+  if (isNew) {
+    return `Hi ${firstName},\n\nWelcome to True North! We're so glad to have you on the team.\n\nPlease follow the link below to set up your account on Hub, our people development platform:\n\n${setupUrl}\n\nThis link will expire in 7 days. Once you click it, you'll be prompted to create a password and you'll be all set.\n\nLooking forward to working with you!\n\nBest,\nTrue North HR`;
+  }
+  return `Hi ${firstName},\n\nWe're excited to introduce Hub, our new people development platform!\n\nPlease follow the link below to set up your account:\n\n${setupUrl}\n\nThis link will expire in 7 days. Once you click it, you'll be prompted to create a password and you'll have full access.\n\nLet us know if you have any questions!\n\nBest,\nTrue North HR`;
+}
+
+export function SendInviteModal({ employee, onClose, isNewEmployee = true }: Props) {
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
-  const [token, setToken] = useState('');
+  const [setupUrl, setSetupUrl] = useState('');
   const [error, setError] = useState('');
 
   async function handleSend() {
@@ -24,20 +33,16 @@ export function SendInviteModal({ employee, onClose }: Props) {
       .single();
     setSending(false);
     if (err) { setError(err.message); return; }
-    setToken(data.token);
+
+    const url = `${window.location.origin}?setup=${data.token}`;
+    setSetupUrl(url);
     setDone(true);
 
-    /* MICROSOFT INTEGRATION HOOK:
-       Replace this with a call to a Supabase Edge Function that sends
-       the setup link via Outlook/Microsoft Graph API:
-       POST /functions/v1/send-invite
-       { email, setupUrl, employeeName }
-    */
-    const setupUrl = `${window.location.origin}?setup=${data.token}`;
-    console.log('[DEMO] Setup link for', employee.email, ':', setupUrl);
+    // Open the user's email client with pre-populated content
+    const subject = encodeURIComponent('Set up your Hub account — True North');
+    const body = encodeURIComponent(buildMailtoBody(employee.name, url, isNewEmployee));
+    window.location.href = `mailto:${employee.email}?subject=${subject}&body=${body}`;
   }
-
-  const setupUrl = token ? `${window.location.origin}?setup=${token}` : '';
 
   return (
     <Modal title={`Send Setup Link — ${employee.name}`} onClose={onClose} footer={
@@ -47,21 +52,18 @@ export function SendInviteModal({ employee, onClose }: Props) {
       {!done ? (
         <>
           <p style={{ fontSize: 13, color: '#6B6860', marginBottom: '1rem' }}>
-            This will generate a secure one-time setup link for <strong style={{ color: '#1A1916' }}>{employee.name}</strong> ({employee.email}) to create their password and activate their account.
+            This will generate a secure setup link for <strong style={{ color: '#1A1916' }}>{employee.name}</strong> and open your email client with the invite pre-written to <strong style={{ color: '#1A1916' }}>{employee.email}</strong>.
           </p>
-          <div className="modal-info-box">
-            In production, this link is emailed automatically. For this demo, the link will be shown on screen.
-          </div>
           <div style={{ marginTop: '1.25rem', textAlign: 'right' }}>
-            <button className="btn-primary" onClick={handleSend} disabled={sending}>{sending ? 'Generating…' : 'Generate & Send Link'}</button>
+            <button className="btn-primary" onClick={handleSend} disabled={sending}>{sending ? 'Generating…' : 'Send Invite'}</button>
           </div>
         </>
       ) : (
         <>
-          <div className="modal-success-box">Setup link generated successfully!</div>
+          <div className="modal-success-box">Invite generated! Your email client should have opened.</div>
           <div style={{ marginTop: '1rem' }}>
             <label className="field">
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#6B6860', marginBottom: 5 }}>Setup URL (share with employee)</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#6B6860', marginBottom: 5 }}>Setup URL (backup — copy if email didn't open)</div>
               <input
                 type="text"
                 readOnly

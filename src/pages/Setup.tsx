@@ -47,34 +47,39 @@ export function SetupPage({ token, onDone }: Props) {
     setSaving(true);
     setError('');
 
-    const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/activate-account`;
-    const res = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password, employeeId, tokenId }),
-    });
+    try {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/activate-account`;
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, employeeId, tokenId }),
+      });
 
-    const result = await res.json();
-    if (!res.ok || result.error) {
-      setError(result.error || 'Failed to activate account.');
+      const result = await res.json();
+      if (!res.ok || result.error) {
+        setError(result.error || 'Failed to activate account.');
+        setSaving(false);
+        return;
+      }
+
+      // Auto sign-in now that the account is confirmed
+      const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInErr) {
+        setError(signInErr.message);
+        setSaving(false);
+        return;
+      }
+
       setSaving(false);
-      return;
-    }
-
-    // Auto sign-in now that the account is confirmed
-    const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
-    if (signInErr) {
-      setError(signInErr.message);
+      setStep('done');
+      setTimeout(onDone, 2000);
+    } catch (err: any) {
+      setError(err?.message || 'Something went wrong. Please try again.');
       setSaving(false);
-      return;
     }
-
-    setSaving(false);
-    setStep('done');
-    setTimeout(onDone, 2000);
   }
 
   if (step === 'loading') return <div className="loading-screen"><div className="loading-spinner" /></div>;
