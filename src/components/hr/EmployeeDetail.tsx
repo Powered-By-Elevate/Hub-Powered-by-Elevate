@@ -5,7 +5,8 @@ import { StatusBadge } from '../shared/StatusBadge';
 import { CheckItem } from '../shared/CheckItem';
 import { TaskCard } from '../shared/TaskCard';
 import { supabase } from '../../lib/supabase';
-import { Upload, FileText, Download, Eye, Trash2, Pencil, X, Check } from 'lucide-react';
+import { Upload, FileText, Download, Eye, Trash2, Pencil, X, Check, Plus } from 'lucide-react';
+import { Modal } from '../shared/Modal';
 
 type DetailTab = 'overview' | 'tasks' | 'documents' | 'schedule' | 'checkins' | 'reviews' | 'development' | 'certifications' | 'notes';
 
@@ -78,6 +79,83 @@ export function EmployeeDetail({
   const done = obTasks.filter(t => t.status === 'complete').length;
   const empDocs = documents.filter(d => d.employee_id === e.id);
 
+  const [editingTask, setEditingTask] = useState<OnboardingTask | null>(null);
+  const [editTaskForm, setEditTaskForm] = useState({ title: '', due_date: '', category: 'Document', notes: '', required: false });
+  const [taskSaving, setTaskSaving] = useState(false);
+
+  function startEditTask(task: OnboardingTask) {
+    setEditingTask(task);
+    setEditTaskForm({ title: task.title, due_date: task.due_date || '', category: task.category, notes: task.notes || '', required: task.required });
+  }
+
+  async function saveEditTask() {
+    if (!editingTask) return;
+    setTaskSaving(true);
+    await supabase.from('onboarding_tasks').update({
+      title: editTaskForm.title.trim(),
+      due_date: editTaskForm.due_date || null,
+      category: editTaskForm.category,
+      notes: editTaskForm.notes.trim() || null,
+      required: editTaskForm.required,
+    }).eq('id', editingTask.id);
+    setTaskSaving(false);
+    setEditingTask(null);
+    onDataChanged(e.id);
+  }
+
+  async function deleteTask(taskId: string) {
+    if (!confirm('Delete this task permanently?')) return;
+    await supabase.from('onboarding_tasks').delete().eq('id', taskId);
+    onDataChanged(e.id);
+  }
+
+  const [scheduleModal, setScheduleModal] = useState<'add' | 'edit' | null>(null);
+  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
+  const [schedForm, setSchedForm] = useState({ title: '', time_label: '', location: '', color: '#1B3F6E' });
+  const [schedSaving, setSchedSaving] = useState(false);
+
+  function openAddSchedule() {
+    setEditingSchedule(null);
+    setSchedForm({ title: '', time_label: '', location: '', color: '#1B3F6E' });
+    setScheduleModal('add');
+  }
+
+  function openEditSchedule(s: Schedule) {
+    setEditingSchedule(s);
+    setSchedForm({ title: s.title, time_label: s.time_label || '', location: s.location || '', color: s.color || '#1B3F6E' });
+    setScheduleModal('edit');
+  }
+
+  async function saveSchedule() {
+    if (!schedForm.title.trim()) return;
+    setSchedSaving(true);
+    if (scheduleModal === 'edit' && editingSchedule) {
+      await supabase.from('schedules').update({
+        title: schedForm.title.trim(),
+        time_label: schedForm.time_label.trim() || null,
+        location: schedForm.location.trim() || null,
+        color: schedForm.color,
+      }).eq('id', editingSchedule.id);
+    } else {
+      await supabase.from('schedules').insert({
+        employee_id: e.id,
+        title: schedForm.title.trim(),
+        time_label: schedForm.time_label.trim() || null,
+        location: schedForm.location.trim() || null,
+        color: schedForm.color,
+      });
+    }
+    setSchedSaving(false);
+    setScheduleModal(null);
+    onDataChanged(e.id);
+  }
+
+  async function deleteScheduleEvent(id: string) {
+    if (!confirm('Delete this schedule event?')) return;
+    await supabase.from('schedules').delete().eq('id', id);
+    onDataChanged(e.id);
+  }
+
   const statusStyle = e.current_status ? STATUS_COLORS[e.current_status] ?? {} : null;
 
   const tabs: DetailTab[] = ['overview', 'tasks', 'documents', 'schedule', 'checkins', 'reviews', 'development', 'certifications', 'notes'];
@@ -110,11 +188,16 @@ export function EmployeeDetail({
           <div>
             <div className="card mb2">
               <div className="card-body" style={{ textAlign: 'center', padding: '1.5rem 1.25rem' }}>
-                {e.avatar_url ? (
-                  <img src={e.avatar_url} alt={e.name} style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', margin: '0 auto 12px', display: 'block', border: '2px solid #E5E3DC' }} />
-                ) : (
-                  <div className="avatar av-navy av-52" style={{ margin: '0 auto 12px' }}>{ini(e.name)}</div>
-                )}
+                <div style={{ position: 'relative', display: 'inline-block', margin: '0 auto 12px', cursor: 'pointer' }} onClick={() => onEditEmployee(e.id)}>
+                  {e.avatar_url ? (
+                    <img src={e.avatar_url} alt={e.name} style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', display: 'block', border: '2px solid #E5E3DC' }} />
+                  ) : (
+                    <div className="avatar av-navy av-52">{ini(e.name)}</div>
+                  )}
+                  <div style={{ position: 'absolute', bottom: -2, right: -2, width: 20, height: 20, borderRadius: '50%', background: '#1B3F6E', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Pencil size={10} color="#fff" />
+                  </div>
+                </div>
                 <div style={{ fontWeight: 700, fontSize: 16, color: '#1A1916' }}>{e.name}</div>
                 <div style={{ color: '#6B6860', fontSize: 13, marginTop: 3 }}>{e.role}</div>
 
@@ -244,14 +327,24 @@ export function EmployeeDetail({
                     <button className="btn-ghost sm" onClick={() => setDetailTab('tasks')}>View all</button>
                   </div>
                   {obTasks.filter(t => !t.archived && t.status !== 'complete').slice(0, 5).map(t => (
-                    <CheckItem key={t.id} task={t} isHR onToggle={onToggleTask} onStatusChange={onTaskStatusChange} />
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <div style={{ flex: 1 }}>
+                        <CheckItem task={t} isHR onToggle={onToggleTask} onStatusChange={onTaskStatusChange} />
+                      </div>
+                      <button onClick={() => startEditTask(t)} title="Edit task" style={{ padding: 5, borderRadius: 6, border: '1px solid #E5E3DC', background: '#F8F7F4', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Pencil size={12} color="#6B6860" />
+                      </button>
+                      <button onClick={() => deleteTask(t.id)} title="Delete task" style={{ padding: 5, borderRadius: 6, border: '1px solid #FECACA', background: '#FEF2F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Trash2 size={12} color="#DC2626" />
+                      </button>
+                    </div>
                   ))}
                 </div>
               </>
             )}
 
             {detailTab === 'tasks' && (
-              <HRTasksView tasks={tasks} onOpenModal={onOpenModal} empId={e.id} onToggleTask={onToggleTask} onTaskStatusChange={onTaskStatusChange} onTriageChange={onTaskTriageChange} />
+              <HRTasksView tasks={tasks} onOpenModal={onOpenModal} empId={e.id} onToggleTask={onToggleTask} onTaskStatusChange={onTaskStatusChange} onTriageChange={onTaskTriageChange} onEditTask={startEditTask} onDeleteTask={deleteTask} />
             )}
 
             {detailTab === 'documents' && (
@@ -260,15 +353,31 @@ export function EmployeeDetail({
 
             {detailTab === 'schedule' && (
               <div className="card">
-                <div className="card-header"><h3>Day 1 Schedule</h3></div>
-                <div style={{ padding: '0 1.25rem' }}>
+                <div className="card-header">
+                  <h3>Day 1 Schedule</h3>
+                  <button className="btn-primary sm" onClick={openAddSchedule}>
+                    <Plus size={13} style={{ marginRight: 4 }} />Add Event
+                  </button>
+                </div>
+                <div style={{ padding: '0 1.25rem 1rem' }}>
                   {schedules.length === 0
-                    ? <div className="empty-state"><div className="empty-icon">📅</div><p>No schedule yet</p></div>
+                    ? <div className="empty-state"><p>No schedule yet</p><div className="esub">Add events to build the onboarding day schedule.</div></div>
                     : schedules.map(s => (
-                      <div key={s.id} className="sched-item">
+                      <div key={s.id} className="sched-item" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div className="sched-dot" style={{ background: s.color ?? '#1B3F6E' }} />
                         <div className="sched-time">{s.time_label}</div>
-                        <div><div className="sched-title">{s.title}</div><div className="sched-sub">{s.location}</div></div>
+                        <div style={{ flex: 1 }}>
+                          <div className="sched-title">{s.title}</div>
+                          <div className="sched-sub">{s.location}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                          <button onClick={() => openEditSchedule(s)} title="Edit event" style={{ padding: 5, borderRadius: 6, border: '1px solid #E5E3DC', background: '#F8F7F4', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Pencil size={12} color="#6B6860" />
+                          </button>
+                          <button onClick={() => deleteScheduleEvent(s.id)} title="Delete event" style={{ padding: 5, borderRadius: 6, border: '1px solid #FECACA', background: '#FEF2F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Trash2 size={12} color="#DC2626" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                 </div>
@@ -311,6 +420,91 @@ export function EmployeeDetail({
           </div>
         </div>
       </div>
+
+      {editingTask && (
+        <Modal title="Edit Task" onClose={() => setEditingTask(null)} footer={
+          <>
+            <button className="btn-ghost" onClick={() => setEditingTask(null)}>Cancel</button>
+            <button className="btn-primary" onClick={saveEditTask} disabled={taskSaving || !editTaskForm.title.trim()}>
+              {taskSaving ? 'Saving\u2026' : 'Save Changes'}
+            </button>
+          </>
+        }>
+          <div className="form-grid">
+            <div className="field full">
+              <label>Task title</label>
+              <input type="text" value={editTaskForm.title} onChange={ev => setEditTaskForm(f => ({ ...f, title: ev.target.value }))} />
+            </div>
+            <div className="field">
+              <label>Due date</label>
+              <input type="text" value={editTaskForm.due_date} onChange={ev => setEditTaskForm(f => ({ ...f, due_date: ev.target.value }))} placeholder="Day 1 from start" />
+            </div>
+            <div className="field">
+              <label>Category</label>
+              <select value={editTaskForm.category} onChange={ev => setEditTaskForm(f => ({ ...f, category: ev.target.value }))}>
+                <option value="Document">Document</option>
+                <option value="Training">Training</option>
+                <option value="Meeting">Meeting</option>
+                <option value="Form">Form</option>
+                <option value="Setup">Setup</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div className="field full">
+              <label>Notes</label>
+              <textarea rows={3} value={editTaskForm.notes} onChange={ev => setEditTaskForm(f => ({ ...f, notes: ev.target.value }))} placeholder="Optional notes..." />
+            </div>
+            <div className="field full">
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input type="checkbox" checked={editTaskForm.required} onChange={ev => setEditTaskForm(f => ({ ...f, required: ev.target.checked }))} />
+                Required task
+              </label>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {scheduleModal && (
+        <Modal title={scheduleModal === 'edit' ? 'Edit Event' : 'Add Event'} onClose={() => setScheduleModal(null)} footer={
+          <>
+            <button className="btn-ghost" onClick={() => setScheduleModal(null)}>Cancel</button>
+            <button className="btn-primary" onClick={saveSchedule} disabled={schedSaving || !schedForm.title.trim()}>
+              {schedSaving ? 'Saving\u2026' : scheduleModal === 'edit' ? 'Save Changes' : 'Add Event'}
+            </button>
+          </>
+        }>
+          <div className="form-grid">
+            <div className="field full">
+              <label>Event title</label>
+              <input type="text" value={schedForm.title} onChange={ev => setSchedForm(f => ({ ...f, title: ev.target.value }))} placeholder="IT Setup and Equipment" />
+            </div>
+            <div className="field">
+              <label>Time</label>
+              <input type="text" value={schedForm.time_label} onChange={ev => setSchedForm(f => ({ ...f, time_label: ev.target.value }))} placeholder="10:00 AM" />
+            </div>
+            <div className="field">
+              <label>Location</label>
+              <input type="text" value={schedForm.location} onChange={ev => setSchedForm(f => ({ ...f, location: ev.target.value }))} placeholder="Conference Room A" />
+            </div>
+            <div className="field">
+              <label>Color</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {['#1B3F6E', '#D97706', '#DC2626', '#0D9488', '#2D9A60', '#6B6860'].map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setSchedForm(f => ({ ...f, color: c }))}
+                    style={{
+                      width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer',
+                      border: schedForm.color === c ? '3px solid #1A1916' : '2px solid #E5E3DC',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
     </>
   );
 }
@@ -1033,9 +1227,11 @@ interface HRTasksViewProps {
   onToggleTask: (taskId: string) => void;
   onTaskStatusChange: (taskId: string, status: string) => void;
   onTriageChange?: (taskId: string, triage: 'critical' | 'normal') => void;
+  onEditTask?: (task: OnboardingTask) => void;
+  onDeleteTask?: (taskId: string) => void;
 }
 
-function HRTasksView({ tasks, empId, onOpenModal, onToggleTask, onTaskStatusChange, onTriageChange }: HRTasksViewProps) {
+function HRTasksView({ tasks, empId, onOpenModal, onToggleTask, onTaskStatusChange, onTriageChange, onEditTask, onDeleteTask }: HRTasksViewProps) {
   const [showArchived, setShowArchived] = useState(false);
   const obActive = tasks.filter(t => t.task_phase === 'onboarding' && !t.archived && t.status !== 'complete');
   const ongoingActive = tasks.filter(t => t.task_phase === 'active' && !t.archived && t.status !== 'complete');
@@ -1054,16 +1250,48 @@ function HRTasksView({ tasks, empId, onOpenModal, onToggleTask, onTaskStatusChan
           <button className="btn-primary sm" onClick={() => onOpenModal('add-task', empId)}>+ Add Task</button>
         </div>
         {obActive.length === 0 ? (
-          <div className="empty-state"><div className="empty-icon">✓</div><p>All onboarding tasks complete</p></div>
+          <div className="empty-state"><div className="empty-icon">{'\u2713'}</div><p>All onboarding tasks complete</p></div>
         ) : obActive.map(t => (
-          <TaskCard key={t.id} task={t} isHR onToggle={onToggleTask} onTriageChange={onTriageChange} canReopen={false} />
+          <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 4, paddingRight: 8 }}>
+            <div style={{ flex: 1 }}>
+              <TaskCard task={t} isHR onToggle={onToggleTask} onTriageChange={onTriageChange} canReopen={false} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 12 }}>
+              {onEditTask && (
+                <button onClick={() => onEditTask(t)} title="Edit task" style={{ padding: 5, borderRadius: 6, border: '1px solid #E5E3DC', background: '#F8F7F4', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Pencil size={12} color="#6B6860" />
+                </button>
+              )}
+              {onDeleteTask && (
+                <button onClick={() => onDeleteTask(t.id)} title="Delete task" style={{ padding: 5, borderRadius: 6, border: '1px solid #FECACA', background: '#FEF2F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Trash2 size={12} color="#DC2626" />
+                </button>
+              )}
+            </div>
+          </div>
         ))}
       </div>
       {ongoingActive.length > 0 && (
         <div className="card mb2">
           <div className="card-header"><h3>Ongoing Tasks ({ongoingActive.length})</h3></div>
           {ongoingActive.map(t => (
-            <TaskCard key={t.id} task={t} isHR onToggle={onToggleTask} onTriageChange={onTriageChange} canReopen={false} />
+            <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 4, paddingRight: 8 }}>
+              <div style={{ flex: 1 }}>
+                <TaskCard task={t} isHR onToggle={onToggleTask} onTriageChange={onTriageChange} canReopen={false} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 12 }}>
+                {onEditTask && (
+                  <button onClick={() => onEditTask(t)} title="Edit task" style={{ padding: 5, borderRadius: 6, border: '1px solid #E5E3DC', background: '#F8F7F4', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Pencil size={12} color="#6B6860" />
+                  </button>
+                )}
+                {onDeleteTask && (
+                  <button onClick={() => onDeleteTask(t.id)} title="Delete task" style={{ padding: 5, borderRadius: 6, border: '1px solid #FECACA', background: '#FEF2F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Trash2 size={12} color="#DC2626" />
+                  </button>
+                )}
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -1071,7 +1299,7 @@ function HRTasksView({ tasks, empId, onOpenModal, onToggleTask, onTaskStatusChan
         <div className="card">
           <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '1rem 1.25rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#6B6860' }} onClick={() => setShowArchived(v => !v)}>
             <span>Completed / Archived ({archived.length})</span>
-            <span style={{ fontSize: 12, color: '#9B9890' }}>{showArchived ? '▲ Hide' : '▼ Show'}</span>
+            <span style={{ fontSize: 12, color: '#9B9890' }}>{showArchived ? '\u25B2 Hide' : '\u25BC Show'}</span>
           </button>
           {showArchived && archived.map(t => (
             <TaskCard key={t.id} task={t} isHR onToggle={() => {}} canReopen onReopen={reopenTask} isArchived />
