@@ -315,7 +315,6 @@ export function HRApp() {
   async function deleteEmployee(id: string) {
     const emp = employees.find(e => e.id === id);
     if (!emp) return;
-    console.log('[deleteEmployee] starting for', emp.name, id);
 
     const tables = [
       'onboarding_tasks', 'documents', 'schedules', 'employee_notes',
@@ -323,20 +322,12 @@ export function HRApp() {
       'certifications', 'activity_log',
     ];
     for (const table of tables) {
-      const { error, count } = await supabase
-        .from(table)
-        .delete({ count: 'exact' })
-        .eq('employee_id', id);
-      console.log(`[deleteEmployee] ${table}:`, { count, error });
+      await supabase.from(table).delete().eq('employee_id', id);
     }
+    await supabase.from('users').delete().eq('employee_id', id);
 
-    const { error: usersErr, count: usersCount } = await supabase
-      .from('users').delete({ count: 'exact' }).eq('employee_id', id);
-    console.log('[deleteEmployee] users:', { count: usersCount, error: usersErr });
-
-    const { data, error, count } = await supabase
+    const { error, count } = await supabase
       .from('employees').delete({ count: 'exact' }).eq('id', id).select();
-    console.log('[deleteEmployee] employees:', { data, count, error });
 
     if (error) {
       alert(`Delete failed: ${error.message}`);
@@ -347,6 +338,9 @@ export function HRApp() {
       return;
     }
 
+    // Update UI immediately — don't wait for realtime
+    setEmployees(prev => prev.filter(e => e.id !== id));
+    setSelectedEmpId(null);
     setTab('employees');
   }
 
