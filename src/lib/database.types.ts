@@ -96,7 +96,6 @@ export interface Employee {
   readiness_level: string | null;
   current_status: string | null;
   employment_type: string | null;
-  access_role: string | null;
   pillar_focus: string | null;
   created_at: string;
 }
