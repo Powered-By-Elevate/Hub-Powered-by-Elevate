@@ -149,7 +149,14 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
     // Update auth role on the users table if the employee has a linked auth account
     if (!saveErr && e.user_id && form.auth_role) {
       const roleMap: Record<string, string> = { 'HR Admin': 'hr', 'Manager': 'manager', 'Employee': 'employee' };
-      await supabase.from('users').update({ role: roleMap[form.auth_role] || 'employee' }).eq('id', e.user_id);
+      const newRole = roleMap[form.auth_role] || 'employee';
+      const { error: roleErr } = await supabase.from('users').update({ role: newRole }).eq('id', e.user_id);
+      if (roleErr) {
+        setError('Employee saved but failed to update access level: ' + roleErr.message);
+        setSaving(false);
+        onSaved(data as Employee);
+        return;
+      }
     }
 
     setSaving(false);
