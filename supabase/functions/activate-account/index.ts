@@ -112,9 +112,17 @@ Deno.serve(async (req: Request) => {
     // Link employee to auth user
     await supabase.from("employees").update({ user_id: userId }).eq("id", employeeId);
 
+    // Read the pre-assigned access role from the employee record
+    const { data: empRecord } = await supabase
+      .from("employees")
+      .select("access_role")
+      .eq("id", employeeId)
+      .maybeSingle();
+    const assignedRole = empRecord?.access_role || "employee";
+
     // Upsert public.users record for role lookup
     await supabase.from("users").upsert(
-      { id: userId, email, role: "employee", employee_id: employeeId },
+      { id: userId, email, role: assignedRole, employee_id: employeeId },
       { onConflict: "id" }
     );
 

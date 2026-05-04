@@ -44,26 +44,34 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(e.avatar_url ?? null);
   const [saving, setSaving] = useState(false);
-  // Load the user's current access level from the users table
+  // Load the user's current access level
   useEffect(() => {
+    const reverseMap: Record<string, string> = { hr: 'HR Admin', manager: 'Manager', employee: 'Employee' };
     async function loadAccessLevel() {
-      if (!e.user_id) return;
-      const { data } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', e.user_id)
+      // Try from users table first (linked account)
+      if (e.user_id) {
+        const { data } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', e.user_id)
+          .maybeSingle();
+        if (data?.role) {
+          setForm(f => ({ ...f, auth_role: reverseMap[data.role] || 'Employee' }));
+          return;
+        }
+      }
+      // Fallback: read access_role from employees table
+      const { data: empData } = await supabase
+        .from('employees')
+        .select('access_role')
+        .eq('id', e.id)
         .maybeSingle();
-      if (data?.role) {
-        const reverseMap: Record<string, string> = { 
-          hr: 'HR Admin', 
-          manager: 'Manager', 
-          employee: 'Employee' 
-        };
-        setForm(f => ({ ...f, auth_role: reverseMap[data.role] || 'Employee' }));
+      if (empData?.access_role) {
+        setForm(f => ({ ...f, auth_role: reverseMap[empData.access_role] || 'Employee' }));
       }
     }
     loadAccessLevel();
-  }, [e.user_id]);
+  }, [e.user_id, e.id]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -146,16 +154,21 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
       saveErr = retry.error;
     }
 
-    // Update auth role on the users table if the employee has a linked auth account
-    if (!saveErr && e.user_id && form.auth_role) {
+    // Always persist access_role on the employees table
+    if (!saveErr && form.auth_role) {
       const roleMap: Record<string, string> = { 'HR Admin': 'hr', 'Manager': 'manager', 'Employee': 'employee' };
       const newRole = roleMap[form.auth_role] || 'employee';
-      const { error: roleErr } = await supabase.from('users').update({ role: newRole }).eq('id', e.user_id);
-      if (roleErr) {
-        setError('Employee saved but failed to update access level: ' + roleErr.message);
-        setSaving(false);
-        onSaved(data as Employee);
-        return;
+      await supabase.from('employees').update({ access_role: newRole }).eq('id', e.id);
+
+      // Also update the users table if the employee has a linked auth account
+      if (e.user_id) {
+        const { error: roleErr } = await supabase.from('users').update({ role: newRole }).eq('id', e.user_id);
+        if (roleErr) {
+          setError('Employee saved but failed to update access level: ' + roleErr.message);
+          setSaving(false);
+          onSaved(data as Employee);
+          return;
+        }
       }
     }
 
