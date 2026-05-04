@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal } from '../../shared/Modal';
 import { supabase } from '../../../lib/supabase';
 import { Employee } from '../../../lib/database.types';
@@ -9,13 +9,18 @@ interface Props {
   isNewEmployee?: boolean;
 }
 
-function buildMailtoBody(employeeName: string, setupUrl: string, isNew: boolean): string {
+function buildMailtoBody(
+  employeeName: string,
+  setupUrl: string,
+  isNew: boolean,
+  companyName: string
+): string {
   const firstName = employeeName.split(' ')[0];
   if (isNew) {
     return [
       `Hi ${firstName},`,
       ``,
-      `Welcome to True North! We're so glad to have you on the team.`,
+      `Welcome to ${companyName}! We're so glad to have you on the team.`,
       ``,
       `Please click the link below to set up your account on Hub, our people development platform:`,
       ``,
@@ -26,13 +31,13 @@ function buildMailtoBody(employeeName: string, setupUrl: string, isNew: boolean)
       `Looking forward to working with you!`,
       ``,
       `Best,`,
-      `True North HR`,
+      `${companyName} HR`,
     ].join('\r\n');
   }
   return [
     `Hi ${firstName},`,
     ``,
-    `We're excited to introduce Hub, our new people development platform!`,
+    `We're excited to introduce Hub, our new people development platform at ${companyName}!`,
     ``,
     `Please click the link below to set up your account:`,
     ``,
@@ -43,15 +48,39 @@ function buildMailtoBody(employeeName: string, setupUrl: string, isNew: boolean)
     `Let us know if you have any questions!`,
     ``,
     `Best,`,
-    `True North HR`,
+    `${companyName} HR`,
   ].join('\r\n');
 }
 
-export function SendInviteModal({ employee, onClose, isNewEmployee = true }: Props) {
+export function SendInviteModal({ employee, onClose, isNewEmployee }: Props) {
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const [setupUrl, setSetupUrl] = useState('');
   const [error, setError] = useState('');
+  const [companyName, setCompanyName] = useState('True North');
+
+  // Determine if this is an onboarding invite based on employee's phase
+  // If isNewEmployee prop is explicitly passed, use it. Otherwise infer from phase.
+  const isOnboarding = isNewEmployee !== undefined
+    ? isNewEmployee
+    : employee.phase === 'onboarding' || employee.lifecycle_status === 'onboarding';
+
+  // Load the company name based on the employee's company_id
+  useEffect(() => {
+    async function loadCompany() {
+      if (!employee.company_id) {
+        setCompanyName('True North');
+        return;
+      }
+      const { data } = await supabase
+        .from('companies')
+        .select('name')
+        .eq('id', employee.company_id)
+        .maybeSingle();
+      if (data?.name) setCompanyName(data.name);
+    }
+    loadCompany();
+  }, [employee.company_id]);
 
   async function handleSend() {
     setSending(true);
@@ -68,9 +97,14 @@ export function SendInviteModal({ employee, onClose, isNewEmployee = true }: Pro
     setSetupUrl(url);
     setDone(true);
 
-    // Open the user's email client with pre-populated content
-    const subject = encodeURIComponent('Set up your Hub account — True North');
-    const body = encodeURIComponent(buildMailtoBody(employee.name, url, isNewEmployee));
+    const subject = encodeURIComponent(
+      isOnboarding
+        ? `Welcome to ${companyName} — Set up your Hub account`
+        : `Set up your Hub account — ${companyName}`
+    );
+    const body = encodeURIComponent(
+      buildMailtoBody(employee.name, url, isOnboarding, companyName)
+    );
     window.location.href = `mailto:${employee.email}?subject=${subject}&body=${body}`;
   }
 
@@ -84,6 +118,17 @@ export function SendInviteModal({ employee, onClose, isNewEmployee = true }: Pro
           <p style={{ fontSize: 13, color: '#6B6860', marginBottom: '1rem' }}>
             This will generate a secure setup link for <strong style={{ color: '#1A1916' }}>{employee.name}</strong> and open your email client with the invite pre-written to <strong style={{ color: '#1A1916' }}>{employee.email}</strong>.
           </p>
+          <div style={{
+            background: '#F8F7F4',
+            border: '1px solid #E5E3DC',
+            borderRadius: 8,
+            padding: '10px 12px',
+            marginBottom: '1rem',
+            fontSize: 12,
+            color: '#6B6860'
+          }}>
+            <strong style={{ color: '#1A1916' }}>Email type:</strong> {isOnboarding ? `New hire welcome (${companyName})` : `Account access (${companyName})`}
+          </div>
           <div style={{ marginTop: '1.25rem', textAlign: 'right' }}>
             <button className="btn-primary" onClick={handleSend} disabled={sending}>{sending ? 'Generating…' : 'Send Invite'}</button>
           </div>
