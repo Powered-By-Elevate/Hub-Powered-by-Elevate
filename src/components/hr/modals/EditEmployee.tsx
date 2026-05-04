@@ -107,14 +107,18 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
       avatar_url,
     };
 
-    (updates as any).auth_role = form.auth_role;
-
     const { data, error: saveErr } = await supabase
       .from('employees')
       .update(updates)
       .eq('id', e.id)
       .select()
       .single();
+
+    // Update auth role on the users table if the employee has a linked auth account
+    if (!saveErr && e.user_id && form.auth_role) {
+      const roleMap: Record<string, string> = { 'HR Admin': 'hr', 'Manager': 'manager', 'Employee': 'employee' };
+      await supabase.from('users').update({ role: roleMap[form.auth_role] || 'employee' }).eq('id', e.user_id);
+    }
 
     setSaving(false);
 
