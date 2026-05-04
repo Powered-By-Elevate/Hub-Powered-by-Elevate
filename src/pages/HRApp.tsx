@@ -312,6 +312,24 @@ export function HRApp() {
     // Real-time subscription handles state update
   }
 
+  async function deleteEmployee(id: string) {
+    const emp = employees.find(e => e.id === id);
+    if (!emp) return;
+    await supabase.from('onboarding_tasks').delete().eq('employee_id', id);
+    await supabase.from('documents').delete().eq('employee_id', id);
+    await supabase.from('schedules').delete().eq('employee_id', id);
+    await supabase.from('employee_notes').delete().eq('employee_id', id);
+    await supabase.from('setup_tokens').delete().eq('employee_id', id);
+    await supabase.from('checkins').delete().eq('employee_id', id);
+    await supabase.from('reviews').delete().eq('employee_id', id);
+    await supabase.from('development_plans').delete().eq('employee_id', id);
+    await supabase.from('certifications').delete().eq('employee_id', id);
+    await supabase.from('activity_log').delete().eq('employee_id', id);
+    await supabase.from('users').delete().eq('employee_id', id);
+    await supabase.from('employees').delete().eq('id', id);
+    setTab('employees');
+  }
+
   const selectedEmp = employees.find(e => e.id === selectedEmpId);
 
   const hrTabTitle: Record<string, string> = {
@@ -379,6 +397,7 @@ export function HRApp() {
           <AddEmployeeModal
             departments={departments}
             companies={companies}
+            employees={employees}
             onClose={() => setModal(null)}
             onCreated={async (newEmp) => {
               if (newEmp) setEmployees(prev => [newEmp, ...prev]);
@@ -508,6 +527,7 @@ export function HRApp() {
             onTaskTriageChange={taskTriageChange}
             onArchive={archiveEmployee}
             onRestore={restoreEmployee}
+            onDelete={deleteEmployee}
             onEditEmployee={id => setEditEmpId(id)}
             onDocumentsChanged={loadDocumentsForEmp}
             onDataChanged={empId => {
@@ -524,6 +544,7 @@ export function HRApp() {
         <AddEmployeeModal
           departments={departments}
           companies={companies}
+          employees={employees}
           onClose={() => setModal(null)}
           onCreated={async (newEmp) => {
             if (newEmp) {

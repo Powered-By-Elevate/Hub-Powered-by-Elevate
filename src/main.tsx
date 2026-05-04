@@ -9,8 +9,9 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>
 );
 
+// Unregister any existing service worker to prevent stale cache issues
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    registrations.forEach(r => r.unregister());
   });
 }

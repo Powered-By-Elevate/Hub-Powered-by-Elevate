@@ -28,6 +28,7 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
     role: e.role ?? '',
     department: e.department ?? '',
     manager: e.manager ?? '',
+    manager_id: (e as any).manager_id ?? '',
     start_date: e.start_date ?? '',
     phone: e.phone ?? '',
     employment_type: e.employment_type ?? 'Full Time',
@@ -86,7 +87,7 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
       avatar_url = urlData.publicUrl;
     }
 
-    const updates: Record<string, unknown> = {
+    const coreUpdates: Record<string, unknown> = {
       name: form.name.trim(),
       email: form.email.trim(),
       role: form.role.trim(),
@@ -94,6 +95,11 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
       manager: form.manager || null,
       start_date: form.start_date || null,
       phone: form.phone || null,
+      avatar_url,
+    };
+
+    const extendedFields: Record<string, unknown> = {
+      manager_id: form.manager_id || null,
       lifecycle_status: form.lifecycle_status,
       company_id: form.company_id || null,
       employment_type: form.employment_type || null,
@@ -102,17 +108,29 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
       pathway_id: form.pathway_id || null,
       readiness_level: form.readiness_level || null,
       current_status: form.current_status || null,
-      avatar_url,
     };
 
-    (updates as any).auth_role = form.auth_role;
+    const updates = { ...coreUpdates, ...extendedFields };
 
-    const { data, error: saveErr } = await supabase
+    let { data, error: saveErr } = await supabase
       .from('employees')
       .update(updates)
       .eq('id', e.id)
       .select()
       .single();
+
+    // Fallback: if schema cache doesn't recognize newer columns, retry with core fields only
+    if (saveErr?.message?.includes('schema cache')) {
+      const retry = await supabase.from('employees').update(coreUpdates).eq('id', e.id).select().single();
+      data = retry.data;
+      saveErr = retry.error;
+    }
+
+    // Update auth role on the users table if the employee has a linked auth account
+    if (!saveErr && e.user_id && form.auth_role) {
+      const roleMap: Record<string, string> = { 'HR Admin': 'hr', 'Manager': 'manager', 'Employee': 'employee' };
+      await supabase.from('users').update({ role: roleMap[form.auth_role] || 'employee' }).eq('id', e.user_id);
+    }
 
     setSaving(false);
 
@@ -203,10 +221,13 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
         </div>
         <div className="field">
           <label>Manager</label>
-          <select value={form.manager ?? ''} onChange={set('manager')}>
-            <option value="">— None —</option>
+          <select value={form.manager_id} onChange={ev => {
+            const selectedEmp = otherEmployees.find(emp => emp.id === ev.target.value);
+            setForm(f => ({ ...f, manager_id: ev.target.value, manager: selectedEmp?.name ?? '' }));
+          }}>
+            <option value="">-- None --</option>
             {otherEmployees.map(emp => (
-              <option key={emp.id} value={emp.name}>{emp.name}</option>
+              <option key={emp.id} value={emp.id}>{emp.name}</option>
             ))}
           </select>
         </div>

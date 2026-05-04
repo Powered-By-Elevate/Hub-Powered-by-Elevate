@@ -20,6 +20,7 @@ interface Props {
   onCreated: (emp: Employee) => void;
   departments: string[];
   companies: Company[];
+  employees: Employee[];
 }
 
 function fmtSize(bytes: number) {
@@ -28,12 +29,13 @@ function fmtSize(bytes: number) {
   return (bytes / 1024 / 1024).toFixed(1) + ' MB';
 }
 
-export function AddEmployeeModal({ onClose, onCreated, departments, companies }: Props) {
+export function AddEmployeeModal({ onClose, onCreated, departments, companies, employees }: Props) {
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', role: '',
-    department: departments[0] ?? '', manager: '', startDate: '',
+    department: departments[0] ?? '', manager: '', manager_id: '', startDate: '',
     company_id: companies[0]?.id ?? '',
   });
+  const activeEmployees = employees.filter(emp => !emp.archived);
   const [docs, setDocs] = useState<StagedDoc[]>([]);
   const [customSection, setCustomSection] = useState('');
   const [saving, setSaving] = useState(false);
@@ -72,12 +74,14 @@ export function AddEmployeeModal({ onClose, onCreated, departments, companies }:
     setSaving(true);
     setError('');
 
+    const selectedManager = activeEmployees.find(emp => emp.id === form.manager_id);
     const { data: emp, error: empErr } = await supabase.from('employees').insert({
       name: `${form.firstName} ${form.lastName}`,
       email: form.email,
       role: form.role || 'Employee',
       department: form.department || 'General',
-      manager: form.manager || 'TBD',
+      manager: selectedManager?.name || 'TBD',
+      manager_id: form.manager_id || null,
       start_date: form.startDate || 'TBD',
       status: 'not-started',
       progress: 0,
@@ -174,7 +178,12 @@ export function AddEmployeeModal({ onClose, onCreated, departments, companies }:
         </div>
         <div className="field">
           <label>Manager</label>
-          <input type="text" value={form.manager} onChange={set('manager')} placeholder="Manager's full name" />
+          <select value={form.manager_id} onChange={set('manager_id')}>
+            <option value="">-- Select Manager --</option>
+            {activeEmployees.map(emp => (
+              <option key={emp.id} value={emp.id}>{emp.name}</option>
+            ))}
+          </select>
         </div>
         <div className="field">
           <label>Start date</label>
