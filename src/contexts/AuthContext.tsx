@@ -22,12 +22,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   async function loadProfile(userId: string) {
-    const { data } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-    setProfile(data);
+    try {
+      const { data } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+      setProfile(data);
+    } catch (err) {
+      console.error('Failed to load profile:', err);
+      setProfile(null);
+    }
   }
 
   async function refreshProfile() {
@@ -35,17 +40,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadProfile(session.user.id).finally(() => setLoading(false));
-      } else {
+    let mounted = true;
+
+    // Hard 5-second timeout: if auth hasn't resolved by then, force loading to false
+    // This prevents the app from hanging on a white screen if Supabase is slow or
+    // the session is corrupted. The app will fall through to the login page.
+    const safetyTimeout = setTimeout(() => {
+      if (mounted) {
+        console.warn('Auth check timed out after 5s — forcing app to render');
         setLoading(false);
       }
-    });
+    }, 5000);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          await loadProfile(session.user.id);
+        }
+      } catch (err) {
+        console.error('Auth init failed:', err);
+        // If something goes wrong, clear the broken session so user can re-login
+        try {
+          await supabase.auth.signOut();
+        } catch {
+          // ignore
+        }
+      } finally {
+        if (mounted) {
+          clearTimeout(safetyTimeout);
+          setLoading(false);
+        }
+      }
+    })();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -55,7 +90,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(safetyTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   async function signIn(email: string, password: string) {
