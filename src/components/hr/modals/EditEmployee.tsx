@@ -32,7 +32,7 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
     start_date: e.start_date ?? '',
     phone: e.phone ?? '',
     employment_type: e.employment_type ?? 'Full Time',
-    auth_role: (e as any).auth_role ?? 'Employee',
+    auth_role: 'Employee', // Will be loaded from users table on mount
     lifecycle_status: e.lifecycle_status ?? 'onboarding',
     company_id: e.company_id ?? '',
     current_level: e.current_level ?? '',
@@ -44,6 +44,26 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(e.avatar_url ?? null);
   const [saving, setSaving] = useState(false);
+  // Load the user's current access level from the users table
+  useEffect(() => {
+    async function loadAccessLevel() {
+      if (!e.user_id) return;
+      const { data } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', e.user_id)
+        .maybeSingle();
+      if (data?.role) {
+        const reverseMap: Record<string, string> = { 
+          hr: 'HR Admin', 
+          manager: 'Manager', 
+          employee: 'Employee' 
+        };
+        setForm(f => ({ ...f, auth_role: reverseMap[data.role] || 'Employee' }));
+      }
+    }
+    loadAccessLevel();
+  }, [e.user_id]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
