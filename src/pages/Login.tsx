@@ -53,7 +53,13 @@ export function LoginPage() {
           {loading ? 'Signing in\u2026' : 'Sign in \u2192'}
         </button>
         <p style={{ fontSize: 12, color: '#9B9890', marginTop: 16 }}>
-          Need access? Contact your HR administrator.
+          Need access?{' '}
+          <a
+            href="mailto:tbenas@true-north-companies.com?subject=Hub%20Access%20Request"
+            style={{ color: '#1B3F6E', textDecoration: 'underline' }}
+          >
+            Contact your HR administrator
+          </a>
         </p>
       </div>
     </div>

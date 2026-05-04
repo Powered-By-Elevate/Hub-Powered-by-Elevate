@@ -379,6 +379,7 @@ export function HRApp() {
           <AddEmployeeModal
             departments={departments}
             companies={companies}
+            employees={employees}
             onClose={() => setModal(null)}
             onCreated={async (newEmp) => {
               if (newEmp) setEmployees(prev => [newEmp, ...prev]);
@@ -524,6 +525,7 @@ export function HRApp() {
         <AddEmployeeModal
           departments={departments}
           companies={companies}
+          employees={employees}
           onClose={() => setModal(null)}
           onCreated={async (newEmp) => {
             if (newEmp) {

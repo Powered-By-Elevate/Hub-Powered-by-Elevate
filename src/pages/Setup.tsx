@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LogoIconWhite } from '../components/shared/Svg';
+import { AppLogo } from '../components/shared/AppLogo';
 import { supabase } from '../lib/supabase';
 
 interface Props {
@@ -104,11 +104,7 @@ export function SetupPage({ token, onDone }: Props) {
     <div className="login-wrap">
       <div className="login-card">
         <div className="login-logo">
-          <div className="login-logo-icon"><LogoIconWhite /></div>
-          <div className="login-logo-text">
-            <span className="l1">Hub powered by Elevate</span>
-            <span className="l2">People Development Plan Platform</span>
-          </div>
+          <AppLogo variant="light" />
         </div>
         <h2>Set your password</h2>
         <p className="login-sub">Welcome, {employeeName}! Create a password to activate your account.</p>

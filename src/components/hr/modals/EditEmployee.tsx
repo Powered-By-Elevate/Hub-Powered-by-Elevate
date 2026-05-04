@@ -28,6 +28,7 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
     role: e.role ?? '',
     department: e.department ?? '',
     manager: e.manager ?? '',
+    manager_id: (e as any).manager_id ?? '',
     start_date: e.start_date ?? '',
     phone: e.phone ?? '',
     employment_type: e.employment_type ?? 'Full Time',
@@ -92,6 +93,7 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
       role: form.role.trim(),
       department: form.department || null,
       manager: form.manager || null,
+      manager_id: form.manager_id || null,
       start_date: form.start_date || null,
       phone: form.phone || null,
       lifecycle_status: form.lifecycle_status,
@@ -203,10 +205,13 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
         </div>
         <div className="field">
           <label>Manager</label>
-          <select value={form.manager ?? ''} onChange={set('manager')}>
-            <option value="">— None —</option>
+          <select value={form.manager_id} onChange={ev => {
+            const selectedEmp = otherEmployees.find(emp => emp.id === ev.target.value);
+            setForm(f => ({ ...f, manager_id: ev.target.value, manager: selectedEmp?.name ?? '' }));
+          }}>
+            <option value="">-- None --</option>
             {otherEmployees.map(emp => (
-              <option key={emp.id} value={emp.name}>{emp.name}</option>
+              <option key={emp.id} value={emp.id}>{emp.name}</option>
             ))}
           </select>
         </div>
