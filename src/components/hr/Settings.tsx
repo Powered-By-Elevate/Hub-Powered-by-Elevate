@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Employee, HRAnnouncement, Department, JobTitle, Company } from '../../lib/database.types';
+import { Employee, HRAnnouncement, Department, JobTitle, Company, CompanyType } from '../../lib/database.types';
 import { useAuth } from '../../contexts/AuthContext';
 import { Modal } from '../shared/Modal';
 import { Pencil, Trash2, Plus, Check, X } from 'lucide-react';
@@ -796,7 +796,6 @@ function DeptModal({ dept, onClose, onSaved }: DeptModalProps) {
   );
 }
 
-const COMPANY_TYPES = ['General Contractor', 'Subcontractor', 'Specialty Contractor', 'Corporate', 'Other'];
 
 interface CompanyModalProps {
   company: Company | null;
@@ -810,6 +809,45 @@ function CompanyModal({ company, onClose, onSaved }: CompanyModalProps) {
   const [type, setType] = useState(company?.type ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [types, setTypes] = useState<CompanyType[]>([]);
+  const [showAddType, setShowAddType] = useState(false);
+  const [newTypeName, setNewTypeName] = useState('');
+  const [savingType, setSavingType] = useState(false);
+
+  useEffect(() => {
+    loadTypes();
+  }, []);
+
+  async function loadTypes() {
+    const { data } = await supabase
+      .from('company_types')
+      .select('*')
+      .eq('active', true)
+      .order('name');
+    setTypes(data ?? []);
+  }
+
+  async function addNewType() {
+    const trimmed = newTypeName.trim();
+    if (!trimmed) return;
+    setSavingType(true);
+    const { data, error: err } = await supabase
+      .from('company_types')
+      .insert({ name: trimmed })
+      .select()
+      .single();
+    setSavingType(false);
+    if (err) {
+      setError(err.message.includes('unique') ? 'That type already exists.' : err.message);
+      return;
+    }
+    if (data) {
+      setTypes(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+      setType(data.name);
+    }
+    setNewTypeName('');
+    setShowAddType(false);
+  }
 
   async function save() {
     const trimmed = name.trim();
@@ -864,11 +902,49 @@ function CompanyModal({ company, onClose, onSaved }: CompanyModalProps) {
           />
         </div>
         <div className="field">
-          <label>Company Type</label>
-          <select value={type} onChange={e => setType(e.target.value)}>
-            <option value="">— select type —</option>
-            {COMPANY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
+        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Company Type</span>
+            <button
+              type="button"
+              onClick={() => setShowAddType(true)}
+              style={{ background: 'none', border: 'none', color: '#1B3F6E', fontSize: 11, fontWeight: 600, cursor: 'pointer', padding: 0 }}
+            >
+              + Add New Type
+            </button>
+          </label>
+          {showAddType ? (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="text"
+                placeholder="Enter new type name"
+                value={newTypeName}
+                onChange={e => setNewTypeName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addNewType()}
+                autoFocus
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                className="btn-primary sm"
+                onClick={addNewType}
+                disabled={savingType || !newTypeName.trim()}
+              >
+                {savingType ? 'Adding...' : 'Add'}
+              </button>
+              <button
+                type="button"
+                className="btn-ghost sm"
+                onClick={() => { setShowAddType(false); setNewTypeName(''); }}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <select value={type} onChange={e => setType(e.target.value)}>
+              <option value="">— select type —</option>
+              {types.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+            </select>
+          )}
         </div>
       </div>
     </Modal>

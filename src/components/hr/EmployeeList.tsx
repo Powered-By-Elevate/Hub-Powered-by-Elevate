@@ -208,12 +208,22 @@ export function EmployeeList({ employees, companies, departments, onViewEmployee
                       <td style={{ color: '#6B6860' }}>{e.manager}</td>
                       <td style={{ fontSize: 12, color: '#6B6860' }}>{e.start_date}</td>
                       <td>
-                        <div className="prog-bar"><div className={`prog-fill ${pfColor(e.progress, e.status)}`} style={{ width: e.progress + '%' }} /></div>
-                        <div className="prog-label">{e.progress}%</div>
+                      {e.lifecycle_status === 'active' ? (
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#D1FAE5', color: '#065F46', whiteSpace: 'nowrap' }}>Active</span>
+                        ) : (
+                          <>
+                            <div className="prog-bar"><div className={`prog-fill ${pfColor(e.progress, e.status)}`} style={{ width: e.progress + '%' }} /></div>
+                            <div className="prog-label">{e.progress}%</div>
+                          </>
+                        )}
                       </td>
                       <td>
-                        {listTab === 'archived' ? <span className="badge b-muted"><span className="dot-sm" /> Archived</span> : <StatusBadge status={e.status} />}
-                      </td>
+                      {listTab === 'archived' 
+                          ? <span className="badge b-muted"><span className="dot-sm" /> Archived</span> 
+                          : e.lifecycle_status === 'active'
+                            ? <span className="badge b-success">Active Employee</span>
+                            : <StatusBadge status={e.status} />
+                        }                      </td>
                       <td>
                         {csc ? (
                           <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: csc.bg, color: csc.color, whiteSpace: 'nowrap' }}>{e.current_status}</span>
@@ -244,12 +254,23 @@ export function EmployeeList({ employees, companies, departments, onViewEmployee
                       <div className="emp-card-name" style={listTab === 'archived' ? { color: '#6B6860' } : {}}>{e.name}</div>
                       <div className="emp-card-meta">{e.role} · {e.department}</div>
                       <div style={{ marginTop: 8 }}>
-                        <div className="prog-bar"><div className={`prog-fill ${pfColor(e.progress, e.status)}`} style={{ width: e.progress + '%' }} /></div>
-                        <div className="prog-label">{e.progress}% complete</div>
+                      {e.lifecycle_status === 'active' ? (
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 10, background: '#D1FAE5', color: '#065F46', display: 'inline-block' }}>Active Employee</span>
+                        ) : (
+                          <>
+                            <div className="prog-bar"><div className={`prog-fill ${pfColor(e.progress, e.status)}`} style={{ width: e.progress + '%' }} /></div>
+                            <div className="prog-label">{e.progress}% complete</div>
+                          </>
+                        )}
                       </div>
                     </div>
                     <div className="emp-card-right">
-                      {listTab === 'archived' ? <span className="badge b-muted">Archived</span> : <StatusBadge status={e.status} />}
+                    {listTab === 'archived' 
+                        ? <span className="badge b-muted">Archived</span> 
+                        : e.lifecycle_status === 'active'
+                          ? <span className="badge b-success">Active</span>
+                          : <StatusBadge status={e.status} />
+                      }
                       <div style={{ display: 'flex', gap: 5, marginTop: 8 }} onClick={ev => ev.stopPropagation()}>
                         <button className="btn-ghost sm" onClick={() => onViewEmployee(e.id)}>View</button>
                         <button className="btn-ghost sm" onClick={() => onEditEmployee(e.id)}>Edit</button>

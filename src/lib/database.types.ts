@@ -53,7 +53,12 @@ export interface Company {
   active: boolean;
   created_at: string;
 }
-
+export interface CompanyType {
+  id: string;
+  name: string;
+  active: boolean;
+  created_at: string;
+}
 export interface Pathway {
   id: string;
   name: string;
