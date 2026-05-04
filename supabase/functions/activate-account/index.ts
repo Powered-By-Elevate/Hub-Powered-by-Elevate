@@ -4,7 +4,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
 Deno.serve(async (req: Request) => {
@@ -13,7 +14,8 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { email, password, employeeId, tokenId } = await req.json();
+    const body = await req.json();
+    const { email, password, employeeId, tokenId } = body;
 
     if (!email || !password || !employeeId || !tokenId) {
       return new Response(
@@ -29,7 +31,7 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Verify token is valid and unused
+    // Verify token
     const { data: tokenData, error: tokenErr } = await supabase
       .from("setup_tokens")
       .select("id, employee_id, expires_at, used")
@@ -51,9 +53,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    let userId: string | undefined;
-
-    // Try to create a new auth user with confirmed email
+    // Try to create auth user
+    let userId: string;
     const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
       email,
       password,
@@ -62,55 +63,56 @@ Deno.serve(async (req: Request) => {
 
     if (!createErr && newUser?.user) {
       userId = newUser.user.id;
-    } else {
-      // User already exists — find them and update password
-      const { data: listData } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      const existingUser = listData?.users?.find((u) => u.email === email);
-
-      if (existingUser) {
-        userId = existingUser.id;
-        const { error: updateErr } = await supabase.auth.admin.updateUser(userId, {
-          password,
-          email_confirm: true,
-        });
-        if (updateErr) {
-          return new Response(
-            JSON.stringify({ error: "Failed to update account: " + updateErr.message }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      } else {
+    } else if (createErr?.message?.includes("already been registered")) {
+      // User exists - find by email and update password
+      const { data: userData } = await supabase.auth.admin.listUsers();
+      const existing = userData?.users?.find(
+        (u: { email?: string }) => u.email === email
+      );
+      if (!existing) {
         return new Response(
-          JSON.stringify({ error: "Could not create or locate account. Please contact HR." }),
+          JSON.stringify({ error: "Could not locate existing account." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      userId = existing.id;
+      const { error: upErr } = await supabase.auth.admin.updateUser(userId, {
+        password,
+        email_confirm: true,
+      });
+      if (upErr) {
+        return new Response(
+          JSON.stringify({ error: "Failed to update password: " + upErr.message }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else {
+      return new Response(
+        JSON.stringify({ error: createErr?.message || "Failed to create account." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Link employee record to auth user
-    await supabase
-      .from("employees")
-      .update({ user_id: userId })
-      .eq("id", employeeId);
+    // Link employee to auth user
+    await supabase.from("employees").update({ user_id: userId }).eq("id", employeeId);
 
-    // Upsert into public.users table for role-based access
-    await supabase
-      .from("users")
-      .upsert({ id: userId, email, role: "employee", employee_id: employeeId });
+    // Upsert public.users record for role lookup
+    await supabase.from("users").upsert(
+      { id: userId, email, role: "employee", employee_id: employeeId },
+      { onConflict: "id" }
+    );
 
-    // Mark setup token as used
-    await supabase
-      .from("setup_tokens")
-      .update({ used: true })
-      .eq("id", tokenId);
+    // Mark token used
+    await supabase.from("setup_tokens").update({ used: true }).eq("id", tokenId);
 
     return new Response(
       JSON.stringify({ success: true, userId }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (err) {
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
     return new Response(
-      JSON.stringify({ error: "Server error: " + String(err) }),
+      JSON.stringify({ error: "Server error: " + msg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
