@@ -123,50 +123,51 @@ export function EmployeeList({ employees, companies, departments, onViewEmployee
               onChange={e => setSearch(e.target.value)}
             />
             {listTab === 'active' && (
-              <>
-                <span className="divider-label">Status:</span>
-                {['all', 'in-progress', 'complete', 'overdue', 'not-started'].map(s => (
-                  <button key={s} className={`filter-chip${filterStatus === s ? ' active' : ''}`} onClick={() => setFilterStatus(s)}>
-                    {s === 'all' ? 'All' : s === 'not-started' ? 'Not Started' : s === 'in-progress' ? 'In Progress' : s[0].toUpperCase() + s.slice(1)}
-                  </button>
-                ))}
-              </>
+              <select
+                value={filterStatus}
+                onChange={e => setFilterStatus(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">All Statuses</option>
+                <option value="in-progress">In Progress</option>
+                <option value="complete">Complete</option>
+                <option value="overdue">Overdue</option>
+                <option value="not-started">Not Started</option>
+              </select>
             )}
-            <span className="divider-label">Dept:</span>
             <select
               value={filterDept}
               onChange={e => setFilterDept(e.target.value)}
-              style={{ fontSize: 12, padding: '4px 28px 4px 10px', borderRadius: 6, border: '1px solid #E5E3DC', background: '#fff', color: '#1A1916', cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239B9890' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', fontFamily: 'inherit' }}
+              className="filter-select"
             >
               {depts.map(d => (
                 <option key={d} value={d}>{d === 'all' ? 'All Departments' : d}</option>
               ))}
             </select>
             {visibleCompanies.length > 0 && (
-              <>
-                <span className="divider-label">Company:</span>
-                <button className={`filter-chip${filterCompany === 'all' ? ' active' : ''}`} onClick={() => setFilterCompany('all')}>All</button>
+              <select
+                value={filterCompany}
+                onChange={e => setFilterCompany(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">All Companies</option>
                 {visibleCompanies.map(c => (
-                  <button key={c.id} className={`filter-chip${filterCompany === c.id ? ' active' : ''}`} onClick={() => setFilterCompany(c.id)}>
-                    {c.code || c.name}
-                  </button>
+                  <option key={c.id} value={c.id}>{c.code || c.name}</option>
                 ))}
-              </>
+              </select>
             )}
-            {listTab === 'active' && (() => {
-              const hasCurrentStatus = pool.some(e => e.current_status);
-              if (!hasCurrentStatus) return null;
-              return (
-                <>
-                  <span className="divider-label">Dev Status:</span>
-                  {['all', 'On Track', 'Needs Support', 'At Risk'].map(s => (
-                    <button key={s} className={`filter-chip${filterCurrentStatus === s ? ' active' : ''}`} onClick={() => setFilterCurrentStatus(s)}>
-                      {s === 'all' ? 'All' : s}
-                    </button>
-                  ))}
-                </>
-              );
-            })()}
+            {listTab === 'active' && pool.some(e => e.current_status) && (
+              <select
+                value={filterCurrentStatus}
+                onChange={e => setFilterCurrentStatus(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">All Dev Statuses</option>
+                <option value="On Track">On Track</option>
+                <option value="Needs Support">Needs Support</option>
+                <option value="At Risk">At Risk</option>
+              </select>
+            )}
           </div>
           {listTab === 'archived' && archivedEmps.length === 0 ? (
             <div className="empty-state">
