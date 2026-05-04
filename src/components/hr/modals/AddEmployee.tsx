@@ -164,8 +164,8 @@ export function AddEmployeeModal({ onClose, onCreated, departments, companies, e
           <input type="text" value={form.lastName} onChange={set('lastName')} placeholder="Smith" />
         </div>
         <div className="field full">
-          <label>Work email <span style={{ color: '#E53E3E' }}>*</span></label>
-          <input type="email" value={form.email} onChange={set('email')} placeholder="jane.smith@company.com" />
+          <label>{form.lifecycle_status === 'applicant' ? 'Contact email' : 'Work email'} <span style={{ color: '#E53E3E' }}>*</span></label>
+          <input type="email" value={form.email} onChange={set('email')} placeholder={form.lifecycle_status === 'applicant' ? 'jane.smith@gmail.com' : 'jane.smith@company.com'} />
         </div>
         <div className="field full">
           <label>Job title</label>

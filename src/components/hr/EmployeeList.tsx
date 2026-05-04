@@ -57,7 +57,7 @@ export function EmployeeList({ employees, companies, departments, onViewEmployee
       <div className="topbar">
         <div className="topbar-left">
           <h1>All Employees</h1>
-          <p>{activeEmps.length} active · {archivedEmps.length} archived</p>
+          <p>{activeEmps.length} active · {archivedEmps.length} non-active</p>
         </div>
         <div className="topbar-actions">
           <div ref={addDropRef} style={{ position: 'relative' }}>
@@ -112,7 +112,7 @@ export function EmployeeList({ employees, companies, departments, onViewEmployee
               style={{ fontSize: 13, padding: '10px 18px' }}
               onClick={() => { setListTab('archived'); setFilterStatus('all'); setFilterDept('all'); setFilterCompany('all'); setFilterCurrentStatus('all'); setSearch(''); }}
             >
-              Archived <span style={{ marginLeft: 6, padding: '2px 7px', borderRadius: 10, fontSize: 11, fontWeight: 600, background: listTab === 'archived' ? '#E8EFF8' : '#F2F1ED', color: listTab === 'archived' ? '#1B3F6E' : '#9B9890' }}>{archivedEmps.length}</span>
+              Non-Active <span style={{ marginLeft: 6, padding: '2px 7px', borderRadius: 10, fontSize: 11, fontWeight: 600, background: listTab === 'archived' ? '#E8EFF8' : '#F2F1ED', color: listTab === 'archived' ? '#1B3F6E' : '#9B9890' }}>{archivedEmps.length}</span>
             </button>
           </div>
           <div className="filter-bar">
@@ -171,8 +171,8 @@ export function EmployeeList({ employees, companies, departments, onViewEmployee
           {listTab === 'archived' && archivedEmps.length === 0 ? (
             <div className="empty-state">
               <div className="empty-icon">📦</div>
-              <p>No archived employees</p>
-              <div className="esub">Employees who complete onboarding can be archived from their profile.</div>
+              <p>No non-active employees</p>
+              <div className="esub">Terminated or retired employees will appear here.</div>
             </div>
           ) : list.length === 0 ? (
             <div className="empty-state"><div className="empty-icon">🔍</div><p>No employees match your filters</p><div className="esub">Try adjusting the filters above</div></div>
