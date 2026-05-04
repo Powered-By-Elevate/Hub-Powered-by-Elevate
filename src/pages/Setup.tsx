@@ -47,23 +47,29 @@ export function SetupPage({ token, onDone }: Props) {
     setSaving(true);
     setError('');
 
-    const { data: authData, error: signUpErr } = await supabase.auth.signUp({ email, password });
-    if (signUpErr) {
-      if (signUpErr.message.includes('already registered')) {
-        const { error: loginErr } = await supabase.auth.signInWithPassword({ email, password });
-        if (loginErr) { setError(loginErr.message); setSaving(false); return; }
-      } else {
-        setError(signUpErr.message);
-        setSaving(false);
-        return;
-      }
+    const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/activate-account`;
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password, employeeId, tokenId }),
+    });
+
+    const result = await res.json();
+    if (!res.ok || result.error) {
+      setError(result.error || 'Failed to activate account.');
+      setSaving(false);
+      return;
     }
 
-    const userId = authData?.user?.id ?? (await supabase.auth.getUser()).data.user?.id;
-    if (userId) {
-      await supabase.from('employees').update({ user_id: userId }).eq('id', employeeId);
-      await supabase.from('users').upsert({ id: userId, email, role: 'employee', employee_id: employeeId });
-      await supabase.from('setup_tokens').update({ used: true }).eq('id', tokenId);
+    // Auto sign-in now that the account is confirmed
+    const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+    if (signInErr) {
+      setError(signInErr.message);
+      setSaving(false);
+      return;
     }
 
     setSaving(false);
