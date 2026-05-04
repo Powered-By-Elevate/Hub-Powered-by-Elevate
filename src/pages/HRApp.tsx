@@ -499,9 +499,10 @@ export function HRApp() {
         )}
         {tab === 'career' && (
           <CareerDevelopment
-            employees={employees.filter(e => !e.archived)}
+            employees={employees}
             pathways={pathways}
             onViewEmployee={viewEmployee}
+            onRefresh={loadEmployees}
           />
         )}
         {tab === 'settings' && (
