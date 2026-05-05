@@ -175,7 +175,18 @@ const [editContact, setEditContact] = useState<Contact | null>(null);
       alert(`Cannot delete "${dept.name}" — ${assignedCount} employee${assignedCount !== 1 ? 's are' : ' is'} assigned to this department.`);
       return;
     }
-    await supabase.from('departments').delete().eq('id', dept.id);
+    const { error, count } = await supabase
+      .from('departments')
+      .delete({ count: 'exact' })
+      .eq('id', dept.id);
+    if (error) {
+      alert(`Failed to delete: ${error.message}`);
+      return;
+    }
+    if (!count || count === 0) {
+      alert(`Delete returned 0 rows — likely an RLS policy is blocking it.`);
+      return;
+    }
     setDepartments(prev => prev.filter(d => d.id !== dept.id));
   }
 
