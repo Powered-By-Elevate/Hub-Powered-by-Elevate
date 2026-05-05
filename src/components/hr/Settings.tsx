@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Employee, HRAnnouncement, Department, JobTitle, Company, CompanyType } from '../../lib/database.types';
+import { Employee, HRAnnouncement, Department, JobTitle, Company, CompanyType, Contact } from '../../lib/database.types';
 import { useAuth } from '../../contexts/AuthContext';
 import { Modal } from '../shared/Modal';
 import { Pencil, Trash2, Plus, Check, X } from 'lucide-react';
 
-type SettingsSection = 'schedule' | 'banners' | 'organization';
+type SettingsSection = 'schedule' | 'banners' | 'organization' | 'contacts';
 
 interface Props {
   employees: Employee[];
@@ -62,6 +62,9 @@ export function HRSettings({ employees, onCheckinUpdated, onReviewUpdated, onDep
   const [editTitle, setEditTitle] = useState<JobTitle | null>(null);
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [editCompany, setEditCompany] = useState<Company | null>(null);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+const [showContactModal, setShowContactModal] = useState(false);
+const [editContact, setEditContact] = useState<Contact | null>(null);
 
   const loadSettings = useCallback(async () => {
     const { data } = await supabase.from('company_settings').select('*');
@@ -91,6 +94,10 @@ export function HRSettings({ employees, onCheckinUpdated, onReviewUpdated, onDep
     const { data } = await supabase.from('companies').select('*').order('name');
     setCompanies(data ?? []);
   }, []);
+  const loadContacts = useCallback(async () => {
+    const { data } = await supabase.from('contacts').select('*').order('name');
+    setContacts(data ?? []);
+  }, []);
 
   useEffect(() => {
     loadSettings();
@@ -98,7 +105,8 @@ export function HRSettings({ employees, onCheckinUpdated, onReviewUpdated, onDep
     loadDepartments();
     loadJobTitles();
     loadCompanies();
-  }, [loadSettings, loadAnnouncements, loadDepartments, loadJobTitles, loadCompanies]);
+    loadContacts();
+  }, [loadSettings, loadAnnouncements, loadDepartments, loadJobTitles, loadCompanies, loadContacts]);
 
   async function saveSettings() {
     setSaving(true);
@@ -195,11 +203,17 @@ export function HRSettings({ employees, onCheckinUpdated, onReviewUpdated, onDep
     await supabase.from('companies').delete().eq('id', company.id);
     setCompanies(prev => prev.filter(c => c.id !== company.id));
   }
+  async function deleteContact(contact: Contact) {
+    if (!confirm(`Delete contact "${contact.name}"?`)) return;
+    await supabase.from('contacts').delete().eq('id', contact.id);
+    setContacts(prev => prev.filter(c => c.id !== contact.id));
+  }
 
   const sections: { id: SettingsSection; label: string }[] = [
     { id: 'schedule', label: 'Check-in & Review Schedule' },
     { id: 'banners', label: 'Hub Banners' },
     { id: 'organization', label: 'Organization Setup' },
+    { id: 'contacts', label: 'External Contacts' },
   ];
 
   const titlesByCategory: Record<string, JobTitle[]> = {};
@@ -342,6 +356,48 @@ export function HRSettings({ employees, onCheckinUpdated, onReviewUpdated, onDep
               </div>
             )}
 
+{section === 'contacts' && (
+              <div className="card">
+                <div className="card-header">
+                  <h3>External Contacts</h3>
+                  <button className="btn-primary sm" style={{ display: 'flex', alignItems: 'center', gap: 5 }} onClick={() => { setEditContact(null); setShowContactModal(true); }}>
+                    <Plus size={13} /> Add Contact
+                  </button>
+                </div>
+                {contacts.length === 0 ? (
+                  <div className="empty-state">
+                    <p>No external contacts yet</p>
+                    <div className="esub">Add vendors, IT support, benefits providers, etc.</div>
+                  </div>
+                ) : (
+                  <table>
+                    <thead>
+                      <tr><th>Name</th><th>Role / Vendor</th><th>Email</th><th>Phone</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                      {contacts.map(c => (
+                        <tr key={c.id}>
+                          <td><div className="emp-name">{c.name}</div></td>
+                          <td style={{ fontSize: 12, color: '#6B6860' }}>{c.role || '—'}</td>
+                          <td style={{ fontSize: 12, color: '#6B6860' }}>{c.email || '—'}</td>
+                          <td style={{ fontSize: 12, color: '#6B6860' }}>{c.phone || '—'}</td>
+                          <td>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button className="btn-ghost sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => { setEditContact(c); setShowContactModal(true); }}>
+                                <Pencil size={11} /> Edit
+                              </button>
+                              <button className="btn-danger-soft sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => deleteContact(c)}>
+                                <Trash2 size={11} /> Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
             {section === 'organization' && (
               <div>
                 <div className="card" style={{ marginBottom: 16 }}>
@@ -606,6 +662,13 @@ export function HRSettings({ employees, onCheckinUpdated, onReviewUpdated, onDep
           company={editCompany}
           onClose={() => setShowCompanyModal(false)}
           onSaved={loadCompanies}
+        />
+      )}
+      {showContactModal && (
+        <ContactModal
+          contact={editContact}
+          onClose={() => setShowContactModal(false)}
+          onSaved={loadContacts}
         />
       )}
     </>
@@ -957,6 +1020,72 @@ interface TitleModalProps {
   onSaved: () => void;
 }
 
+interface ContactModalProps {
+  contact: Contact | null;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+function ContactModal({ contact, onClose, onSaved }: ContactModalProps) {
+  const [name, setName] = useState(contact?.name ?? '');
+  const [role, setRole] = useState(contact?.role ?? '');
+  const [email, setEmail] = useState(contact?.email ?? '');
+  const [phone, setPhone] = useState(contact?.phone ?? '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function save() {
+    if (!name.trim()) { setError('Name is required.'); return; }
+    setSaving(true);
+    setError('');
+    const payload = {
+      name: name.trim(),
+      role: role.trim() || null,
+      email: email.trim() || null,
+      phone: phone.trim() || null,
+    };
+    const { error: err } = contact
+      ? await supabase.from('contacts').update(payload).eq('id', contact.id)
+      : await supabase.from('contacts').insert(payload);
+    setSaving(false);
+    if (err) { setError(err.message); return; }
+    onSaved();
+    onClose();
+  }
+
+  return (
+    <Modal
+      title={contact ? 'Edit Contact' : 'Add Contact'}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : contact ? 'Save Changes' : 'Add Contact'}</button>
+        </>
+      }
+    >
+      {error && <div className="error-msg">{error}</div>}
+      <div className="form-grid">
+        <div className="field full">
+          <label>Name <span style={{ color: '#E53E3E' }}>*</span></label>
+          <input type="text" placeholder="e.g. IT Help Desk" value={name} onChange={e => setName(e.target.value)} autoFocus />
+        </div>
+        <div className="field full">
+          <label>Role / Vendor</label>
+          <input type="text" placeholder="e.g. Cortavo · Technical Support" value={role} onChange={e => setRole(e.target.value)} />
+        </div>
+        <div className="field">
+          <label>Email</label>
+          <input type="email" placeholder="helpdesk@vendor.com" value={email} onChange={e => setEmail(e.target.value)} />
+        </div>
+        <div className="field">
+          <label>Phone</label>
+          <input type="tel" placeholder="(555) 555-5555" value={phone} onChange={e => setPhone(e.target.value)} />
+        </div>
+      </div>
+    </Modal>
+  );
+}
 function TitleModal({ jobTitle, onClose, onSaved }: TitleModalProps) {
   const [title, setTitle] = useState(jobTitle?.title ?? '');
   const [category, setCategory] = useState(jobTitle?.category ?? 'Other');
