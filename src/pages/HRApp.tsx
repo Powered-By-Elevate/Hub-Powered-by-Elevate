@@ -40,6 +40,8 @@ import { AddCheckinModal } from '../components/hr/modals/AddCheckin';
 import { AddReviewModal } from '../components/hr/modals/AddReview';
 import { AddNoteModal } from '../components/hr/modals/AddNote';
 import { EditEmployeeModal } from '../components/hr/modals/EditEmployee';
+import { AddApplicantModal } from '../components/hr/modals/AddApplicant';
+import { EditApplicantModal } from '../components/hr/modals/EditApplicant';
 import { CareerDevelopment } from '../components/hr/CareerDevelopment';
 import { ToastContainer, ToastItem } from '../components/shared/Toast';
 
@@ -71,6 +73,7 @@ export function HRApp() {
   const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null);
   const [modal, setModal] = useState<{ type: string; eid?: string } | null>(null);
   const [editEmpId, setEditEmpId] = useState<string | null>(null);
+  const [editApplicantId, setEditApplicantId] = useState<string | null>(null);
   const channelsRef = useRef<ReturnType<typeof supabase.channel>[]>([]);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const isMobile = useMobile();
@@ -507,7 +510,7 @@ export function HRApp() {
           <HRApplicants
             employees={employees}
             onAddApplicant={() => setModal({ type: 'add-applicant' })}
-            onEditApplicant={id => setEditEmpId(id)}
+            onEditApplicant={id => setEditApplicantId(id)}
             onConvertApplicant={id => setModal({ type: 'convert-applicant', eid: id })}
             onViewApplicant={viewEmployee}
           />
@@ -592,6 +595,19 @@ export function HRApp() {
             }
             await loadActivity();
             showToast('Employee added successfully');
+          }}
+        />
+      )}
+      {modal?.type === 'add-applicant' && (
+        <AddApplicantModal
+          employees={employees}
+          onClose={() => setModal(null)}
+          onCreated={async (newApplicant) => {
+            if (newApplicant) {
+              setEmployees(prev => [newApplicant, ...prev]);
+            }
+            await loadActivity();
+            showToast('Applicant added');
           }}
         />
       )}
@@ -691,6 +707,22 @@ export function HRApp() {
               setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
               setEditEmpId(null);
               await logActivity(updated.id, `HR updated profile for ${updated.name}`);
+              await loadActivity();
+            }}
+          />
+        ) : null;
+      })()}
+      {editApplicantId && (() => {
+        const applicant = employees.find(e => e.id === editApplicantId);
+        return applicant ? (
+          <EditApplicantModal
+            applicant={applicant}
+            employees={employees}
+            onClose={() => setEditApplicantId(null)}
+            onSaved={async updated => {
+              setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
+              setEditApplicantId(null);
+              await logActivity(updated.id, `HR updated applicant ${updated.name}`);
               await loadActivity();
             }}
           />
