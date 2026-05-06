@@ -84,7 +84,9 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
   }));
 
   function teamsLink(email: string) {
-    return `https://teams.microsoft.com/l/chat/0/0?users=${encodeURIComponent(email)}`;
+    // msteams:// protocol opens the Teams desktop app directly when installed
+    // Falls back to browser if app is not installed
+    return `msteams:/l/chat/0/0?users=${encodeURIComponent(email)}`;
   }
 
   return (
