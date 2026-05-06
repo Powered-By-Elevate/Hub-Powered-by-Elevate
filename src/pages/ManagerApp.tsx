@@ -24,15 +24,16 @@ export function ManagerApp() {
   const [modal, setModal] = useState<{ type: string; eid?: string } | null>(null);
 
   const loadTeam = useCallback(async () => {
-    if (!profile?.id) return;
+    if (!profile?.id || !profile?.employee_id) return;
+    // Pull both direct reports (manager_user_id) and applicants (hiring_manager_id)
     const { data } = await supabase
       .from('employees')
       .select('*')
-      .eq('manager_user_id', profile.id)
+      .or(`manager_user_id.eq.${profile.id},hiring_manager_id.eq.${profile.employee_id}`)
       .eq('archived', false)
       .order('created_at', { ascending: false });
     setTeam(data ?? []);
-  }, [profile?.id]);
+  }, [profile?.id, profile?.employee_id]);
 
   const loadMyProfile = useCallback(async () => {
     if (!profile?.employee_id) return;
