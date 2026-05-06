@@ -20,6 +20,7 @@ import {
   Document, Schedule, ActivityLog,
   EmployeeNote, Company, Pathway,
   Review, DevelopmentPlan, Certification, Checkin,
+  QuarterlyCheckin, AnnualReview,
 } from '../lib/database.types';
 import { HRSidebar } from '../components/hr/Sidebar';
 import { HRDashboard } from '../components/hr/Dashboard';
@@ -63,6 +64,8 @@ export function HRApp() {
   const [empDevPlans, setEmpDevPlans] = useState<Record<string, DevelopmentPlan[]>>({});
   const [empCertifications, setEmpCertifications] = useState<Record<string, Certification[]>>({});
   const [empCheckins, setEmpCheckins] = useState<Record<string, Checkin[]>>({});
+  const [quarterlyCheckins, setQuarterlyCheckins] = useState<QuarterlyCheckin[]>([]);
+  const [annualReviews, setAnnualReviews] = useState<AnnualReview[]>([]);
   const [notes, setNotes] = useState<Record<string, EmployeeNote[]>>({});
   const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null);
   const [modal, setModal] = useState<{ type: string; eid?: string } | null>(null);
@@ -139,6 +142,15 @@ export function HRApp() {
     setNotes(prev => ({ ...prev, [empId]: data ?? [] }));
   }, []);
 
+  const loadQuarterlyCheckins = useCallback(async () => {
+    const { data } = await supabase.from('quarterly_checkins').select('*').order('scheduled_at', { ascending: true });
+    setQuarterlyCheckins(data ?? []);
+  }, []);
+
+  const loadAnnualReviews = useCallback(async () => {
+    const { data } = await supabase.from('annual_reviews').select('*').order('scheduled_at', { ascending: true });
+    setAnnualReviews(data ?? []);
+  }, []);
   const loadActivity = useCallback(async () => {
     const { data } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(20);
     setActivity(data ?? []);
@@ -160,8 +172,10 @@ export function HRApp() {
     loadCompanies();
     loadPathways();
     loadActivity();
+    loadQuarterlyCheckins();
+    loadAnnualReviews();
     supabase.from('schedules').select('*').is('employee_id', null).order('time_label').then(({ data }) => setSchedules(data ?? []));
-  }, [loadEmployees, loadTemplates, loadDepartments, loadCompanies, loadPathways, loadActivity]);
+  }, [loadEmployees, loadTemplates, loadDepartments, loadCompanies, loadPathways, loadActivity, loadQuarterlyCheckins, loadAnnualReviews]);
 
   // Real-time subscriptions
   useEffect(() => {
@@ -399,11 +413,11 @@ export function HRApp() {
           {tab === 'checkins' && (
             <HRCheckins
               employees={employees.filter(e => !e.archived)}
-              checkins={[]}
-              reviews={[]}
+              checkins={quarterlyCheckins}
+              reviews={annualReviews}
               onOpenModal={(type, eid) => setModal({ type, eid })}
-              onCheckinUpdated={() => {}}
-              onReviewUpdated={() => {}}
+              onCheckinUpdated={loadQuarterlyCheckins}
+              onReviewUpdated={loadAnnualReviews}
             />
           )}
         </MobileLayout>
@@ -426,6 +440,7 @@ export function HRApp() {
             defaultEmpId={modal.eid}
             onClose={() => setModal(null)}
             onCreated={async () => {
+              await loadQuarterlyCheckins();
               if (modal.eid) {
                 const emp = employees.find(e => e.id === modal.eid);
                 await logActivity(modal.eid ?? null, `Scheduled check-in for ${emp?.name ?? modal.eid}`);
@@ -440,6 +455,7 @@ export function HRApp() {
             defaultEmpId={modal.eid}
             onClose={() => setModal(null)}
             onCreated={async () => {
+              await loadAnnualReviews();
               if (modal.eid) {
                 const emp = employees.find(e => e.id === modal.eid);
                 await logActivity(modal.eid ?? null, `Scheduled annual review for ${emp?.name ?? modal.eid}`);
@@ -476,12 +492,12 @@ export function HRApp() {
     <div className="app-shell">
       <HRSidebar tab={tab} onTab={t => { setTab(t as HRTab); if (t !== 'detail') setSelectedEmpId(null); }} />
       <div className="main-area">
-        {tab === 'dashboard' && (
+      {tab === 'dashboard' && (
           <HRDashboard
             employees={employees}
             activity={activity}
-            checkins={[]}
-            reviews={[]}
+            checkins={quarterlyCheckins}
+            reviews={annualReviews}
             onViewEmployee={viewEmployee}
             onOpenModal={(type, eid) => setModal({ type, eid })}
             onTab={t => setTab(t as HRTab)}
@@ -504,11 +520,11 @@ export function HRApp() {
         {tab === 'checkins' && (
           <HRCheckins
             employees={employees.filter(e => !e.archived)}
-            checkins={[]}
-            reviews={[]}
+            checkins={quarterlyCheckins}
+            reviews={annualReviews}
             onOpenModal={(type, eid) => setModal({ type, eid })}
-            onCheckinUpdated={() => {}}
-            onReviewUpdated={() => {}}
+            onCheckinUpdated={loadQuarterlyCheckins}
+            onReviewUpdated={loadAnnualReviews}
           />
         )}
         {tab === 'career' && (
