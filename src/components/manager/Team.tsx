@@ -47,12 +47,12 @@ export function ManagerTeam({ team, onViewEmployee, onOpenModal }: Props) {
                     <td>{e.department}</td>
                     <td style={{ fontSize: 12, color: '#6B6860' }}>{e.start_date}</td>
                     <td>
-                      <span className={`badge ${e.phase === 'active' ? 'b-success' : 'b-navy'}`}>
-                        {e.phase === 'active' ? 'Active' : 'Onboarding'}
+                    <span className={`badge ${e.lifecycle_status === 'active' ? 'b-success' : 'b-navy'}`}>
+                    {e.lifecycle_status === 'active' ? 'Active' : 'Onboarding'}
                       </span>
                     </td>
                     <td>
-                      {e.phase === 'onboarding' ? (
+                    {e.lifecycle_status === 'onboarding' ? (
                         <>
                           <div className="prog-bar"><div className={`prog-fill ${pfColor(e.progress, e.status)}`} style={{ width: e.progress + '%' }} /></div>
                           <div className="prog-label">{e.progress}%</div>
