@@ -15,8 +15,8 @@ interface Props {
 
 export function HRDashboard({ employees, activity, checkins, reviews, onViewEmployee, onOpenModal, onTab }: Props) {
   const active = employees.filter(e => !e.archived);
-  const onboarding = active.filter(e => e.phase === 'onboarding');
-  const activePhase = active.filter(e => e.phase === 'active');
+  const onboarding = active.filter(e => e.lifecycle_status === 'onboarding');
+  const activePhase = active.filter(e => e.lifecycle_status === 'active');
   const counts: Record<string, number> = {};
   onboarding.forEach(e => { counts[e.status] = (counts[e.status] ?? 0) + 1; });
   const overdueCheckins = checkins.filter(c => c.status === 'overdue').length;
@@ -77,7 +77,7 @@ export function HRDashboard({ employees, activity, checkins, reviews, onViewEmpl
                       </div>
                     </td>
                     <td>
-                      {e.phase === 'onboarding' ? (
+                    {e.lifecycle_status === 'onboarding' ? (
                         <>
                           <div className="prog-bar"><div className={`prog-fill ${pfColor(e.progress, e.status)}`} style={{ width: e.progress + '%' }} /></div>
                           <div className="prog-label">{e.progress}% onboarding</div>
