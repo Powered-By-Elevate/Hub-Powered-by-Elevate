@@ -42,6 +42,7 @@ import { AddNoteModal } from '../components/hr/modals/AddNote';
 import { EditEmployeeModal } from '../components/hr/modals/EditEmployee';
 import { AddApplicantModal } from '../components/hr/modals/AddApplicant';
 import { EditApplicantModal } from '../components/hr/modals/EditApplicant';
+import { ConvertApplicantModal } from '../components/hr/modals/ConvertApplicant';
 import { CareerDevelopment } from '../components/hr/CareerDevelopment';
 import { ToastContainer, ToastItem } from '../components/shared/Toast';
 
@@ -67,8 +68,8 @@ export function HRApp() {
   const [empDevPlans, setEmpDevPlans] = useState<Record<string, DevelopmentPlan[]>>({});
   const [empCertifications, setEmpCertifications] = useState<Record<string, Certification[]>>({});
   const [empCheckins, setEmpCheckins] = useState<Record<string, Checkin[]>>({});
-  const [quarterlyCheckins, setQuarterlyCheckins] = useState<QuarterlyCheckin[]>([]);
-  const [annualReviews, setAnnualReviews] = useState<AnnualReview[]>([]);
+  const [quarterlyCheckins, setQuarterlyCheckins] = useState<import('../lib/database.types').QuarterlyCheckin[]>([]);
+const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types').AnnualReview[]>([]);
   const [notes, setNotes] = useState<Record<string, EmployeeNote[]>>({});
   const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null);
   const [modal, setModal] = useState<{ type: string; eid?: string } | null>(null);
@@ -611,6 +612,22 @@ export function HRApp() {
           }}
         />
       )}
+      {modal?.type === 'convert-applicant' && modal.eid && (() => {
+        const applicant = employees.find(e => e.id === modal.eid);
+        return applicant ? (
+          <ConvertApplicantModal
+            applicant={applicant}
+            templates={templates}
+            departments={departments}
+            onClose={() => setModal(null)}
+            onConverted={async (updated) => {
+              setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
+              await loadActivity();
+              showToast(`${updated.name} converted to onboarding`);
+            }}
+          />
+        ) : null;
+      })()}
       {modal?.type === 'add-dept' && (
         <AddDepartmentModal onClose={() => setModal(null)} onCreated={() => loadDepartments()} />
       )}
@@ -657,6 +674,7 @@ export function HRApp() {
           defaultEmpId={modal.eid}
           onClose={() => setModal(null)}
           onCreated={async () => {
+            await loadQuarterlyCheckins();
             if (modal.eid) {
               const emp = employees.find(e => e.id === modal.eid);
               await logActivity(modal.eid ?? null, `Scheduled check-in for ${emp?.name ?? modal.eid}`);
@@ -671,6 +689,7 @@ export function HRApp() {
           defaultEmpId={modal.eid}
           onClose={() => setModal(null)}
           onCreated={async () => {
+            await loadAnnualReviews();
             if (modal.eid) {
               const emp = employees.find(e => e.id === modal.eid);
               await logActivity(modal.eid ?? null, `Scheduled annual review for ${emp?.name ?? modal.eid}`);
