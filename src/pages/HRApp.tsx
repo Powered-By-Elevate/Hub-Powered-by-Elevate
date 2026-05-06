@@ -29,6 +29,7 @@ import { EmployeeDetail } from '../components/hr/EmployeeDetail';
 import { HRTemplates } from '../components/hr/Templates';
 import { HRCheckins } from '../components/hr/Checkins';
 import { HRSettings } from '../components/hr/Settings';
+import { HRApplicants } from '../components/hr/Applicants';
 import { AddEmployeeModal } from '../components/hr/modals/AddEmployee';
 import { AddTaskModal } from '../components/hr/modals/AddTask';
 import { AddDepartmentModal } from '../components/hr/modals/AddDepartment';
@@ -42,7 +43,7 @@ import { EditEmployeeModal } from '../components/hr/modals/EditEmployee';
 import { CareerDevelopment } from '../components/hr/CareerDevelopment';
 import { ToastContainer, ToastItem } from '../components/shared/Toast';
 
-export type HRTab = 'dashboard' | 'employees' | 'templates' | 'checkins' | 'career' | 'detail' | 'settings';
+export type HRTab = 'dashboard' | 'applicants' | 'employees' | 'templates' | 'checkins' | 'career' | 'detail' | 'settings';
 
 async function logActivity(employeeId: string | null, action: string) {
   await supabase.from('activity_log').insert({ employee_id: employeeId, action, created_at: new Date().toISOString() });
@@ -500,6 +501,15 @@ export function HRApp() {
             onViewEmployee={viewEmployee}
             onOpenModal={(type, eid) => setModal({ type, eid })}
             onTab={t => setTab(t as HRTab)}
+          />
+        )}
+        {tab === 'applicants' && (
+          <HRApplicants
+            employees={employees}
+            onAddApplicant={() => setModal({ type: 'add-applicant' })}
+            onEditApplicant={id => setEditEmpId(id)}
+            onConvertApplicant={id => setModal({ type: 'convert-applicant', eid: id })}
+            onViewApplicant={viewEmployee}
           />
         )}
         {tab === 'employees' && (
