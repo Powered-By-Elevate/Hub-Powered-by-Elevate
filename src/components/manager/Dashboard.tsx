@@ -10,8 +10,8 @@ interface Props {
 }
 
 export function ManagerDashboard({ team, myEmployee, onViewEmployee, onOpenModal }: Props) {
-  const onboarding = team.filter(e => e.phase === 'onboarding');
-  const active = team.filter(e => e.phase === 'active');
+  const onboarding = team.filter(e => e.lifecycle_status === 'onboarding');
+  const active = team.filter(e => e.lifecycle_status === 'active');
   const overdue = team.filter(e => e.status === 'overdue');
 
   return (
@@ -81,7 +81,7 @@ export function ManagerDashboard({ team, myEmployee, onViewEmployee, onOpenModal
                     <td>{e.department}</td>
                     <td style={{ fontSize: 12, color: '#6B6860' }}>{e.start_date}</td>
                     <td>
-                      {e.phase === 'onboarding' ? (
+                    {e.lifecycle_status === 'onboarding' ? (
                         <>
                           <div className="prog-bar"><div className={`prog-fill ${pfColor(e.progress, e.status)}`} style={{ width: e.progress + '%' }} /></div>
                           <div className="prog-label">{e.progress}%</div>
