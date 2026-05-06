@@ -5,6 +5,7 @@ import type { HRTab } from '../../pages/HRApp';
 
 const navItems: { id: HRTab; icon: string; label: string }[] = [
   { id: 'dashboard', icon: '▦', label: 'Dashboard' },
+  { id: 'applicants', icon: '📨', label: 'Applicants' },
   { id: 'employees', icon: '👥', label: 'All Employees' },
   { id: 'templates', icon: '📋', label: 'Templates' },
   { id: 'checkins', icon: '📅', label: 'Check-ins & Reviews' },
