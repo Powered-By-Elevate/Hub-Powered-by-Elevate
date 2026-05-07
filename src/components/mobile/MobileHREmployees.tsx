@@ -45,8 +45,8 @@ export function MobileHREmployees({ employees, onView, onEdit }: MobileHREmploye
   const [statusFilter, setStatusFilter] = useState('All');
   const [tab, setTab] = useState<'active' | 'archived'>('active');
 
-  const active = employees.filter(e => !e.archived);
-  const archived = employees.filter(e => e.archived);
+  const active = employees.filter(e => !e.archived && e.lifecycle_status !== 'applicant');
+const archived = employees.filter(e => e.archived && e.lifecycle_status !== 'applicant');
   const pool = tab === 'active' ? active : archived;
 
   const filtered = pool.filter(e => {
@@ -112,12 +112,18 @@ export function MobileHREmployees({ employees, onView, onEdit }: MobileHREmploye
             <div className="m-emp-details">
               {[emp.department, emp.start_date && new Date(emp.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })].filter(Boolean).join(' · ')}
             </div>
-            <div className="m-prog-wrap">
-              <div className="m-prog-track">
-                <div className={`m-prog-fill ${progClass(emp.status)}`} style={{ width: `${emp.progress || 0}%` }} />
+            {emp.lifecycle_status === 'active' ? (
+              <div style={{ marginTop: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 10, background: '#D1FAE5', color: '#065F46', display: 'inline-block' }}>Active Employee</span>
               </div>
-              <div className="m-prog-pct">{emp.progress || 0}% complete</div>
-            </div>
+            ) : (
+              <div className="m-prog-wrap">
+                <div className="m-prog-track">
+                  <div className={`m-prog-fill ${progClass(emp.status)}`} style={{ width: `${emp.progress || 0}%` }} />
+                </div>
+                <div className="m-prog-pct">{emp.progress || 0}% complete</div>
+              </div>
+            )}
             <div className="m-emp-actions">
               <button className="m-btn" onClick={() => onView(emp.id)}>View</button>
               <button className="m-btn" onClick={() => onEdit(emp.id)}>Edit</button>

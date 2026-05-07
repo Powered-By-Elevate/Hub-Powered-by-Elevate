@@ -34,15 +34,18 @@ function Banner({ employee, announcement }: { employee: Employee; announcement?:
   const pct = employee.progress ?? 0;
 
   if (isActive) {
+    // Only show celebration banner if they actually completed onboarding through the system within last 30 minutes
     const completedAt = employee.onboarding_completed_at ? new Date(employee.onboarding_completed_at) : null;
-    const daysSince = completedAt ? Math.floor((Date.now() - completedAt.getTime()) / 86400000) : 999;
-    if (daysSince <= 7) {
-      return (
-        <div className="m-banner m-banner-active">
-          <h3>You're fully onboarded!</h3>
-          <p>Welcome to the team — your full employee hub is now unlocked.</p>
-        </div>
-      );
+    if (completedAt) {
+      const minutesSince = (Date.now() - completedAt.getTime()) / 60000;
+      if (minutesSince <= 30) {
+        return (
+          <div className="m-banner m-banner-active">
+            <h3>You're fully onboarded!</h3>
+            <p>Welcome to the team — your full employee hub is now unlocked.</p>
+          </div>
+        );
+      }
     }
     if (announcement) {
       const colors: Record<string, string> = {
@@ -59,7 +62,13 @@ function Banner({ employee, announcement }: { employee: Employee; announcement?:
         </div>
       );
     }
-    return null;
+    // Default banner for active employees with no celebration and no announcement
+    return (
+      <div className="m-banner" style={{ background: 'linear-gradient(135deg,#1B3F6E,#2563EB)' }}>
+        <h3>Welcome to Hub</h3>
+        <p>Your people development platform is now live. Explore your dashboard.</p>
+      </div>
+    );
   }
 
   return (
