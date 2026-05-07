@@ -145,58 +145,6 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
         </div>
 
         {calTab === 'team' && teamView === 'dept' && (
-          <div className="card">
-            <div className="card-header"><h3>{me.department ?? 'My Department'}</h3></div>
-            <div style={{ padding: '1rem 1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
-              {/* Self card */}
-              <div style={{ border: '2px solid #1B3F6E', borderRadius: 12, padding: '1.25rem', textAlign: 'center', background: '#F7F9FC' }}>
-                <div className="avatar av-navy av-52" style={{ margin: '0 auto 10px' }}>{ini(me.name)}</div>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{me.name}</div>
-                <div style={{ fontSize: 12, color: '#6B6860', marginTop: 3 }}>{me.role}</div>
-                <span className="badge b-navy" style={{ marginTop: 8, display: 'inline-flex' }}>You</span>
-                <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'center' }}>
-                  <a href={`mailto:${me.email}`} className="btn-ghost sm" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Mail size={12} /> Email
-                  </a>
-                  <a href={teamsLink(me.email)} target="_blank" rel="noopener noreferrer" className="btn-ghost sm" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <MessageSquare size={12} /> Teams
-                  </a>
-                </div>
-              </div>
-
-              {teammates.map(t => (
-                <div key={t.id} style={{ border: '1px solid #E5E3DC', borderRadius: 12, padding: '1.25rem', textAlign: 'center' }}>
-                  <div className="avatar av-navy av-52" style={{ margin: '0 auto 10px', opacity: 0.8 }}>{ini(t.name)}</div>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{t.name}</div>
-                  <div style={{ fontSize: 12, color: '#6B6860', marginTop: 3 }}>{t.role}</div>
-                  {t.manager === me.name && (
-                    <span className="badge b-muted" style={{ marginTop: 8, display: 'inline-flex' }}>Your Report</span>
-                  )}
-                  {me.manager === t.name && (
-                    <span className="badge b-success" style={{ marginTop: 8, display: 'inline-flex' }}>Your Manager</span>
-                  )}
-                  <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'center' }}>
-                    <a href={`mailto:${t.email}`} className="btn-ghost sm" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Mail size={12} /> Email
-                    </a>
-                    <a href={teamsLink(t.email)} target="_blank" rel="noopener noreferrer" className="btn-ghost sm" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <MessageSquare size={12} /> Teams
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {visibleTeammates.length === 0 && (
-              <div className="empty-state">
-                <div className="empty-icon">👥</div>
-                <p>No teammates yet in {me.department}</p>
-                <div className="esub">Your teammates will appear here once they join the platform.</div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {calTab === 'team' && teamView === 'company' && (
           <div>
             {/* Self card at top */}
             <div className="card mb2">
@@ -210,46 +158,52 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
                   <a href={`mailto:${me.email}`} className="btn-ghost sm" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
                     <Mail size={12} /> Email
                   </a>
-                  <a href={teamsLink(me.email)} target="_blank" rel="noopener noreferrer" className="btn-ghost sm" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <a href={teamsLink(me.email)} className="btn-ghost sm" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
                     <MessageSquare size={12} /> Teams
                   </a>
                 </div>
               </div>
             </div>
-            {/* Grouped by dept */}
-            {Object.keys(byDept).length === 0 ? (
+
+            {/* Department teammates */}
+            {visibleTeammates.length === 0 ? (
               <div className="card">
                 <div className="empty-state">
                   <div className="empty-icon">👥</div>
-                  <p>No other company members found</p>
-                  <div className="esub">Other employees at your company will appear here once they are assigned the same company entity.</div>
+                  <p>No teammates yet in {me.department}</p>
+                  <div className="esub">Your teammates will appear here once they join the platform.</div>
                 </div>
               </div>
             ) : (
-              Object.entries(byDept).sort(([a], [b]) => a.localeCompare(b)).map(([dept, members]) => (
-                <div key={dept} className="card mb2">
-                  <div className="card-header"><h3>{dept}</h3><span style={{ fontSize: 11, background: '#F2F1ED', color: '#9B9890', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>{members.length}</span></div>
-                  <div style={{ padding: '0 1.25rem' }}>
-                    {members.map(t => (
-                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #F2F1ED' }}>
-                        <div className="avatar av-navy av-36">{ini(t.name)}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 13 }}>{t.name}</div>
-                          <div style={{ fontSize: 11, color: '#9B9890' }}>{t.role}</div>
-                        </div>
-                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                          <a href={`mailto:${t.email}`} className="btn-ghost sm" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <Mail size={12} /> Email
-                          </a>
-                          <a href={teamsLink(t.email)} target="_blank" rel="noopener noreferrer" className="btn-ghost sm" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <MessageSquare size={12} /> Teams
-                          </a>
+              <div className="card">
+                <div className="card-header">
+                  <h3>{me.department ?? 'My Department'}</h3>
+                  <span style={{ fontSize: 11, background: '#F2F1ED', color: '#9B9890', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>{visibleTeammates.length}</span>
+                </div>
+                <div style={{ padding: '0 1.25rem' }}>
+                  {visibleTeammates.map(t => (
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #F2F1ED' }}>
+                      <div className="avatar av-navy av-36">{ini(t.name)}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 13 }}>{t.name}</div>
+                        <div style={{ fontSize: 11, color: '#9B9890' }}>
+                          {t.role}
+                          {t.manager === me.name && <span className="badge b-muted" style={{ marginLeft: 8, fontSize: 10 }}>Your Report</span>}
+                          {me.manager === t.name && <span className="badge b-success" style={{ marginLeft: 8, fontSize: 10 }}>Your Manager</span>}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                        <a href={`mailto:${t.email}`} className="btn-ghost sm" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Mail size={12} /> Email
+                        </a>
+                        <a href={teamsLink(t.email)} className="btn-ghost sm" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <MessageSquare size={12} /> Teams
+                        </a>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))
+              </div>
             )}
           </div>
         )}
