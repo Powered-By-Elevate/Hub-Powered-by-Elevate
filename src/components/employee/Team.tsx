@@ -44,14 +44,12 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
   const today = fmtDate(new Date());
   const hasCompany = !!me.company_id;
 
-  // Determine visible members based on toggle
   const companyMembers = hasCompany
     ? allEmployees.filter(e => e.id !== me.id && !e.archived && e.company_id === me.company_id)
     : teammates;
   const visibleTeammates = teamView === 'company' && hasCompany ? companyMembers : teammates;
   const allMembers = [me, ...visibleTeammates];
 
-  // Group by department for company view
   const byDept: Record<string, Employee[]> = {};
   if (teamView === 'company') {
     for (const emp of visibleTeammates) {
@@ -61,15 +59,10 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
     }
   }
 
-  // Date-based schedule items (have a schedule_date)
   const datedSchedules = schedules.filter(s => s.schedule_date);
-
-  // Week days array (Mon–Sun)
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-
   const weekLabel = `${fmtDisplay(weekDays[0])} — ${fmtDisplay(weekDays[6])}, ${weekDays[0].getFullYear()}`;
 
-  // Get schedules for a specific day and member
   function memberScheduleForDay(member: Employee, dateStr: string): Schedule[] {
     return datedSchedules.filter(s =>
       s.schedule_date === dateStr &&
@@ -77,15 +70,12 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
     );
   }
 
-  // Selected day events across all team members
   const selectedDayMemberSchedules = allMembers.map(m => ({
     member: m,
     events: memberScheduleForDay(m, selectedDay),
   }));
 
   function teamsLink(email: string) {
-    // msteams:// protocol opens the Teams desktop app directly when installed
-    // Falls back to browser if app is not installed
     return `msteams:/l/chat/0/0?users=${encodeURIComponent(email)}`;
   }
 
@@ -101,7 +91,6 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
         </div>
       </div>
       <div className="content">
-        {/* Sub tabs */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, background: '#fff', borderRadius: 14, border: '1px solid #E5E3DC', overflow: 'hidden' }}>
           <div style={{ display: 'flex' }}>
             <button
@@ -144,9 +133,8 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
           )}
         </div>
 
-        {calTab === 'team' && teamView === 'company' && (
+        {calTab === 'team' && teamView === 'dept' && (
           <div>
-            {/* Self card at top */}
             <div className="card mb2">
               <div className="card-body" style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div className="avatar av-navy av-48">{ini(me.name)}</div>
@@ -165,7 +153,68 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
               </div>
             </div>
 
-            {/* Grouped by dept */}
+            {teammates.length === 0 ? (
+              <div className="card">
+                <div className="empty-state">
+                  <div className="empty-icon">👥</div>
+                  <p>No teammates yet in {me.department}</p>
+                  <div className="esub">Your teammates will appear here once they join the platform.</div>
+                </div>
+              </div>
+            ) : (
+              <div className="card">
+                <div className="card-header">
+                  <h3>{me.department ?? 'My Department'}</h3>
+                  <span style={{ fontSize: 11, background: '#F2F1ED', color: '#9B9890', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>{teammates.length}</span>
+                </div>
+                <div style={{ padding: '0 1.25rem' }}>
+                  {teammates.map(t => (
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #F2F1ED' }}>
+                      <div className="avatar av-navy av-36">{ini(t.name)}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 13 }}>{t.name}</div>
+                        <div style={{ fontSize: 11, color: '#9B9890' }}>
+                          {t.role}
+                          {t.manager === me.name && <span className="badge b-muted" style={{ marginLeft: 8, fontSize: 10 }}>Your Report</span>}
+                          {me.manager === t.name && <span className="badge b-success" style={{ marginLeft: 8, fontSize: 10 }}>Your Manager</span>}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                        <a href={`mailto:${t.email}`} className="btn-ghost sm" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Mail size={12} /> Email
+                        </a>
+                        <a href={teamsLink(t.email)} className="btn-ghost sm" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <MessageSquare size={12} /> Teams
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {calTab === 'team' && teamView === 'company' && (
+          <div>
+            <div className="card mb2">
+              <div className="card-body" style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div className="avatar av-navy av-48">{ini(me.name)}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{me.name} <span className="badge b-navy" style={{ marginLeft: 6 }}>You</span></div>
+                  <div style={{ fontSize: 12, color: '#6B6860' }}>{me.role} · {me.department}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <a href={`mailto:${me.email}`} className="btn-ghost sm" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Mail size={12} /> Email
+                  </a>
+                  <a href={teamsLink(me.email)} className="btn-ghost sm" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <MessageSquare size={12} /> Teams
+                  </a>
+                </div>
+              </div>
+            </div>
+
             {Object.keys(byDept).length === 0 ? (
               <div className="card">
                 <div className="empty-state">
@@ -221,7 +270,6 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
               </div>
             </div>
 
-            {/* Day strip */}
             <div style={{ display: 'flex', borderBottom: '1px solid #E5E3DC', overflowX: 'auto' }}>
               {weekDays.map((day, i) => {
                 const ds = fmtDate(day);
@@ -252,7 +300,6 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
               })}
             </div>
 
-            {/* Selected day events by member */}
             <div style={{ padding: '0 1.25rem' }}>
               {selectedDayMemberSchedules.map(({ member, events }) => (
                 <div key={member.id} style={{ paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #F2F1ED' }}>
