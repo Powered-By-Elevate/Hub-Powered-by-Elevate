@@ -33,8 +33,8 @@ export function EmployeeList({ employees, companies, departments, onViewEmployee
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const activeEmps = employees.filter(e => !e.archived);
-  const archivedEmps = employees.filter(e => e.archived);
+  const activeEmps = employees.filter(e => !e.archived && e.lifecycle_status !== 'applicant');
+  const archivedEmps = employees.filter(e => e.archived && e.lifecycle_status !== 'applicant');
   const pool = listTab === 'archived' ? archivedEmps : activeEmps;
   const depts = ['all', ...departments];
   // Only show companies that have employees in the current pool
@@ -131,7 +131,6 @@ export function EmployeeList({ employees, companies, departments, onViewEmployee
                 <option value="all">All Statuses</option>
                 <option value="active">Active</option>
                 <option value="onboarding">Onboarding</option>
-                <option value="applicant">Applicant</option>
               </select>
             )}
             <select
