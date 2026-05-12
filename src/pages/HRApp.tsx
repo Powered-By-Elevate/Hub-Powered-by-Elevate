@@ -167,12 +167,20 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
   }, []);
 
   const loadQuarterlyCheckins = useCallback(async () => {
-    const { data } = await supabase.from('quarterly_checkins').select('*').order('scheduled_at', { ascending: true });
+    const { data } = await supabase
+      .from('quarterly_checkins')
+      .select('*, employees!inner(is_test_account)')
+      .eq('employees.is_test_account', false)
+      .order('scheduled_at', { ascending: true });
     setQuarterlyCheckins(data ?? []);
   }, []);
 
   const loadAnnualReviews = useCallback(async () => {
-    const { data } = await supabase.from('annual_reviews').select('*').order('scheduled_at', { ascending: true });
+    const { data } = await supabase
+      .from('annual_reviews')
+      .select('*, employees!inner(is_test_account)')
+      .eq('employees.is_test_account', false)
+      .order('scheduled_at', { ascending: true });
     setAnnualReviews(data ?? []);
   }, []);
   const loadActivity = useCallback(async () => {
