@@ -46,6 +46,7 @@ import { ConvertApplicantModal } from '../components/hr/modals/ConvertApplicant'
 import { CareerDevelopment } from '../components/hr/CareerDevelopment';
 import { ToastContainer, ToastItem } from '../components/shared/Toast';
 import { GlobalSearch } from '../components/shared/GlobalSearch';
+import { NotificationBell } from '../components/shared/NotificationBell';
 
 export type HRTab = 'dashboard' | 'applicants' | 'employees' | 'templates' | 'checkins' | 'career' | 'detail' | 'settings';
 
@@ -792,6 +793,23 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
       })()}
     </div>
     <ToastContainer toasts={toasts} onRemove={removeToast} />
+    {profile?.id && (
+      <div style={{ position: 'fixed', top: 16, right: 24, zIndex: 50 }}>
+        <NotificationBell
+          userId={profile.id}
+          onNavigate={(linkType, linkId) => {
+            if (linkType === 'task') {
+              // Tasks live on employee detail; find the task's employee
+              setTab('employees');
+            } else if (linkType === 'checkin' || linkType === 'review') {
+              setTab('checkins');
+            } else if (linkType === 'document') {
+              setTab('employees');
+            }
+          }}
+        />
+      </div>
+    )}
     <GlobalSearch
       isOpen={searchOpen}
       onClose={() => setSearchOpen(false)}
