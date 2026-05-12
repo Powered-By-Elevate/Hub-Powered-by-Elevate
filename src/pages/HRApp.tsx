@@ -188,6 +188,10 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
     const { data } = await supabase.from('lifecycle_checkins').select('*').order('scheduled_at', { ascending: true });
     setLifecycleCheckins(data ?? []);
   }, []);
+  const loadSchedules = useCallback(async () => {
+    const { data } = await supabase.from('schedules').select('*').order('time_label');
+    setSchedules(data ?? []);
+  }, []);
   const loadActivity = useCallback(async () => {
     const { data } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(100);
     setActivity(data ?? []);
@@ -212,7 +216,7 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
     loadQuarterlyCheckins();
     loadAnnualReviews();
     loadLifecycleCheckins();
-    supabase.from('schedules').select('*').is('employee_id', null).order('time_label').then(({ data }) => setSchedules(data ?? []));
+    supabase.from('schedules').select('*').order('time_label').then(({ data }) => setSchedules(data ?? []));
   }, [loadEmployees, loadTemplates, loadDepartments, loadCompanies, loadPathways, loadActivity, loadQuarterlyCheckins, loadAnnualReviews, loadLifecycleCheckins]);
 
   // Real-time subscriptions
@@ -625,6 +629,7 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
               loadEmpDevPlans(empId);
               loadEmpCertifications(empId);
               loadEmpCheckins(empId);
+              loadSchedules();
             }}
           />
         )}
