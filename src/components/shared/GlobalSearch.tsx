@@ -48,8 +48,10 @@ export function GlobalSearch({ isOpen, onClose, onSelectEmployee, onSelectApplic
 
       // Search employees + applicants (one query, split into buckets)
       const empPromise = supabase
-        .from('employees')
-        .select('*')
+      .from('employees')
+      .select('id, name, email, role, department')
+      .neq('is_test_account', true)
+      .ilike('name', `%${query}%`)
         .or(`name.ilike.%${q}%,email.ilike.%${q}%,role.ilike.%${q}%,department.ilike.%${q}%,position_applied_for.ilike.%${q}%`)
         .eq('archived', false)
         .limit(15);

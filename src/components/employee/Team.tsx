@@ -45,7 +45,7 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
   const hasCompany = !!me.company_id;
 
   const companyMembers = hasCompany
-    ? allEmployees.filter(e => e.id !== me.id && !e.archived && e.company_id === me.company_id)
+    ? allEmployees.filter(e => e.id !== me.id && !e.archived && e.company_id === me.company_id && !e.is_test_account)
     : teammates;
   const visibleTeammates = teamView === 'company' && hasCompany ? companyMembers : teammates;
   const allMembers = [me, ...visibleTeammates];

@@ -33,7 +33,8 @@ export function HRTemplates({ templates, onOpenModal }: Props) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 11, color: '#9B9890' }}>Used for {t.used_count} employee{t.used_count !== 1 ? 's' : ''}</span>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button className="btn-ghost sm" onClick={() => onOpenModal('edit-template', t.id)}>Edit</button>
+                  <button className="btn-ghost sm" onClick={() => onOpenModal('edit-template', t.id)}>Edit</button>
+                    <button className="btn-ghost sm" onClick={() => onOpenModal('clone-template', t.id)}>Clone</button>
                     <button className="btn-primary sm" onClick={() => onOpenModal('apply-template', t.id)}>Apply to Employee</button>
                   </div>
                 </div>

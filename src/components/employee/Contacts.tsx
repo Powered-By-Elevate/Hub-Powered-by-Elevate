@@ -130,7 +130,7 @@ export function EmpContacts({ contacts, employee: me, allEmployees }: Props) {
   const activeEmps = allEmployees.filter(e => !e.archived);
 
   // My Team — same dept, not me
-  const myTeam = activeEmps.filter(e => e.id !== me.id && e.department === me.department);
+  const myTeam = activeEmps.filter(e => e.id !== me.id && e.department === me.department && !e.is_test_account);
 
   // My Company — all employees not in my dept
   const companyByDept: Record<string, Employee[]> = {};

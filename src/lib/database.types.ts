@@ -240,6 +240,7 @@ export interface Schedule {
   color: string | null;
   schedule_date: string | null;
   department: string | null;
+  shadow_employee_id: string | null;
   created_at: string;
 }
 
@@ -269,6 +270,30 @@ export interface QuarterlyCheckin {
   created_at: string;
 }
 
+export interface ScheduleTemplate {
+  id: string;
+  company_id: string;
+  name: string;
+  description: string | null;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ScheduleTemplateEvent {
+  id: string;
+  template_id: string;
+  day_offset: number;
+  time_label: string | null;
+  title: string;
+  location: string | null;
+  shadow_employee_id: string | null;
+  color: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+export type ScheduleTemplateWithEvents = ScheduleTemplate & { events: ScheduleTemplateEvent[] };
 export interface LifecycleCheckin {
   id: string;
   employee_id: string;

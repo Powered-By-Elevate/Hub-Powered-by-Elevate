@@ -186,7 +186,7 @@ export function EmpSchedule({ employee, schedules, checkins, reviews }: Props) {
         {/* Day 1 schedule — only for onboarding employees */}
         {employee.lifecycle_status === 'onboarding' && (
         <div className="card mb2">
-          <div className="card-header"><h3>Day 1 — {employee.start_date}</h3></div>
+          <div className="card-header"><h3>Today's Schedule</h3></div>
           <div style={{ padding: '0 1.25rem' }}>
             {day1Items.length === 0 ? (
               <div className="empty-state" style={{ padding: '1rem 0' }}>

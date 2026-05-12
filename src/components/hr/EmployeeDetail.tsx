@@ -372,7 +372,7 @@ export function EmployeeDetail({
             {detailTab === 'schedule' && (
               <div className="card">
                 <div className="card-header">
-                <h3>{e.lifecycle_status === 'onboarding' ? `Day 1 Schedule — ${e.start_date ?? ''}` : 'Schedule'}</h3>
+                <h3>Schedule</h3>
                   <button className="btn-primary sm" onClick={openAddSchedule}>
                     <Plus size={13} style={{ marginRight: 4 }} />Add Event
                   </button>

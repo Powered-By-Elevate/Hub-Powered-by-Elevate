@@ -4,8 +4,9 @@ import { Employee, HRAnnouncement, Department, JobTitle, Company, CompanyType, C
 import { useAuth } from '../../contexts/AuthContext';
 import { Modal } from '../shared/Modal';
 import { Pencil, Trash2, Plus, Check, X } from 'lucide-react';
+import { ScheduleTemplatesSection } from './ScheduleTemplatesSection';
 
-type SettingsSection = 'schedule' | 'banners' | 'organization' | 'contacts';
+type SettingsSection = 'schedule' | 'banners' | 'organization' | 'contacts' | 'schedule-templates';
 
 interface Props {
   employees: Employee[];
@@ -222,6 +223,7 @@ const [editContact, setEditContact] = useState<Contact | null>(null);
 
   const sections: { id: SettingsSection; label: string }[] = [
     { id: 'schedule', label: 'Check-in & Review Schedule' },
+    { id: 'schedule-templates', label: 'Schedule Templates' },
     { id: 'banners', label: 'Hub Banners' },
     { id: 'organization', label: 'Organization Setup' },
     { id: 'contacts', label: 'External Contacts' },
@@ -303,6 +305,10 @@ const [editContact, setEditContact] = useState<Contact | null>(null);
                   </div>
                 </div>
               </div>
+            )}
+
+{section === 'schedule-templates' && (
+              <ScheduleTemplatesSection employees={employees} companies={companies} />
             )}
 
             {section === 'banners' && (

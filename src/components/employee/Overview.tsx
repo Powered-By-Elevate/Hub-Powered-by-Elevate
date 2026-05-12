@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Employee, OnboardingTask, Schedule, HRAnnouncement } from '../../lib/database.types';
 import { CheckItem } from '../shared/CheckItem';
 import type { EmpTab } from '../../pages/EmployeeApp';
+import { NotificationBell } from '../shared/NotificationBell';
 
 interface Props {
   employee: Employee;
@@ -15,6 +16,7 @@ interface Props {
   certCount?: number;
   checkinCount?: number;
   reviewCount?: number;
+  userId?: string;
 }
 
 function useLiveClock() {
@@ -68,7 +70,7 @@ function pickActiveBanner(announcements: HRAnnouncement[], employee: Employee): 
   return active.sort((a, b) => (priority[a.type] ?? 99) - (priority[b.type] ?? 99))[0];
 }
 
-export function EmpOverview({ employee, tasks, schedules, announcements, pct, onTab, onToggle, devGoalsCount = 0, certCount = 0, checkinCount = 0, reviewCount = 0 }: Props) {
+export function EmpOverview({ employee, tasks, schedules, announcements, pct, onTab, onToggle, devGoalsCount = 0, certCount = 0, checkinCount = 0, reviewCount = 0, userId }: Props) {
   const now = useLiveClock();
   const isActive = employee.lifecycle_status === 'active';
   const activeTasks = tasks.filter(t => !t.archived && t.status !== 'complete');
@@ -94,7 +96,15 @@ export function EmpOverview({ employee, tasks, schedules, announcements, pct, on
           <h1>Welcome{isActive ? ' back' : ''}, {employee.name.split(' ')[0]}!</h1>
           <p>{isActive ? `${employee.role} \u00b7 ${employee.department}` : `Your personal onboarding hub \u00b7 Started ${employee.start_date}`}</p>
         </div>
-        <div className="topbar-clock">{formatClock(now)}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {userId && <NotificationBell userId={userId} onNavigate={(linkType) => {
+            if (linkType === 'task') onTab('tasks');
+            else if (linkType === 'checkin') onTab('my-checkins');
+            else if (linkType === 'review') onTab('my-reviews');
+            else if (linkType === 'document') onTab('documents');
+          }} />}
+          <div className="topbar-clock">{formatClock(now)}</div>
+        </div>
       </div>
       <div className="content">
         {isActive && showOBBanner && (
