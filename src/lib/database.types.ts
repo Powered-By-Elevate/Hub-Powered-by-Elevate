@@ -97,6 +97,15 @@ export interface Employee {
   current_status: string | null;
   employment_type: string | null;
   pillar_focus: string | null;
+  applicant_phase: string | null;
+  applicant_stage: string | null;
+  hiring_manager_id: string | null;
+  position_applied_for: string | null;
+  resume_url: string | null;
+  applicant_source: string | null;
+  access_role: string | null;
+  manager_id: string | null;
+  pathway: string | null;
   created_at: string;
 }
 
