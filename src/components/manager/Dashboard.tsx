@@ -10,6 +10,12 @@ interface Props {
 }
 
 export function ManagerDashboard({ team, myEmployee, onViewEmployee, onOpenModal }: Props) {
+  const myApplicants = myEmployee
+    ? team.filter(e => e.lifecycle_status === 'applicant' && e.hiring_manager_id === myEmployee.id)
+    : [];
+  const openApplicants = myApplicants.filter(a =>
+    a.applicant_phase !== 'Closed' && a.applicant_stage !== 'Closed (did not move forward)'
+  );
   const onboarding = team.filter(e => e.lifecycle_status === 'onboarding');
   const active = team.filter(e => e.lifecycle_status === 'active');
   const overdue = team.filter(e => e.status === 'overdue');
@@ -26,11 +32,16 @@ export function ManagerDashboard({ team, myEmployee, onViewEmployee, onOpenModal
         </div>
       </div>
       <div className="content">
-        <div className="stats-grid">
+      <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-label">My Team</div>
-            <div className="stat-value">{team.length}</div>
+            <div className="stat-value">{team.filter(e => e.lifecycle_status !== 'applicant').length}</div>
             <div className="stat-sub">Direct reports</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Open Applicants</div>
+            <div className="stat-value c-navy">{openApplicants.length}</div>
+            <div className="stat-sub">{myApplicants.length - openApplicants.length} closed</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">Onboarding</div>
@@ -103,6 +114,36 @@ export function ManagerDashboard({ team, myEmployee, onViewEmployee, onOpenModal
             </table>
           )}
         </div>
+        {myApplicants.length > 0 && (
+          <div className="card" style={{ marginTop: 16 }}>
+            <div className="card-header">
+              <h3>My Open Applicants</h3>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Applicant</th><th>Position</th><th>Phase</th><th>Stage</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {myApplicants.map(a => (
+                  <tr key={a.id} className="tr-click" onClick={() => onViewEmployee(a.id)}>
+                    <td>
+                      <div className="emp-name">{a.name}</div>
+                      <div className="emp-email">{a.email}</div>
+                    </td>
+                    <td style={{ fontSize: 13 }}>{a.position_applied_for ?? '—'}</td>
+                    <td style={{ fontSize: 12, color: '#6B6860' }}>{a.applicant_phase ?? '—'}</td>
+                    <td style={{ fontSize: 12, color: '#1A1916' }}>{a.applicant_stage ?? '—'}</td>
+                    <td onClick={ev => ev.stopPropagation()}>
+                      <button className="btn-ghost sm" onClick={() => onViewEmployee(a.id)}>View</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </>
   );

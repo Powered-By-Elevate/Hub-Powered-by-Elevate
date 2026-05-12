@@ -2,6 +2,7 @@ import { Employee, ActivityLog, QuarterlyCheckin, AnnualReview } from '../../lib
 import { ini, pfColor } from '../shared/utils';
 import { StatusBadge } from '../shared/StatusBadge';
 import type { HRTab } from '../../pages/HRApp';
+import { UpcomingDates } from './UpcomingDates';
 
 interface Props {
   employees: Employee[];
@@ -117,10 +118,11 @@ export function HRDashboard({ employees, activity, checkins, reviews, onViewEmpl
                 )}
               </div>
             </div>
+            <UpcomingDates employees={employees} />
             <div className="card">
               <div className="card-header"><h3>Recent Activity</h3></div>
               <div className="card-body" style={{ padding: '.5rem 1.25rem' }}>
-                {activity.slice(0, 4).map(a => (
+              {activity.slice(0, 15).map(a => (
                   <div key={a.id} className="act-row">
                     <div className="act-dot" />
                     <div>

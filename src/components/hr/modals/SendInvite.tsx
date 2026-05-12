@@ -63,7 +63,7 @@ export function SendInviteModal({ employee, onClose, isNewEmployee }: Props) {
   // If isNewEmployee prop is explicitly passed, use it. Otherwise infer from phase.
   const isOnboarding = isNewEmployee !== undefined
     ? isNewEmployee
-    : employee.phase === 'onboarding' || employee.lifecycle_status === 'onboarding';
+    : employee.lifecycle_status === 'onboarding';
 
   // Load the company name based on the employee's company_id
   useEffect(() => {

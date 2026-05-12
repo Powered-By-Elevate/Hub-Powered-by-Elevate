@@ -143,15 +143,6 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
       .single();
     console.log('[EditEmployee] first update result:', { data, saveErr });
 
-    // Fallback: if schema cache doesn't recognize newer columns, retry with core fields only
-    if (saveErr?.message?.includes('schema cache')) {
-      console.log('[EditEmployee] schema cache fallback triggered, retrying with coreUpdates');
-      const retry = await supabase.from('employees').update(coreUpdates).eq('id', e.id).select().single();
-      data = retry.data;
-      saveErr = retry.error;
-      console.log('[EditEmployee] fallback result:', { data: retry.data, error: retry.error });
-    }
-
     // Always persist access_role on the employees table
     if (!saveErr && form.auth_role) {
       const roleMap: Record<string, string> = { 'HR Admin': 'hr', 'Manager': 'manager', 'Employee': 'employee' };

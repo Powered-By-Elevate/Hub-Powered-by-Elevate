@@ -63,8 +63,8 @@ interface EditProps {
 
 export function EditTemplateModal({ template, departments, onClose, onUpdated }: EditProps) {
   const [name, setName] = useState(template.name);
-  const [dept, setDept] = useState(template.department);
-  const [desc, setDesc] = useState(template.description);
+  const [dept, setDept] = useState(template.department ?? 'All Departments');
+  const [desc, setDesc] = useState(template.description ?? '');
   const [tasks, setTasks] = useState<NewTask[]>(template.tasks.map(t => ({ tempId: t.id, title: t.title, category: t.category, required: t.required, days_from_start: t.days_from_start })));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -170,5 +170,164 @@ function TaskEditorBody({ name, dept, desc, tasks, departments, onName, onDept, 
         ))}
       </div>
     </>
+  );
+}
+// ─── Clone Template ──────────────────────────────────────────────────────────
+
+interface CloneProps {
+  template: TemplateWithTasks;
+  onClose: () => void;
+  onCloned: (newTemplateId: string) => void;
+}
+
+export function CloneTemplateModal({ template, onClose, onCloned }: CloneProps) {
+  const [name, setName] = useState(`${template.name} (Copy)`);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleClone() {
+    if (!name.trim()) { setError('Template name is required.'); return; }
+    setSaving(true);
+
+    // Create new template
+    const { data: tpl, error: e1 } = await supabase
+      .from('onboarding_templates')
+      .insert({ name: name.trim(), department: template.department, description: template.description })
+      .select()
+      .single();
+    if (e1 || !tpl) { setError(e1?.message ?? 'Failed to clone template'); setSaving(false); return; }
+
+    // Copy all tasks to the new template
+    if (template.tasks.length) {
+      const rows = template.tasks.map(t => ({
+        template_id: tpl.id,
+        title: t.title,
+        category: t.category,
+        required: t.required,
+        days_from_start: t.days_from_start,
+      }));
+      const { error: e2 } = await supabase.from('template_tasks').insert(rows);
+      if (e2) { setError(e2.message); setSaving(false); return; }
+    }
+
+    setSaving(false);
+    onCloned(tpl.id);
+    onClose();
+  }
+
+  return (
+    <Modal title="Clone Template" onClose={onClose} footer={
+      <>
+        <button className="btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn-primary" onClick={handleClone} disabled={saving}>
+          {saving ? 'Cloning\u2026' : 'Clone Template'}
+        </button>
+      </>
+    }>
+      {error && <div className="error-msg">{error}</div>}
+      <div style={{ marginBottom: 16, padding: '10px 12px', background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 8, fontSize: 13, color: '#075985' }}>
+        Cloning <strong>{template.name}</strong> with {template.tasks.length} task{template.tasks.length !== 1 ? 's' : ''}. You can edit the copy after creation.
+      </div>
+      <div className="field">
+        <label>New template name</label>
+        <input type="text" value={name} onChange={e => setName(e.target.value)} autoFocus />
+      </div>
+    </Modal>
+  );
+}
+
+// ─── Save Employee as Template ───────────────────────────────────────────────
+
+interface SaveAsTemplateProps {
+  employeeName: string;
+  employeeId: string;
+  department: string | null;
+  onClose: () => void;
+  onSaved: (newTemplateId: string) => void;
+}
+
+export function SaveAsTemplateModal({ employeeName, employeeId, department, onClose, onSaved }: SaveAsTemplateProps) {
+  const [name, setName] = useState(`${employeeName} Onboarding Template`);
+  const [desc, setDesc] = useState(`Saved from ${employeeName}'s onboarding tasks`);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [includeCompleted, setIncludeCompleted] = useState(true);
+
+  async function handleSave() {
+    if (!name.trim()) { setError('Template name is required.'); return; }
+    setSaving(true);
+
+    // Get the employee's onboarding tasks
+    let query = supabase
+      .from('onboarding_tasks')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .eq('task_phase', 'onboarding');
+    if (!includeCompleted) query = query.neq('status', 'complete');
+
+    const { data: tasks, error: e0 } = await query;
+    if (e0) { setError(e0.message); setSaving(false); return; }
+    if (!tasks || tasks.length === 0) {
+      setError(`${employeeName} has no onboarding tasks to save.`);
+      setSaving(false);
+      return;
+    }
+
+    // Create new template
+    const { data: tpl, error: e1 } = await supabase
+      .from('onboarding_templates')
+      .insert({
+        name: name.trim(),
+        department: department ?? 'All Departments',
+        description: desc.trim(),
+      })
+      .select()
+      .single();
+    if (e1 || !tpl) { setError(e1?.message ?? 'Failed to create template'); setSaving(false); return; }
+
+    // Convert tasks to template_tasks
+    // We compute days_from_start from due_date - start_date if both exist, else default to 7
+    const rows = tasks.map(t => ({
+      template_id: tpl.id,
+      title: t.title,
+      category: t.category ?? 'document',
+      required: t.required ?? false,
+      days_from_start: 7, // Default; HR can edit
+    }));
+
+    const { error: e2 } = await supabase.from('template_tasks').insert(rows);
+    if (e2) { setError(e2.message); setSaving(false); return; }
+
+    setSaving(false);
+    onSaved(tpl.id);
+    onClose();
+  }
+
+  return (
+    <Modal title="Save as Template" onClose={onClose} footer={
+      <>
+        <button className="btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn-primary" onClick={handleSave} disabled={saving}>
+          {saving ? 'Saving\u2026' : 'Create Template'}
+        </button>
+      </>
+    }>
+      {error && <div className="error-msg">{error}</div>}
+      <div style={{ marginBottom: 16, padding: '10px 12px', background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 8, fontSize: 13, color: '#075985' }}>
+        Saving <strong>{employeeName}'s</strong> onboarding tasks as a reusable template. All task days will default to "Day 7 from start" — you can edit them after creation.
+      </div>
+      <div className="form-grid">
+        <div className="field full"><label>Template name</label>
+          <input type="text" value={name} onChange={e => setName(e.target.value)} autoFocus />
+        </div>
+        <div className="field full"><label>Description</label>
+          <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={2} />
+        </div>
+        <div className="field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <input type="checkbox" id="incl-completed" checked={includeCompleted} onChange={e => setIncludeCompleted(e.target.checked)} />
+          <label htmlFor="incl-completed" style={{ margin: 0, fontSize: 13, fontWeight: 400 }}>Include already-completed tasks</label>
+        </div>
+      </div>
+    </Modal>
   );
 }

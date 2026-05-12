@@ -35,7 +35,7 @@ import { AddTaskModal } from '../components/hr/modals/AddTask';
 import { AddDepartmentModal } from '../components/hr/modals/AddDepartment';
 import { SendInviteModal } from '../components/hr/modals/SendInvite';
 import { ApplyTemplateModal } from '../components/hr/modals/ApplyTemplate';
-import { CreateTemplateModal, EditTemplateModal } from '../components/hr/modals/TemplateEditor';
+import { CreateTemplateModal, EditTemplateModal, CloneTemplateModal, SaveAsTemplateModal } from '../components/hr/modals/TemplateEditor';
 import { AddCheckinModal } from '../components/hr/modals/AddCheckin';
 import { AddReviewModal } from '../components/hr/modals/AddReview';
 import { AddNoteModal } from '../components/hr/modals/AddNote';
@@ -667,6 +667,35 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
       {modal?.type === 'edit-template' && modal.eid && (() => {
         const tpl = templates.find(t => t.id === modal.eid);
         return tpl ? <EditTemplateModal template={tpl} departments={departments} onClose={() => setModal(null)} onUpdated={loadTemplates} /> : null;
+      })()}
+      {modal?.type === 'clone-template' && modal.eid && (() => {
+        const tpl = templates.find(t => t.id === modal.eid);
+        return tpl ? (
+          <CloneTemplateModal
+            template={tpl}
+            onClose={() => setModal(null)}
+            onCloned={async (newId) => {
+              await loadTemplates();
+              setModal({ type: 'edit-template', eid: newId });
+              showToast(`Cloned template "${tpl.name}"`);
+            }}
+          />
+        ) : null;
+      })()}
+      {modal?.type === 'save-as-template' && modal.eid && (() => {
+        const emp = employees.find(e => e.id === modal.eid);
+        return emp ? (
+          <SaveAsTemplateModal
+            employeeName={emp.name}
+            employeeId={emp.id}
+            department={emp.department}
+            onClose={() => setModal(null)}
+            onSaved={async () => {
+              await loadTemplates();
+              showToast(`Saved ${emp.name}'s tasks as template`);
+            }}
+          />
+        ) : null;
       })()}
       {modal?.type === 'add-checkin' && (
         <AddCheckinModal

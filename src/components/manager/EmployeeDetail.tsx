@@ -131,7 +131,7 @@ export function ManagerEmployeeDetail({
                   </div>
                 )}
 
-                {e.phase === 'onboarding' && (
+{e.lifecycle_status === 'onboarding' && (
                   <div style={{ margin: '14px 0' }}>
                     <div className="prog-bar" style={{ height: 8 }}>
                       <div className={`prog-fill ${pfColor(e.progress, e.status)}`} style={{ width: e.progress + '%' }} />
@@ -139,7 +139,7 @@ export function ManagerEmployeeDetail({
                     <div style={{ fontSize: 12, color: '#6B6860', marginTop: 5 }}>{e.progress}% — {done}/{tasks.length} tasks</div>
                   </div>
                 )}
-                {e.phase === 'active'
+                {e.lifecycle_status === 'active'
                   ? <span className="badge b-success" style={{ marginTop: 12 }}>Active Employee</span>
                   : <StatusBadge status={e.status} />
                 }
