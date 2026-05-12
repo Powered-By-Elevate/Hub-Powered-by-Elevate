@@ -549,6 +549,7 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
             activity={activity}
             checkins={quarterlyCheckins}
             reviews={annualReviews}
+            lifecycleCheckins={lifecycleCheckins}
             userId={profile?.id}
             onViewEmployee={viewEmployee}
             onOpenModal={(type, eid) => setModal({ type, eid })}

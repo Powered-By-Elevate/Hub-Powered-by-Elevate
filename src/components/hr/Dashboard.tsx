@@ -1,4 +1,4 @@
-import { Employee, ActivityLog, QuarterlyCheckin, AnnualReview } from '../../lib/database.types';
+import { Employee, ActivityLog, QuarterlyCheckin, AnnualReview, LifecycleCheckin } from '../../lib/database.types';
 import { ini, pfColor } from '../shared/utils';
 import { StatusBadge } from '../shared/StatusBadge';
 import type { HRTab } from '../../pages/HRApp';
@@ -10,13 +10,14 @@ interface Props {
   activity: ActivityLog[];
   checkins: QuarterlyCheckin[];
   reviews: AnnualReview[];
+  lifecycleCheckins: LifecycleCheckin[];
   userId?: string;
   onViewEmployee: (id: string) => void;
   onOpenModal: (type: string, eid?: string) => void;
   onTab: (tab: HRTab) => void;
 }
 
-export function HRDashboard({ employees, activity, checkins, reviews, userId, onViewEmployee, onOpenModal, onTab }: Props) {
+export function HRDashboard({ employees, activity, checkins, reviews, lifecycleCheckins, userId, onViewEmployee, onOpenModal, onTab }: Props) {
   const active = employees.filter(e => !e.archived);
   const onboarding = active.filter(e => e.lifecycle_status === 'onboarding');
   const activePhase = active.filter(e => e.lifecycle_status === 'active');
@@ -24,6 +25,8 @@ export function HRDashboard({ employees, activity, checkins, reviews, userId, on
   onboarding.forEach(e => { counts[e.status] = (counts[e.status] ?? 0) + 1; });
   const overdueCheckins = checkins.filter(c => c.status === 'overdue').length;
   const pendingReviews = reviews.filter(r => r.status === 'pending' || r.status === 'in-progress').length;
+  const overdueLifecycle = lifecycleCheckins.filter(lc => lc.status === 'overdue').length;
+  const pendingLifecycle = lifecycleCheckins.filter(lc => lc.status === 'pending').length;
 
   return (
     <>
@@ -60,8 +63,8 @@ export function HRDashboard({ employees, activity, checkins, reviews, userId, on
           </div>
           <div className="stat-card">
             <div className="stat-label">Check-ins Due</div>
-            <div className="stat-value c-red">{overdueCheckins + pendingReviews}</div>
-            <div className="stat-sub">{overdueCheckins} overdue · {pendingReviews} pending</div>
+            <div className="stat-value c-red">{overdueCheckins + pendingReviews + overdueLifecycle + pendingLifecycle}</div>
+            <div className="stat-sub">{overdueCheckins + overdueLifecycle} overdue · {pendingReviews + pendingLifecycle} pending</div>
           </div>
         </div>
         <div className="two-col">
