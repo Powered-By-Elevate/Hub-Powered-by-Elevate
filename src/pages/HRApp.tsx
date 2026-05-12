@@ -157,7 +157,7 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
     setAnnualReviews(data ?? []);
   }, []);
   const loadActivity = useCallback(async () => {
-    const { data } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(20);
+    const { data } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(100);
     setActivity(data ?? []);
   }, []);
 
@@ -239,7 +239,7 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
     const actChannel = supabase
       .channel('hr-activity-rt')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity_log' }, payload => {
-        setActivity(prev => [payload.new as ActivityLog, ...prev].slice(0, 20));
+        setActivity(prev => [payload.new as ActivityLog, ...prev].slice(0, 100));
       })
       .subscribe();
 
@@ -389,7 +389,7 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
         >
           {tab === 'dashboard' && (
             <MobileDashboard
-            employee={{ id: '', name: profile?.email?.split('@')[0] ?? 'HR', email: profile?.email ?? '', phone: null, role: 'HR Administrator', department: null, team_id: null, manager: null, manager_user_id: null, start_date: null, status: 'complete', phase: 'active', progress: 100, archived: false, user_id: null, avatar_url: null, bio: null, onboarding_completed_at: null, lifecycle_status: 'active', birthday_month: null, birthday_day: null, company_id: null, created_at: '', current_level: null, next_level: null, pathway_id: null, readiness_level: null, current_status: null, employment_type: null, pillar_focus: null, applicant_phase: null, applicant_stage: null, hiring_manager_id: null, position_applied_for: null, resume_url: null, applicant_source: null }}tasks={[]}
+            employee={{ id: '', name: profile?.email?.split('@')[0] ?? 'HR', email: profile?.email ?? '', phone: null, role: 'HR Administrator', department: null, team_id: null, manager: null, manager_user_id: null, start_date: null, status: 'complete', phase: 'active', progress: 100, archived: false, user_id: null, avatar_url: null, bio: null, onboarding_completed_at: null, lifecycle_status: 'active', birthday_month: null, birthday_day: null, company_id: null, created_at: '', current_level: null, next_level: null, pathway_id: null, readiness_level: null, current_status: null, employment_type: null, pillar_focus: null, applicant_phase: null, applicant_stage: null, hiring_manager_id: null, position_applied_for: null, resume_url: null, applicant_source: null, access_role: null, manager_id: null, pathway: null }}tasks={[]}
               schedules={[]}
               announcement={null}
               onToggleTask={() => {}}
