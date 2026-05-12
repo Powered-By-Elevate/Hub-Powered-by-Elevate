@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Employee, OnboardingTask, Document, Schedule, EmployeeNote, Company, Pathway, Review, DevelopmentPlan, Certification, Checkin } from '../../lib/database.types';
 import { ini, pfColor } from '../shared/utils';
 import { StatusBadge } from '../shared/StatusBadge';
@@ -7,6 +7,8 @@ import { TaskCard } from '../shared/TaskCard';
 import { supabase } from '../../lib/supabase';
 import { Upload, FileText, Download, Eye, Trash2, Pencil, X, Check, Plus } from 'lucide-react';
 import { Modal } from '../shared/Modal';
+import { applyScheduleTemplate } from '../../lib/scheduleTemplates';
+import { ScheduleTemplateWithEvents } from '../../lib/database.types';
 
 type DetailTab = 'overview' | 'tasks' | 'documents' | 'schedule' | 'checkins' | 'reviews' | 'development' | 'certifications' | 'notes';
 
@@ -127,6 +129,7 @@ export function EmployeeDetail({
   }
 
   const [scheduleModal, setScheduleModal] = useState<'add' | 'edit' | null>(null);
+  const [showApplyTemplate, setShowApplyTemplate] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
   const [schedForm, setSchedForm] = useState({ title: '', time_label: '', location: '', color: '#1B3F6E' });
   const [schedSaving, setSchedSaving] = useState(false);
@@ -373,9 +376,14 @@ export function EmployeeDetail({
               <div className="card">
                 <div className="card-header">
                 <h3>Schedule</h3>
-                  <button className="btn-primary sm" onClick={openAddSchedule}>
-                    <Plus size={13} style={{ marginRight: 4 }} />Add Event
-                  </button>
+                <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="btn-ghost sm" onClick={() => setShowApplyTemplate(true)}>
+                      Apply Schedule Template
+                    </button>
+                    <button className="btn-primary sm" onClick={openAddSchedule}>
+                      <Plus size={13} style={{ marginRight: 4 }} />Add Event
+                    </button>
+                  </div>
                 </div>
                 <div style={{ padding: '0 1.25rem 1rem' }}>
                   {schedules.length === 0
@@ -491,6 +499,16 @@ export function EmployeeDetail({
             </button>
           </>
         }>
+          {showApplyTemplate && (
+        <ApplyScheduleTemplateModal
+          employee={e}
+          onClose={() => setShowApplyTemplate(false)}
+          onApplied={() => {
+            setShowApplyTemplate(false);
+            onDataChanged(e.id);
+          }}
+        />
+      )}
           <div className="form-grid">
             <div className="field full">
               <label>Event title</label>
@@ -1325,5 +1343,132 @@ function HRTasksView({ tasks, empId, onOpenModal, onToggleTask, onTaskStatusChan
         </div>
       )}
     </>
+  );
+}
+// ─── Apply Schedule Template Modal ─────────────────────────────────────────
+
+interface ApplyScheduleTemplateModalProps {
+  employee: Employee;
+  onClose: () => void;
+  onApplied: () => void;
+}
+
+function ApplyScheduleTemplateModal({ employee, onClose, onApplied }: ApplyScheduleTemplateModalProps) {
+  const [templates, setTemplates] = useState<ScheduleTemplateWithEvents[]>([]);
+  const [selectedTplId, setSelectedTplId] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [applying, setApplying] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    async function load() {
+      // Filter to templates from the employee's company; if no company, show all
+      let query = supabase.from('schedule_templates').select('*').order('name');
+      if (employee.company_id) {
+        query = query.eq('company_id', employee.company_id);
+      }
+      const { data: tpls } = await query;
+      if (!tpls) { setLoading(false); return; }
+      const withEvents = await Promise.all(
+        tpls.map(async (t) => {
+          const { data: evs } = await supabase
+            .from('schedule_template_events')
+            .select('*')
+            .eq('template_id', t.id)
+            .order('day_offset')
+            .order('sort_order');
+          return { ...t, events: evs ?? [] };
+        })
+      );
+      setTemplates(withEvents);
+      setLoading(false);
+    }
+    load();
+  }, [employee.company_id]);
+
+  async function handleApply() {
+    if (!selectedTplId) { setError('Please select a template.'); return; }
+    if (!employee.start_date) { setError('Employee has no start date. Set one before applying a schedule.'); return; }
+    setApplying(true);
+    const result = await applyScheduleTemplate(selectedTplId, employee.id, employee.start_date);
+    setApplying(false);
+    if (!result.success) { setError(result.error ?? 'Failed to apply template'); return; }
+    onApplied();
+  }
+
+  const selectedTemplate = templates.find(t => t.id === selectedTplId);
+
+  if (showConfirm && selectedTemplate) {
+    return (
+      <Modal title="Confirm Apply Template" onClose={() => setShowConfirm(false)} footer={
+        <>
+          <button className="btn-ghost" onClick={() => setShowConfirm(false)}>Back</button>
+          <button className="btn-primary" onClick={handleApply} disabled={applying}>
+            {applying ? 'Applying...' : `Apply ${selectedTemplate.events.length} Events`}
+          </button>
+        </>
+      }>
+        {error && <div className="error-msg" style={{ marginBottom: 12 }}>{error}</div>}
+        <p style={{ fontSize: 14, color: '#1A1916', marginBottom: 12 }}>
+          You're about to apply <strong>{selectedTemplate.name}</strong> to <strong>{employee.name}</strong>.
+        </p>
+        <div style={{ background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 8, padding: '10px 12px', marginBottom: 12 }}>
+          <div style={{ fontSize: 13, color: '#075985', lineHeight: 1.5 }}>
+            This will add <strong>{selectedTemplate.events.length} events</strong> to {employee.name}'s schedule, starting from their start date ({employee.start_date}).
+          </div>
+        </div>
+        {selectedTemplate.events.some(e => e.shadow_employee_id) && (
+          <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>
+            Shadow assignments will also appear on the calendars of the employees being shadowed.
+          </div>
+        )}
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal title="Apply Schedule Template" onClose={onClose} footer={
+      <>
+        <button className="btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn-primary" onClick={() => setShowConfirm(true)} disabled={!selectedTplId}>
+          Continue
+        </button>
+      </>
+    }>
+      {error && <div className="error-msg" style={{ marginBottom: 12 }}>{error}</div>}
+      <p style={{ fontSize: 13, color: '#6B6860', marginBottom: 16 }}>
+        Select a schedule template to apply to <strong>{employee.name}</strong>.
+        {employee.company_id ? ' Showing templates for their company.' : ' Showing all templates (no company assigned).'}
+      </p>
+      {loading ? (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#9B9890', fontSize: 13 }}>Loading templates...</div>
+      ) : templates.length === 0 ? (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#9B9890', fontSize: 13 }}>
+          No templates available. Create one in HR Settings → Schedule Templates.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {templates.map(t => (
+            <div
+              key={t.id}
+              onClick={() => setSelectedTplId(t.id)}
+              style={{
+                padding: '12px 14px', borderRadius: 8, cursor: 'pointer',
+                border: selectedTplId === t.id ? '2px solid #1B3F6E' : '1.5px solid #E5E3DC',
+                background: selectedTplId === t.id ? '#F0F9FF' : '#fff',
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#1A1916' }}>{t.name}</div>
+              {t.description && <div style={{ fontSize: 12, color: '#6B6860', marginTop: 2 }}>{t.description}</div>}
+              <div style={{ fontSize: 11, color: '#9B9890', marginTop: 4 }}>
+                {t.events.length} events
+                {t.events.length > 0 && ` · spans Day 1 to Day ${Math.max(...t.events.map(e => e.day_offset))}`}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
   );
 }
