@@ -72,6 +72,7 @@ export function HRApp() {
   const [empCheckins, setEmpCheckins] = useState<Record<string, Checkin[]>>({});
   const [quarterlyCheckins, setQuarterlyCheckins] = useState<import('../lib/database.types').QuarterlyCheckin[]>([]);
 const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types').AnnualReview[]>([]);
+const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/database.types').LifecycleCheckin[]>([]);
   const [notes, setNotes] = useState<Record<string, EmployeeNote[]>>({});
   const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null);
   const [modal, setModal] = useState<{ type: string; eid?: string } | null>(null);
@@ -183,6 +184,10 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
       .order('scheduled_at', { ascending: true });
     setAnnualReviews(data ?? []);
   }, []);
+  const loadLifecycleCheckins = useCallback(async () => {
+    const { data } = await supabase.from('lifecycle_checkins').select('*').order('scheduled_at', { ascending: true });
+    setLifecycleCheckins(data ?? []);
+  }, []);
   const loadActivity = useCallback(async () => {
     const { data } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(100);
     setActivity(data ?? []);
@@ -206,8 +211,9 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
     loadActivity();
     loadQuarterlyCheckins();
     loadAnnualReviews();
+    loadLifecycleCheckins();
     supabase.from('schedules').select('*').is('employee_id', null).order('time_label').then(({ data }) => setSchedules(data ?? []));
-  }, [loadEmployees, loadTemplates, loadDepartments, loadCompanies, loadPathways, loadActivity, loadQuarterlyCheckins, loadAnnualReviews]);
+  }, [loadEmployees, loadTemplates, loadDepartments, loadCompanies, loadPathways, loadActivity, loadQuarterlyCheckins, loadAnnualReviews, loadLifecycleCheckins]);
 
   // Real-time subscriptions
   useEffect(() => {
@@ -454,9 +460,11 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
               employees={employees.filter(e => !e.archived)}
               checkins={quarterlyCheckins}
               reviews={annualReviews}
+              lifecycleCheckins={lifecycleCheckins}
               onOpenModal={(type, eid) => setModal({ type, eid })}
               onCheckinUpdated={loadQuarterlyCheckins}
               onReviewUpdated={loadAnnualReviews}
+              onLifecycleCheckinUpdated={loadLifecycleCheckins}
             />
           )}
         </MobileLayout>
@@ -571,9 +579,11 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
             employees={employees.filter(e => !e.archived)}
             checkins={quarterlyCheckins}
             reviews={annualReviews}
+            lifecycleCheckins={lifecycleCheckins}
             onOpenModal={(type, eid) => setModal({ type, eid })}
             onCheckinUpdated={loadQuarterlyCheckins}
             onReviewUpdated={loadAnnualReviews}
+            onLifecycleCheckinUpdated={loadLifecycleCheckins}
           />
         )}
         {tab === 'career' && (
