@@ -794,7 +794,7 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
     </div>
     <ToastContainer toasts={toasts} onRemove={removeToast} />
     {profile?.id && (
-      <div style={{ position: 'fixed', top: 16, right: 24, zIndex: 50 }}>
+      <div style={{ position: 'fixed', top: 12, right: 260, zIndex: 50 }}>
         <NotificationBell
           userId={profile.id}
           onNavigate={(linkType, linkId) => {
