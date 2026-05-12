@@ -104,6 +104,7 @@ export interface Employee {
   access_role: string | null;
   manager_id: string | null;
   pathway: string | null;
+  is_test_account: boolean;
   created_at: string;
 }
 

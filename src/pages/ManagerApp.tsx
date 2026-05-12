@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { Employee, OnboardingTask, Document, Schedule, Pathway } from '../lib/database.types';
 import { useAuth } from '../contexts/AuthContext';
+import { NotificationBell } from '../components/shared/NotificationBell';
 import { ManagerSidebar } from '../components/manager/Sidebar';
 import { ManagerDashboard } from '../components/manager/Dashboard';
 import { ManagerTeam } from '../components/manager/Team';
@@ -31,6 +32,7 @@ export function ManagerApp() {
       .select('*')
       .or(`manager_user_id.eq.${profile.id},manager_id.eq.${profile.employee_id},hiring_manager_id.eq.${profile.employee_id}`)
       .eq('archived', false)
+      .neq('is_test_account', true)
       .order('created_at', { ascending: false });
     setTeam(data ?? []);
   }, [profile?.id, profile?.employee_id]);
@@ -101,6 +103,18 @@ export function ManagerApp() {
 
   return (
     <div className="app-shell">
+      {profile?.id && (
+        <div style={{ position: 'fixed', top: 16, right: 24, zIndex: 50 }}>
+          <NotificationBell
+            userId={profile.id}
+            onNavigate={(linkType) => {
+              if (linkType === 'task') setTab('team');
+              else if (linkType === 'checkin' || linkType === 'review') setTab('team');
+              else if (linkType === 'document') setTab('team');
+            }}
+          />
+        </div>
+      )}
       <ManagerSidebar
         myEmployee={myEmployee}
         tab={tab}
