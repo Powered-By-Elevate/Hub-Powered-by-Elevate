@@ -15,6 +15,7 @@ import { AddTaskModal } from '../components/hr/modals/AddTask';
 import { MobileLayout } from '../components/mobile/MobileLayout';
 import { MobileDashboard } from '../components/mobile/MobileDashboard';
 import { MobileDocuments } from '../components/mobile/MobileDocuments';
+import { NotificationBell } from '../components/shared/NotificationBell';
 
 function useMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -105,22 +106,25 @@ export function EmployeeApp() {
           const now = new Date().toISOString();
           await supabase.from('employees').update({
             lifecycle_status: 'active',
-            phase: 'active',
             progress: 100,
             onboarding_completed_at: now,
           }).eq('id', emp.id);
-          emp = { ...emp, lifecycle_status: 'active', phase: 'active', progress: 100, onboarding_completed_at: now };
+          emp = { ...emp, lifecycle_status: 'active', progress: 100, onboarding_completed_at: now };
         }
       }
 
       setEmployee(emp);
       await loadDocuments(emp.id);
 
-      const { data: allEmps } = await supabase.from('employees').select('*').eq('archived', false);
+      const { data: allEmps } = await supabase.from('employees').select('*').eq('archived', false).neq('is_test_account', true);
       setAllEmployees(allEmps ?? []);
 
       if (emp.department) {
-        const mates = (allEmps ?? []).filter(e => e.department === emp.department && e.id !== emp.id);
+        const mates = (allEmps ?? []).filter(e =>
+          e.department === emp.department &&
+          e.id !== emp.id &&
+          !e.is_test_account
+        );
         setTeammates(mates);
       }
     }
@@ -369,6 +373,19 @@ export function EmployeeApp() {
         {tab === 'my-checkins' && isActive && <EmpMyCheckins checkins={myCheckins} employee={employee} />}
         {tab === 'my-reviews' && isActive && <EmpMyReviews reviews={myReviews} employee={employee} />}
       </div>
+      {profile?.id && (
+        <div style={{ position: 'fixed', top: 16, right: 24, zIndex: 50 }}>
+          <NotificationBell
+            userId={profile.id}
+            onNavigate={(linkType) => {
+              if (linkType === 'task') setTab('tasks');
+              else if (linkType === 'checkin') setTab('my-checkins');
+              else if (linkType === 'review') setTab('my-reviews');
+              else if (linkType === 'document') setTab('documents');
+            }}
+          />
+        </div>
+      )}
       {showAddTask && employee && (
         <AddTaskModal
           employeeId={employee.id}
