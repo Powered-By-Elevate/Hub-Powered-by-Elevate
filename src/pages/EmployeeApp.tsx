@@ -335,18 +335,19 @@ export function EmployeeApp() {
       <div className="main-area">
         {tab === 'overview' && (
           <EmpOverview
-            employee={employee}
-            tasks={tasks}
-            schedules={schedules}
-            announcements={announcements}
-            pct={pct}
-            onTab={setTab}
-            onToggle={toggleTask}
-            devGoalsCount={myDevPlans.length}
-            certCount={myCertifications.length}
-            checkinCount={myCheckins.length}
-            reviewCount={myReviews.length}
-          />
+          employee={employee}
+          tasks={tasks}
+          schedules={schedules}
+          announcements={announcements}
+          pct={pct}
+          onTab={setTab}
+          onToggle={toggleTask}
+          devGoalsCount={myDevPlans.length}
+          certCount={myCertifications.length}
+          checkinCount={myCheckins.length}
+          reviewCount={myReviews.length}
+          userId={profile?.id}
+        />
         )}
         {tab === 'tasks' && (
           <EmpTasks
@@ -373,19 +374,6 @@ export function EmployeeApp() {
         {tab === 'my-checkins' && isActive && <EmpMyCheckins checkins={myCheckins} employee={employee} />}
         {tab === 'my-reviews' && isActive && <EmpMyReviews reviews={myReviews} employee={employee} />}
       </div>
-      {profile?.id && (
-        <div style={{ position: 'fixed', top: 16, right: 24, zIndex: 50 }}>
-          <NotificationBell
-            userId={profile.id}
-            onNavigate={(linkType) => {
-              if (linkType === 'task') setTab('tasks');
-              else if (linkType === 'checkin') setTab('my-checkins');
-              else if (linkType === 'review') setTab('my-reviews');
-              else if (linkType === 'document') setTab('documents');
-            }}
-          />
-        </div>
-      )}
       {showAddTask && employee && (
         <AddTaskModal
           employeeId={employee.id}
