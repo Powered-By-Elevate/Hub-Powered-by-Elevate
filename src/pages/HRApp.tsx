@@ -101,7 +101,11 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
   function removeToast(id: string) { setToasts(prev => prev.filter(t => t.id !== id)); }
 
   const loadEmployees = useCallback(async () => {
-    const { data } = await supabase.from('employees').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase
+      .from('employees')
+      .select('*')
+      .neq('is_test_account', true)
+      .order('created_at', { ascending: false });
     setEmployees(data ?? []);
   }, []);
 
@@ -207,9 +211,17 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
       .channel('hr-employees-rt')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, payload => {
         if (payload.eventType === 'INSERT') {
-          setEmployees(prev => [payload.new as Employee, ...prev]);
+          const newEmp = payload.new as Employee;
+          if (newEmp.is_test_account) return;
+          setEmployees(prev => [newEmp, ...prev]);
         } else if (payload.eventType === 'UPDATE') {
-          setEmployees(prev => prev.map(e => e.id === (payload.new as Employee).id ? payload.new as Employee : e));
+          const updated = payload.new as Employee;
+          if (updated.is_test_account) {
+            // Test account being updated — make sure it's not in the list
+            setEmployees(prev => prev.filter(e => e.id !== updated.id));
+            return;
+          }
+          setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
         } else if (payload.eventType === 'DELETE') {
           setEmployees(prev => prev.filter(e => e.id !== (payload.old as Employee).id));
         }
