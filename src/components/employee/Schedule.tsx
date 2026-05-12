@@ -182,7 +182,9 @@ export function EmpSchedule({ employee, schedules, checkins, reviews }: Props) {
           </div>
         </div>
 
-        {/* Day 1 schedule */}
+        {console.log('[Schedule] employee.lifecycle_status:', employee.lifecycle_status) as unknown as null}
+        {/* Day 1 schedule — only for onboarding employees */}
+        {employee.lifecycle_status === 'onboarding' && (
         <div className="card mb2">
           <div className="card-header"><h3>Day 1 — {employee.start_date}</h3></div>
           <div style={{ padding: '0 1.25rem' }}>
@@ -199,6 +201,7 @@ export function EmpSchedule({ employee, schedules, checkins, reviews }: Props) {
             ))}
           </div>
         </div>
+        )}
 
         {/* Upcoming check-ins & reviews */}
         <div className="card">
