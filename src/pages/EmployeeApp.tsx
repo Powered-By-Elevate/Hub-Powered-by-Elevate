@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Employee, OnboardingTask, Document, Schedule, Contact, HRAnnouncement, Review, DevelopmentPlan, Certification, Checkin, Pathway } from '../lib/database.types';
+import { Employee, OnboardingTask, Document, Schedule, Contact, HRAnnouncement, Review, DevelopmentPlan, Certification, Checkin, Pathway, QuarterlyCheckin, AnnualReview, LifecycleCheckin } from '../lib/database.types';
 import { useAuth } from '../contexts/AuthContext';
 import { EmpSidebar } from '../components/employee/Sidebar';
 import { EmpOverview } from '../components/employee/Overview';
@@ -49,6 +49,9 @@ export function EmployeeApp() {
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [myCheckins, setMyCheckins] = useState<Checkin[]>([]);
   const [myReviews, setMyReviews] = useState<Review[]>([]);
+  const [myQuarterlyCheckins, setMyQuarterlyCheckins] = useState<QuarterlyCheckin[]>([]);
+  const [myAnnualReviews, setMyAnnualReviews] = useState<AnnualReview[]>([]);
+  const [myLifecycleCheckins, setMyLifecycleCheckins] = useState<LifecycleCheckin[]>([]);
   const [myDevPlans, setMyDevPlans] = useState<DevelopmentPlan[]>([]);
   const [myCertifications, setMyCertifications] = useState<Certification[]>([]);
   const [myPathways, setMyPathways] = useState<Pathway[]>([]);
@@ -71,7 +74,7 @@ export function EmployeeApp() {
     if (!profile?.employee_id) return;
     const empId = profile.employee_id;
 
-    const [empRes, taskRes, schedRes, contactRes, checkinRes, reviewRes, devPlanRes, certRes, pathwayRes, announcementRes] = await Promise.all([
+    const [empRes, taskRes, schedRes, contactRes, checkinRes, reviewRes, devPlanRes, certRes, pathwayRes, announcementRes, qCheckinRes, aReviewRes, lCheckinRes] = await Promise.all([
       supabase.from('employees').select('*').eq('id', empId).single(),
       supabase.from('onboarding_tasks').select('*').eq('employee_id', empId).order('created_at'),
       supabase.from('schedules').select('*').or('employee_id.is.null,employee_id.eq.' + empId).order('schedule_date').order('time_label'),
@@ -82,6 +85,9 @@ export function EmployeeApp() {
       supabase.from('certifications').select('*').eq('employee_id', empId).order('created_at'),
       supabase.from('pathways').select('*').order('name'),
       supabase.from('hr_announcements').select('*').eq('active', true),
+      supabase.from('quarterly_checkins').select('*').eq('employee_id', empId).order('scheduled_at', { ascending: false }),
+      supabase.from('annual_reviews').select('*').eq('employee_id', empId).order('scheduled_at', { ascending: false }),
+      supabase.from('lifecycle_checkins').select('*').eq('employee_id', empId).order('milestone_day', { ascending: true }),
     ]);
 
     const allTasks: OnboardingTask[] = taskRes.data ?? [];
@@ -94,6 +100,9 @@ export function EmployeeApp() {
     setMyCertifications(certRes.data ?? []);
     setMyPathways(pathwayRes.data ?? []);
     setAnnouncements(announcementRes.data ?? []);
+    setMyQuarterlyCheckins(qCheckinRes.data ?? []);
+    setMyAnnualReviews(aReviewRes.data ?? []);
+    setMyLifecycleCheckins(lCheckinRes.data ?? []);
 
     if (empRes.data) {
       let emp: Employee = empRes.data;
@@ -158,8 +167,14 @@ export function EmployeeApp() {
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'employees',
         filter: `id=eq.${empId}`,
-      }, payload => {
-        setEmployee(payload.new as Employee);
+      }, async payload => {
+        const updated = payload.new as Employee;
+        const oldData = payload.old as Employee;
+        setEmployee(updated);
+        // If lifecycle_status changed, reload all data so My Check-ins, Reviews, etc. appear
+        if (oldData.lifecycle_status !== updated.lifecycle_status) {
+          await loadData();
+        }
       })
       .subscribe();
 
@@ -309,8 +324,8 @@ export function EmployeeApp() {
           )}
           {tab === 'my-goals' && isActive && <EmpMyGoals plans={myDevPlans} pathways={myPathways} employee={employee} />}
           {tab === 'my-certifications' && isActive && <EmpMyCertifications certifications={myCertifications} employee={employee} />}
-          {tab === 'my-checkins' && isActive && <EmpMyCheckins checkins={myCheckins} employee={employee} />}
-          {tab === 'my-reviews' && isActive && <EmpMyReviews reviews={myReviews} employee={employee} />}
+          {tab === 'my-checkins' && isActive && <EmpMyCheckins checkins={myCheckins} quarterlyCheckins={myQuarterlyCheckins} lifecycleCheckins={myLifecycleCheckins} employee={employee} />}
+          {tab === 'my-reviews' && isActive && <EmpMyReviews reviews={myReviews} annualReviews={myAnnualReviews} employee={employee} />}
         </MobileLayout>
         {showAddTask && (
           <AddTaskModal
@@ -371,8 +386,8 @@ export function EmployeeApp() {
         {tab === 'checkins' && <EmpCheckins checkins={[]} reviews={[]} employee={employee} />}
         {tab === 'my-goals' && isActive && <EmpMyGoals plans={myDevPlans} pathways={myPathways} employee={employee} />}
         {tab === 'my-certifications' && isActive && <EmpMyCertifications certifications={myCertifications} employee={employee} />}
-        {tab === 'my-checkins' && isActive && <EmpMyCheckins checkins={myCheckins} employee={employee} />}
-        {tab === 'my-reviews' && isActive && <EmpMyReviews reviews={myReviews} employee={employee} />}
+        {tab === 'my-checkins' && isActive && <EmpMyCheckins checkins={myCheckins} quarterlyCheckins={myQuarterlyCheckins} lifecycleCheckins={myLifecycleCheckins} employee={employee} />}
+          {tab === 'my-reviews' && isActive && <EmpMyReviews reviews={myReviews} annualReviews={myAnnualReviews} employee={employee} />}
       </div>
       {showAddTask && employee && (
         <AddTaskModal

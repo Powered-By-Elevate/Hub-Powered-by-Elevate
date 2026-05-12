@@ -195,44 +195,102 @@ export function EmpMyCertifications({ certifications }: MyCertificationsProps) {
 
 interface MyCheckinsProps {
   checkins: Checkin[];
+  quarterlyCheckins: import('../../lib/database.types').QuarterlyCheckin[];
+  lifecycleCheckins: import('../../lib/database.types').LifecycleCheckin[];
   employee: Employee;
 }
 
-export function EmpMyCheckins({ checkins }: MyCheckinsProps) {
+export function EmpMyCheckins({ checkins, quarterlyCheckins, lifecycleCheckins }: MyCheckinsProps) {
+  // Combine all check-in types into a single sortable list
+  type CheckinEntry = {
+    id: string;
+    date: string;
+    type: 'Quarterly' | 'Lifecycle' | 'Legacy';
+    label: string;
+    status?: string;
+    pillar_focus?: string | null;
+  };
+
+  const combined: CheckinEntry[] = [
+    ...quarterlyCheckins.map(c => ({
+      id: c.id,
+      date: c.scheduled_at,
+      type: 'Quarterly' as const,
+      label: `${c.quarter} ${c.year} Check-in`,
+      status: c.status,
+    })),
+    ...lifecycleCheckins.filter(lc => lc.status !== 'skipped').map(lc => ({
+      id: lc.id,
+      date: lc.scheduled_at,
+      type: 'Lifecycle' as const,
+      label: `Day ${lc.milestone_day} Check-in`,
+      status: lc.status,
+    })),
+    ...checkins.map(c => ({
+      id: c.id,
+      date: c.checkin_date,
+      type: 'Legacy' as const,
+      label: 'Quarterly Check-in',
+      pillar_focus: c.pillar_focus,
+    })),
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const totalCount = combined.length;
+
   return (
     <>
       <div className="topbar">
         <div className="topbar-left">
           <h1>My Check-ins</h1>
-          <p>{checkins.length} check-in{checkins.length !== 1 ? 's' : ''} on record</p>
+          <p>{totalCount} check-in{totalCount !== 1 ? 's' : ''} on record</p>
         </div>
       </div>
       <div className="content">
-        {checkins.length === 0 ? (
+        {totalCount === 0 ? (
           <div className="card">
             <div className="empty-state">
               <div className="empty-icon">📋</div>
               <p>No check-ins yet</p>
-              <div className="esub">Your quarterly check-ins with HR will appear here.</div>
+              <div className="esub">Your scheduled check-ins with HR will appear here.</div>
             </div>
           </div>
         ) : (
           <div className="card">
-            {checkins.map(c => (
-              <div key={c.id} style={{ padding: '14px 1.25rem', borderBottom: '1px solid #F2F1ED', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{fmt(c.checkin_date)}</div>
-                  {c.pillar_focus && (
-                    <div style={{ marginTop: 5 }}>
-                      <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 10, background: '#E8EFF8', color: '#1B3F6E', fontWeight: 600 }}>
-                        {c.pillar_focus}
-                      </span>
+            {combined.map(c => {
+              const statusColor = c.status === 'completed'
+                ? { bg: '#D1FAE5', color: '#065F46' }
+                : c.status === 'overdue'
+                  ? { bg: '#FEE2E2', color: '#991B1B' }
+                  : { bg: '#FEF3C7', color: '#92400E' };
+              const typeColor = c.type === 'Quarterly'
+                ? { bg: '#E8EFF8', color: '#1B3F6E' }
+                : c.type === 'Lifecycle'
+                  ? { bg: '#F0F9FF', color: '#075985' }
+                  : { bg: '#F2F1ED', color: '#6B6860' };
+              return (
+                <div key={`${c.type}-${c.id}`} style={{ padding: '14px 1.25rem', borderBottom: '1px solid #F2F1ED', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontWeight: 700, fontSize: 14 }}>{c.label}</span>
+                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: typeColor.bg, color: typeColor.color, fontWeight: 700 }}>{c.type}</span>
                     </div>
+                    <div style={{ fontSize: 12, color: '#9B9890' }}>{fmt(c.date)}</div>
+                    {c.pillar_focus && (
+                      <div style={{ marginTop: 6 }}>
+                        <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 10, background: '#E8EFF8', color: '#1B3F6E', fontWeight: 600 }}>
+                          {c.pillar_focus}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {c.status && (
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 10, background: statusColor.bg, color: statusColor.color }}>
+                      {c.status}
+                    </span>
                   )}
                 </div>
-                <div style={{ fontSize: 11, color: '#9B9890' }}>Quarterly Check-in</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -246,40 +304,81 @@ export function EmpMyCheckins({ checkins }: MyCheckinsProps) {
 
 interface MyReviewsProps {
   reviews: Review[];
+  annualReviews: import('../../lib/database.types').AnnualReview[];
   employee: Employee;
 }
 
-export function EmpMyReviews({ reviews }: MyReviewsProps) {
+export function EmpMyReviews({ reviews, annualReviews }: MyReviewsProps) {
+  type ReviewEntry = {
+    id: string;
+    date: string;
+    type: string;
+    year: number;
+    source: 'annual' | 'legacy';
+    status?: string;
+  };
+
+  const combined: ReviewEntry[] = [
+    ...annualReviews.map(r => ({
+      id: r.id,
+      date: r.scheduled_at ?? r.created_at,
+      type: 'Annual Review',
+      year: r.review_year,
+      source: 'annual' as const,
+      status: r.status,
+    })),
+    ...reviews.map(r => ({
+      id: r.id,
+      date: r.review_date,
+      type: r.review_type,
+      year: r.review_year,
+      source: 'legacy' as const,
+    })),
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
   return (
     <>
       <div className="topbar">
         <div className="topbar-left">
           <h1>My Reviews</h1>
-          <p>{reviews.length} review{reviews.length !== 1 ? 's' : ''} on record</p>
+          <p>{combined.length} review{combined.length !== 1 ? 's' : ''} on record</p>
         </div>
       </div>
       <div className="content">
-        {reviews.length === 0 ? (
+        {combined.length === 0 ? (
           <div className="card">
             <div className="empty-state">
               <div className="empty-icon">📊</div>
               <p>No reviews yet</p>
-              <div className="esub">Your performance reviews will appear here when completed.</div>
+              <div className="esub">Your scheduled performance reviews will appear here.</div>
             </div>
           </div>
         ) : (
           <div className="card">
-            {reviews.map(r => (
-              <div key={r.id} style={{ padding: '14px 1.25rem', borderBottom: '1px solid #F2F1ED', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>{r.review_type} {r.review_year}</div>
-                  <div style={{ fontSize: 12, color: '#9B9890', marginTop: 3 }}>{fmt(r.review_date)}</div>
+            {combined.map(r => {
+              const statusColor = r.status === 'completed'
+                ? { bg: '#D1FAE5', color: '#065F46' }
+                : r.status === 'overdue'
+                  ? { bg: '#FEE2E2', color: '#991B1B' }
+                  : { bg: '#FEF3C7', color: '#92400E' };
+              return (
+                <div key={`${r.source}-${r.id}`} style={{ padding: '14px 1.25rem', borderBottom: '1px solid #F2F1ED', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>{r.type} {r.year}</div>
+                    <div style={{ fontSize: 12, color: '#9B9890', marginTop: 3 }}>{fmt(r.date)}</div>
+                  </div>
+                  {r.status ? (
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 10, background: statusColor.bg, color: statusColor.color }}>
+                      {r.status}
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 11, fontWeight: 600, color: '#6B6860', background: '#F2F1ED', padding: '3px 10px', borderRadius: 8 }}>
+                      {r.type}
+                    </span>
+                  )}
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#6B6860', background: '#F2F1ED', padding: '3px 10px', borderRadius: 8 }}>
-                  {r.review_type}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
