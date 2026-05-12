@@ -3,18 +3,20 @@ import { ini, pfColor } from '../shared/utils';
 import { StatusBadge } from '../shared/StatusBadge';
 import type { HRTab } from '../../pages/HRApp';
 import { UpcomingDates } from './UpcomingDates';
+import { NotificationBell } from '../shared/NotificationBell';
 
 interface Props {
   employees: Employee[];
   activity: ActivityLog[];
   checkins: QuarterlyCheckin[];
   reviews: AnnualReview[];
+  userId?: string;
   onViewEmployee: (id: string) => void;
   onOpenModal: (type: string, eid?: string) => void;
   onTab: (tab: HRTab) => void;
 }
 
-export function HRDashboard({ employees, activity, checkins, reviews, onViewEmployee, onOpenModal, onTab }: Props) {
+export function HRDashboard({ employees, activity, checkins, reviews, userId, onViewEmployee, onOpenModal, onTab }: Props) {
   const active = employees.filter(e => !e.archived);
   const onboarding = active.filter(e => e.lifecycle_status === 'onboarding');
   const activePhase = active.filter(e => e.lifecycle_status === 'active');
@@ -31,6 +33,10 @@ export function HRDashboard({ employees, activity, checkins, reviews, onViewEmpl
           <p>Overview of all employee activity</p>
         </div>
         <div className="topbar-actions">
+          {userId && <NotificationBell userId={userId} onNavigate={(linkType) => {
+            if (linkType === 'checkin' || linkType === 'review') onTab('checkins');
+            else onTab('employees');
+          }} />}
           <button className="btn-ghost" onClick={() => onOpenModal('add-checkin')}>+ Schedule Check-in</button>
           <button className="btn-primary" onClick={() => onOpenModal('add-emp')}>+ Add Employee</button>
         </div>
@@ -93,8 +99,8 @@ export function HRDashboard({ employees, activity, checkins, reviews, onViewEmpl
               </tbody>
             </table>
           </div>
-          <div>
-            <div className="card mb2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="card">
               <div className="card-header">
                 <h3>Upcoming Check-ins</h3>
                 <button className="btn-ghost sm" onClick={() => onTab('checkins')}>View all</button>

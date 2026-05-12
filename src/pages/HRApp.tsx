@@ -517,6 +517,7 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
             activity={activity}
             checkins={quarterlyCheckins}
             reviews={annualReviews}
+            userId={profile?.id}
             onViewEmployee={viewEmployee}
             onOpenModal={(type, eid) => setModal({ type, eid })}
             onTab={t => setTab(t as HRTab)}
@@ -793,23 +794,6 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
       })()}
     </div>
     <ToastContainer toasts={toasts} onRemove={removeToast} />
-    {profile?.id && (
-      <div style={{ position: 'fixed', top: 12, right: 260, zIndex: 50 }}>
-        <NotificationBell
-          userId={profile.id}
-          onNavigate={(linkType, linkId) => {
-            if (linkType === 'task') {
-              // Tasks live on employee detail; find the task's employee
-              setTab('employees');
-            } else if (linkType === 'checkin' || linkType === 'review') {
-              setTab('checkins');
-            } else if (linkType === 'document') {
-              setTab('employees');
-            }
-          }}
-        />
-      </div>
-    )}
     <GlobalSearch
       isOpen={searchOpen}
       onClose={() => setSearchOpen(false)}
