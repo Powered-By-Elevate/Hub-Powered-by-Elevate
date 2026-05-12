@@ -45,6 +45,7 @@ import { EditApplicantModal } from '../components/hr/modals/EditApplicant';
 import { ConvertApplicantModal } from '../components/hr/modals/ConvertApplicant';
 import { CareerDevelopment } from '../components/hr/CareerDevelopment';
 import { ToastContainer, ToastItem } from '../components/shared/Toast';
+import { GlobalSearch } from '../components/shared/GlobalSearch';
 
 export type HRTab = 'dashboard' | 'applicants' | 'employees' | 'templates' | 'checkins' | 'career' | 'detail' | 'settings';
 
@@ -77,6 +78,19 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
   const [editApplicantId, setEditApplicantId] = useState<string | null>(null);
   const channelsRef = useRef<ReturnType<typeof supabase.channel>[]>([]);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Global Cmd-K / Ctrl-K shortcut
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(s => !s);
+      }
+    }
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
   const isMobile = useMobile();
 
   function showToast(message: string, type: ToastItem['type'] = 'success') {
@@ -389,7 +403,7 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
         >
           {tab === 'dashboard' && (
             <MobileDashboard
-            employee={{ id: '', name: profile?.email?.split('@')[0] ?? 'HR', email: profile?.email ?? '', phone: null, role: 'HR Administrator', department: null, team_id: null, manager: null, manager_user_id: null, start_date: null, status: 'complete', phase: 'active', progress: 100, archived: false, user_id: null, avatar_url: null, bio: null, onboarding_completed_at: null, lifecycle_status: 'active', birthday_month: null, birthday_day: null, company_id: null, created_at: '', current_level: null, next_level: null, pathway_id: null, readiness_level: null, current_status: null, employment_type: null, pillar_focus: null, applicant_phase: null, applicant_stage: null, hiring_manager_id: null, position_applied_for: null, resume_url: null, applicant_source: null, access_role: null, manager_id: null, pathway: null }}tasks={[]}
+            employee={{ id: '', name: profile?.email?.split('@')[0] ?? 'HR', email: profile?.email ?? '', phone: null, role: 'HR Administrator', department: null, team_id: null, manager: null, manager_user_id: null, start_date: null, status: 'complete', progress: 100, archived: false, user_id: null, avatar_url: null, bio: null, onboarding_completed_at: null, lifecycle_status: 'active', birthday_month: null, birthday_day: null, company_id: null, created_at: '', current_level: null, next_level: null, pathway_id: null, readiness_level: null, current_status: null, employment_type: null, pillar_focus: null, applicant_phase: null, applicant_stage: null, hiring_manager_id: null, position_applied_for: null, resume_url: null, applicant_source: null, access_role: null, manager_id: null, pathway: null }}tasks={[]}
               schedules={[]}
               announcement={null}
               onToggleTask={() => {}}
@@ -778,6 +792,12 @@ const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types
       })()}
     </div>
     <ToastContainer toasts={toasts} onRemove={removeToast} />
+    <GlobalSearch
+      isOpen={searchOpen}
+      onClose={() => setSearchOpen(false)}
+      onSelectEmployee={(id) => viewEmployee(id)}
+      onSelectApplicant={(id) => { setTab('applicants'); viewEmployee(id); }}
+    />
     </>
   );
 }

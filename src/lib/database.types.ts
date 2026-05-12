@@ -1,7 +1,6 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Role = 'hr' | 'manager' | 'employee';
-export type Phase = 'onboarding' | 'active';
 export type TaskStatus = 'pending' | 'in-progress' | 'complete' | 'overdue';
 export type TaskCategory = 'document' | 'training' | 'form' | 'meeting' | 'task' | 'personal' | 'other';
 export type TaskPriority = 'low' | 'medium' | 'high';
@@ -79,7 +78,6 @@ export interface Employee {
   manager_user_id: string | null;
   start_date: string | null;
   status: EmployeeStatus;
-  phase: Phase;
   progress: number;
   archived: boolean;
   user_id: string | null;
