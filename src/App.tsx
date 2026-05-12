@@ -5,19 +5,17 @@ import { SetupPage } from './pages/Setup';
 import { HRApp } from './pages/HRApp';
 import { ManagerApp } from './pages/ManagerApp';
 import { EmployeeApp } from './pages/EmployeeApp';
+import { ErrorBoundary } from './components/shared/ErrorBoundary';
 
 function AppRouter() {
   const { user, profile, loading } = useAuth();
   const [setupToken, setSetupToken] = useState<string | null>(null);
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('setup');
     if (token) setSetupToken(token);
   }, []);
-
   if (loading) return <div className="loading-screen"><div className="loading-spinner" /></div>;
-
   if (setupToken) return (
     <SetupPage
       token={setupToken}
@@ -27,13 +25,10 @@ function AppRouter() {
       }}
     />
   );
-
   if (!user) return <LoginPage />;
   if (!profile) return <div className="loading-screen"><div className="loading-spinner" /></div>;
-
-  if (profile.role === 'hr') return <HRApp />;
-  if (profile.role === 'manager') return <ManagerApp />;
-
+  if (profile.role === 'hr') return <ErrorBoundary><HRApp /></ErrorBoundary>;
+  if (profile.role === 'manager') return <ErrorBoundary><ManagerApp /></ErrorBoundary>;
   if (profile.role === 'employee') {
     if (!profile.employee_id) {
       return (
@@ -43,16 +38,17 @@ function AppRouter() {
         </div>
       );
     }
-    return <EmployeeApp />;
+    return <ErrorBoundary><EmployeeApp /></ErrorBoundary>;
   }
-
   return <LoginPage />;
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppRouter />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppRouter />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
