@@ -29,7 +29,7 @@ export function ManagerApp() {
     const { data } = await supabase
       .from('employees')
       .select('*')
-      .or(`manager_user_id.eq.${profile.id},hiring_manager_id.eq.${profile.employee_id}`)
+      .or(`manager_user_id.eq.${profile.id},manager_id.eq.${profile.employee_id},hiring_manager_id.eq.${profile.employee_id}`)
       .eq('archived', false)
       .order('created_at', { ascending: false });
     setTeam(data ?? []);
