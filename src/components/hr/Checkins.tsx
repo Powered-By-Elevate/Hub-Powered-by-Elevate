@@ -10,13 +10,14 @@ interface Props {
   checkins: QuarterlyCheckin[];
   reviews: AnnualReview[];
   lifecycleCheckins: LifecycleCheckin[];
-  onOpenModal: (type: string, eid?: string) => void;
-  onCheckinUpdated: () => void;
-  onReviewUpdated: () => void;
-  onLifecycleCheckinUpdated: () => void;
+  onOpenModal?: (type: string, eid?: string) => void;
+  onCheckinUpdated?: () => void;
+  onReviewUpdated?: () => void;
+  onLifecycleCheckinUpdated?: () => void;
+  readOnly?: boolean;
 }
 
-export function HRCheckins({ employees, checkins, reviews, lifecycleCheckins, onOpenModal, onCheckinUpdated, onReviewUpdated, onLifecycleCheckinUpdated }: Props) {
+export function HRCheckins({ employees, checkins, reviews, lifecycleCheckins, onOpenModal, onCheckinUpdated, onReviewUpdated, onLifecycleCheckinUpdated, readOnly = false }: Props) {
   const [activeTab, setActiveTab] = useState<CheckinTab>('quarterly');
 
   function empName(id: string) {
@@ -25,17 +26,17 @@ export function HRCheckins({ employees, checkins, reviews, lifecycleCheckins, on
 
   async function markCheckinComplete(id: string) {
     await supabase.from('quarterly_checkins').update({ status: 'completed', completed_at: new Date().toISOString().split('T')[0] }).eq('id', id);
-    onCheckinUpdated();
+    onCheckinUpdated?.();
   }
 
   async function markReviewComplete(id: string) {
     await supabase.from('annual_reviews').update({ status: 'completed', completed_at: new Date().toISOString().split('T')[0] }).eq('id', id);
-    onReviewUpdated();
+    onReviewUpdated?.();
   }
 
   async function markLifecycleComplete(id: string) {
     await supabase.from('lifecycle_checkins').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id);
-    onLifecycleCheckinUpdated();
+    onLifecycleCheckinUpdated?.();
   }
 
   const overdueCheckins = checkins.filter(c => c.status === 'overdue');
@@ -57,8 +58,12 @@ export function HRCheckins({ employees, checkins, reviews, lifecycleCheckins, on
           <p>Track quarterly check-ins, annual reviews, and 30-60-90 milestones</p>
         </div>
         <div className="topbar-actions">
-          <button className="btn-ghost" onClick={() => onOpenModal('add-review')}>+ Annual Review</button>
-          <button className="btn-primary" onClick={() => onOpenModal('add-checkin')}>+ Schedule Check-in</button>
+          {!readOnly && onOpenModal && (
+            <>
+              <button className="btn-ghost" onClick={() => onOpenModal('add-review')}>+ Annual Review</button>
+              <button className="btn-primary" onClick={() => onOpenModal('add-checkin')}>+ Schedule Check-in</button>
+            </>
+          )}
         </div>
       </div>
       <div className="content">
@@ -128,7 +133,7 @@ export function HRCheckins({ employees, checkins, reviews, lifecycleCheckins, on
                     <td><span className={`badge ${checkinStatusClass(c.status)}`}>{c.status}</span></td>
                     <td style={{ fontSize: 12, color: '#6B6860', maxWidth: 200 }}>{c.notes ?? '—'}</td>
                     <td onClick={ev => ev.stopPropagation()}>
-                      {c.status !== 'completed' && (
+                    {!readOnly && c.status !== 'completed' && (
                         <button className="btn-ghost sm" onClick={() => markCheckinComplete(c.id)}>Mark Complete</button>
                       )}
                     </td>

@@ -85,9 +85,10 @@ interface Props {
   pathways: Pathway[];
   onViewEmployee: (id: string) => void;
   onRefresh?: () => void;
+  readOnly?: boolean;
 }
 
-export function CareerDevelopment({ employees, pathways, onViewEmployee, onRefresh }: Props) {
+export function CareerDevelopment({ employees, pathways, onViewEmployee, onRefresh, readOnly = false }: Props) {
   const [activeTab, setActiveTab] = useState<'overview' | 'pillar' | 'atrisk'>('overview');
   const [allCheckins, setAllCheckins] = useState<Checkin[]>([]);
   const [allPlans, setAllPlans] = useState<DevelopmentPlan[]>([]);
@@ -264,7 +265,7 @@ export function CareerDevelopment({ employees, pathways, onViewEmployee, onRefre
                       const statusStyle = STATUS_STYLES[emp.current_status ?? ''];
                       const isEditing = editingId === emp.id;
 
-                      if (isEditing) {
+                      if (isEditing && !readOnly) {
                         return (
                           <tr key={emp.id} style={{ background: '#FAFAF8' }}>
                             <td>
@@ -361,11 +362,13 @@ export function CareerDevelopment({ employees, pathways, onViewEmployee, onRefre
                             {openPlans > 0 ? openPlans : '\u2014'}
                           </td>
                           <td onClick={ev => ev.stopPropagation()}>
-                            <div style={{ display: 'flex', gap: 4 }}>
+                          <div style={{ display: 'flex', gap: 4 }}>
                               <button className="btn-ghost sm" onClick={() => onViewEmployee(emp.id)}>View</button>
-                              <button className="btn-ghost sm" onClick={() => startEdit(emp)} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                                <Pencil size={12} /> Edit
-                              </button>
+                              {!readOnly && (
+                                <button className="btn-ghost sm" onClick={() => startEdit(emp)} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                                  <Pencil size={12} /> Edit
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>

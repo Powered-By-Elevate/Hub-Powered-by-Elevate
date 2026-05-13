@@ -16,6 +16,9 @@ import { EmpMyGoals, EmpMyCertifications, EmpMyCheckins, EmpMyReviews } from '..
 import { ManagerDashboard } from '../components/manager/Dashboard';
 import { ManagerTeam } from '../components/manager/Team';
 import { ManagerEmployeeDetail } from '../components/manager/EmployeeDetail';
+import { HRApplicants } from '../components/hr/Applicants';
+import { HRCheckins } from '../components/hr/Checkins';
+import { CareerDevelopment } from '../components/hr/CareerDevelopment';
 import { AddTaskModal } from '../components/hr/modals/AddTask';
 import { MobileLayout } from '../components/mobile/MobileLayout';
 import { MobileDashboard } from '../components/mobile/MobileDashboard';
@@ -77,6 +80,10 @@ export function EmployeeApp() {
   const [teamTasks, setTeamTasks] = useState<Record<string, OnboardingTask[]>>({});
   const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<string | null>(null);
   const [modal, setModal] = useState<{ type: string; eid?: string } | null>(null);
+  // Manager check-ins data
+  const [teamQuarterlyCheckins, setTeamQuarterlyCheckins] = useState<QuarterlyCheckin[]>([]);
+  const [teamAnnualReviews, setTeamAnnualReviews] = useState<AnnualReview[]>([]);
+  const [teamLifecycleCheckins, setTeamLifecycleCheckins] = useState<LifecycleCheckin[]>([]);
 
   const channelsRef = useRef<ReturnType<typeof supabase.channel>[]>([]);
   const empIdRef = useRef<string | null>(null);
@@ -185,6 +192,17 @@ export function EmployeeApp() {
     const filtered = (data ?? []).filter(e => e.id !== viewer.employee_id);
     setTeam(visibleEmployees(viewer, filtered));
   }, [viewer]);
+  const loadTeamCheckinData = useCallback(async () => {
+    if (!viewer || viewer.role !== 'manager') return;
+    const [qRes, aRes, lRes] = await Promise.all([
+      supabase.from('quarterly_checkins').select('*').order('scheduled_at', { ascending: false }),
+      supabase.from('annual_reviews').select('*').order('scheduled_at', { ascending: false }),
+      supabase.from('lifecycle_checkins').select('*').order('scheduled_at', { ascending: false }),
+    ]);
+    setTeamQuarterlyCheckins(qRes.data ?? []);
+    setTeamAnnualReviews(aRes.data ?? []);
+    setTeamLifecycleCheckins(lRes.data ?? []);
+  }, [viewer]);
 
   const loadTeamMemberTasks = useCallback(async (empId: string) => {
     const { data } = await supabase.from('onboarding_tasks').select('*').eq('employee_id', empId).order('created_at');
@@ -211,6 +229,7 @@ export function EmployeeApp() {
   useEffect(() => { if (employee) loadTourState(); }, [employee, loadTourState]);
   useEffect(() => { loadData(); }, [loadData]);
   useEffect(() => { if (isManager) loadTeam(); }, [isManager, loadTeam]);
+  useEffect(() => { if (isManager) loadTeamCheckinData(); }, [isManager, loadTeamCheckinData]);
 
   useEffect(() => {
     if (selectedTeamMemberId && !teamTasks[selectedTeamMemberId]) loadTeamMemberTasks(selectedTeamMemberId);
@@ -424,14 +443,29 @@ export function EmployeeApp() {
             <ManagerTeam team={team} onViewEmployee={viewTeamMember} onOpenModal={(type, eid) => setModal({ type, eid })} />
           )}
           {tab === 'mgr-applicants' && isManager && (
-            <div className="content"><div className="card"><div className="card-header"><h3>Applicants</h3></div><div className="card-body"><p style={{ fontSize: 13, color: '#9B9890', padding: '0.5rem 0' }}>Applicant view coming soon for managers.</p></div></div></div>
-          )}
-          {tab === 'mgr-checkins' && isManager && (
-            <div className="content"><div className="card"><div className="card-header"><h3>Check-ins & Reviews</h3></div><div className="card-body"><p style={{ fontSize: 13, color: '#9B9890', padding: '0.5rem 0' }}>Check-ins view coming soon for managers.</p></div></div></div>
-          )}
-          {tab === 'mgr-career' && isManager && (
-            <div className="content"><div className="card"><div className="card-header"><h3>Career Development</h3></div><div className="card-body"><p style={{ fontSize: 13, color: '#9B9890', padding: '0.5rem 0' }}>Career development view coming soon for managers.</p></div></div></div>
-          )}
+          <HRApplicants
+            employees={team}
+            onViewApplicant={viewTeamMember}
+            readOnly
+          />
+        )}
+        {tab === 'mgr-checkins' && isManager && (
+          <HRCheckins
+            employees={team}
+            checkins={teamQuarterlyCheckins}
+            reviews={teamAnnualReviews}
+            lifecycleCheckins={teamLifecycleCheckins}
+            readOnly
+          />
+        )}
+        {tab === 'mgr-career' && isManager && (
+          <CareerDevelopment
+            employees={team}
+            pathways={myPathways}
+            onViewEmployee={viewTeamMember}
+            readOnly
+          />
+        )}
         </MobileLayout>
         {showAddTask && (
           <AddTaskModal
@@ -530,28 +564,28 @@ export function EmployeeApp() {
           <ManagerTeam team={team} onViewEmployee={viewTeamMember} onOpenModal={(type, eid) => setModal({ type, eid })} />
         )}
         {tab === 'mgr-applicants' && isManager && (
-          <div className="content">
-            <div className="topbar"><div className="topbar-left"><h1>Applicants</h1><p>Applicants you can see</p></div></div>
-            <div className="card"><div className="card-body" style={{ padding: '1.5rem' }}>
-              <p style={{ fontSize: 13, color: '#9B9890' }}>Applicant view for managers is being built. For now, applicants assigned to you appear in your Direct Team list.</p>
-            </div></div>
-          </div>
+          <HRApplicants
+            employees={team}
+            onViewApplicant={viewTeamMember}
+            readOnly
+          />
         )}
         {tab === 'mgr-checkins' && isManager && (
-          <div className="content">
-            <div className="topbar"><div className="topbar-left"><h1>Check-ins & Reviews</h1><p>Read-only across your scope</p></div></div>
-            <div className="card"><div className="card-body" style={{ padding: '1.5rem' }}>
-              <p style={{ fontSize: 13, color: '#9B9890' }}>Check-ins and reviews view for managers is being built.</p>
-            </div></div>
-          </div>
+          <HRCheckins
+            employees={team}
+            checkins={teamQuarterlyCheckins}
+            reviews={teamAnnualReviews}
+            lifecycleCheckins={teamLifecycleCheckins}
+            readOnly
+          />
         )}
         {tab === 'mgr-career' && isManager && (
-          <div className="content">
-            <div className="topbar"><div className="topbar-left"><h1>Career Development</h1><p>Read-only across your scope</p></div></div>
-            <div className="card"><div className="card-body" style={{ padding: '1.5rem' }}>
-              <p style={{ fontSize: 13, color: '#9B9890' }}>Career development view for managers is being built.</p>
-            </div></div>
-          </div>
+          <CareerDevelopment
+            employees={team}
+            pathways={myPathways}
+            onViewEmployee={viewTeamMember}
+            readOnly
+          />
         )}
       </div>
 

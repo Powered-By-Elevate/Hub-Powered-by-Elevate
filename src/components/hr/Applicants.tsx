@@ -11,13 +11,14 @@ import {
 
 interface Props {
   employees: Employee[];
-  onAddApplicant: () => void;
-  onEditApplicant: (id: string) => void;
-  onConvertApplicant: (id: string) => void;
+  onAddApplicant?: () => void;
+  onEditApplicant?: (id: string) => void;
+  onConvertApplicant?: (id: string) => void;
   onViewApplicant: (id: string) => void;
+  readOnly?: boolean;
 }
 
-export function HRApplicants({ employees, onAddApplicant, onEditApplicant, onConvertApplicant, onViewApplicant }: Props) {
+export function HRApplicants({ employees, onAddApplicant, onEditApplicant, onConvertApplicant, onViewApplicant, readOnly = false }: Props) {
   const [showClosed, setShowClosed] = useState(false);
   const [search, setSearch] = useState('');
   const [phaseFilter, setPhaseFilter] = useState<string>('all');
@@ -60,9 +61,11 @@ export function HRApplicants({ employees, onAddApplicant, onEditApplicant, onCon
           <p>Track candidates through the hiring pipeline</p>
         </div>
         <div className="topbar-actions">
-          <button className="btn-primary" onClick={onAddApplicant}>
-            <Plus size={14} style={{ marginRight: 4 }} /> Add Applicant
-          </button>
+          {!readOnly && onAddApplicant && (
+            <button className="btn-primary" onClick={onAddApplicant}>
+              <Plus size={14} style={{ marginRight: 4 }} /> Add Applicant
+            </button>
+          )}
         </div>
       </div>
       <div className="content">
@@ -150,16 +153,22 @@ export function HRApplicants({ employees, onAddApplicant, onEditApplicant, onCon
                       <td style={{ fontSize: 12, color: '#6B6860' }}>{hiringManagerName(a.hiring_manager_id)}</td>
                       <td style={{ fontSize: 12, color: '#6B6860' }}>{a.applicant_source ?? '—'}</td>
                       <td onClick={ev => ev.stopPropagation()}>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button className="btn-ghost sm" onClick={() => onEditApplicant(a.id)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <Pencil size={11} /> Edit
-                          </button>
-                          {canConvert && (
-                            <button className="btn-primary sm" onClick={() => onConvertApplicant(a.id)}>
-                              Convert to Onboarding
-                            </button>
-                          )}
-                        </div>
+                        {readOnly ? (
+                          <span style={{ fontSize: 11, color: '#9B9890', fontStyle: 'italic' }}>Read only</span>
+                        ) : (
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {onEditApplicant && (
+                              <button className="btn-ghost sm" onClick={() => onEditApplicant(a.id)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <Pencil size={11} /> Edit
+                              </button>
+                            )}
+                            {canConvert && onConvertApplicant && (
+                              <button className="btn-primary sm" onClick={() => onConvertApplicant(a.id)}>
+                                Convert to Onboarding
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );
