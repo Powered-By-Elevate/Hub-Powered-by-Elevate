@@ -28,15 +28,24 @@ export function HRDocuments({ employees, companies }: Props) {
 
   const loadAll = useCallback(async () => {
     setLoading(true);
-    const [{ data: docs }, { data: bks }, { data: ackData }] = await Promise.all([
-      supabase.from('documents').select('*').order('created_at', { ascending: false }),
-      supabase.from('document_buckets').select('*').eq('active', true).order('sort_order'),
-      supabase.from('document_acknowledgments').select('*'),
-    ]);
-    setDocuments(docs ?? []);
-    setBuckets(bks ?? []);
-    setAcks(ackData ?? []);
-    setLoading(false);
+    try {
+      const docsRes = await supabase.from('documents').select('*').order('created_at', { ascending: false });
+      if (docsRes.error) console.error('documents load error:', docsRes.error);
+      
+      const bksRes = await supabase.from('document_buckets').select('*').eq('active', true).order('sort_order');
+      if (bksRes.error) console.error('buckets load error:', bksRes.error);
+      
+      const ackRes = await supabase.from('document_acknowledgments').select('*');
+      if (ackRes.error) console.error('acks load error:', ackRes.error);
+      
+      setDocuments(docsRes.data ?? []);
+      setBuckets(bksRes.data ?? []);
+      setAcks(ackRes.data ?? []);
+    } catch (err) {
+      console.error('loadAll crashed:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);
