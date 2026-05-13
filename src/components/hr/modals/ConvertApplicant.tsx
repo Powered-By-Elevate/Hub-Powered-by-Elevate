@@ -34,7 +34,6 @@ export function ConvertApplicantModal({ applicant: a, templates, departments, on
       .from('employees')
       .update({
         lifecycle_status: 'onboarding',
-        phase: 'onboarding',
         status: 'not-started',
         progress: 0,
         role: form.role.trim(),

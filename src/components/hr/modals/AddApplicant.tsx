@@ -57,7 +57,6 @@ export function AddApplicantModal({ employees, onClose, onCreated }: Props) {
       role: form.position_applied_for.trim() || 'Applicant',
       lifecycle_status: 'applicant',
       status: 'not-started',
-      phase: 'onboarding',
       progress: 0,
       archived: false,
       employment_type: 'Full Time',
