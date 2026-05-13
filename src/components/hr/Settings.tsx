@@ -417,6 +417,9 @@ const [editContact, setEditContact] = useState<Contact | null>(null);
                 )}
               </div>
             )}
+            {section === 'document-buckets' && (
+              <DocumentBucketsSection />
+            )}
             {section === 'roles' && (
               <UserRolesSection />
             )}
