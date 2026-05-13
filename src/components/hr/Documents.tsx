@@ -16,6 +16,7 @@ function fmtSize(bytes: number): string {
 }
 
 export function HRDocuments({ employees, companies }: Props) {
+  console.log('HRDocuments MOUNTED', { employees: employees?.length, companies: companies?.length });
   const [documents, setDocuments] = useState<Document[]>([]);
   const [buckets, setBuckets] = useState<DocumentBucket[]>([]);
   const [acks, setAcks] = useState<DocumentAcknowledgment[]>([]);
