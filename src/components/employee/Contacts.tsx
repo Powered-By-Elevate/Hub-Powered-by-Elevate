@@ -172,7 +172,7 @@ export function EmpContacts({ contacts, employee: me, allEmployees }: Props) {
       </div>
       <div className="content">
         {/* Search */}
-        <div style={{ marginBottom: 16, position: 'relative' }}>
+        <div id="emp-contacts-search" style={{ marginBottom: 16, position: 'relative' }}>
           <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9B9890', pointerEvents: 'none' }} />
           <input
             className="search-input"
@@ -185,9 +185,11 @@ export function EmpContacts({ contacts, employee: me, allEmployees }: Props) {
 
         {/* My Team */}
         {filteredTeam.length > 0 && (
-          <CollapsibleSection title="My Team" subtitle={`${me.department} department`} defaultOpen count={filteredTeam.length}>
-            {filteredTeam.map(e => <ContactCard key={e.id} emp={e} />)}
-          </CollapsibleSection>
+          <div id="emp-contacts-myteam">
+            <CollapsibleSection title="My Team" subtitle={`${me.department} department`} defaultOpen count={filteredTeam.length}>
+              {filteredTeam.map(e => <ContactCard key={e.id} emp={e} />)}
+            </CollapsibleSection>
+          </div>
         )}
 
         {/* Executives */}
@@ -218,9 +220,11 @@ export function EmpContacts({ contacts, employee: me, allEmployees }: Props) {
 
         {/* External Contacts */}
         {filteredExternal.length > 0 && (
-          <CollapsibleSection title="External Contacts" subtitle="Vendors, IT support, benefits providers" count={filteredExternal.length}>
-            {filteredExternal.map(c => <ExternalCard key={c.id} c={c} />)}
-          </CollapsibleSection>
+          <div id="emp-contacts-external">
+            <CollapsibleSection title="External Contacts" subtitle="Vendors, IT support, benefits providers" count={filteredExternal.length}>
+              {filteredExternal.map(c => <ExternalCard key={c.id} c={c} />)}
+            </CollapsibleSection>
+          </div>
         )}
 
         {/* Empty state when search finds nothing */}

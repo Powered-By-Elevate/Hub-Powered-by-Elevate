@@ -77,8 +77,8 @@ export function EmpDocuments({ documents, onDocumentDeleted }: Props) {
         </div>
       </div>
       <div className="content">
-        {unackedRequired.length > 0 && (
-          <div className="card mb2" style={{ background: '#FEF3C7', border: '1px solid #FDE68A' }}>
+      {unackedRequired.length > 0 && (
+          <div id="emp-documents-ack-banner" className="card mb2" style={{ background: '#FEF3C7', border: '1px solid #FDE68A' }}>
             <div style={{ padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
               <AlertCircle size={20} style={{ color: '#92400E', flexShrink: 0, marginTop: 2 }} />
               <div>
@@ -102,7 +102,7 @@ export function EmpDocuments({ documents, onDocumentDeleted }: Props) {
             </div>
           </div>
         ) : (
-          <>
+          <div id="emp-documents-list">
             {buckets.map(bucket => {
               const docs = byBucket[bucket.id];
               if (!docs || docs.length === 0) return null;
@@ -165,9 +165,9 @@ export function EmpDocuments({ documents, onDocumentDeleted }: Props) {
                     <DocRow key={d.id} doc={d} onDeleted={handleDeleted} onError={msg => showToast(msg, 'error')} />
                   ))}
                 </div>
-              </div>
+                </div>
             )}
-          </>
+          </div>
         )}
       </div>
       <ToastContainer toasts={toasts} onRemove={id => setToasts(prev => prev.filter(t => t.id !== id))} />

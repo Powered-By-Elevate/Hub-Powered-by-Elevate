@@ -91,8 +91,8 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
         </div>
       </div>
       <div className="content">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, background: '#fff', borderRadius: 14, border: '1px solid #E5E3DC', overflow: 'hidden' }}>
-          <div style={{ display: 'flex' }}>
+      <div id="emp-team-tabs" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, background: '#fff', borderRadius: 14, border: '1px solid #E5E3DC', overflow: 'hidden' }}>
+        <div style={{ display: 'flex' }}>
             <button
               className={`tab-btn${calTab === 'team' ? ' active' : ''}`}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '12px 20px' }}
@@ -110,7 +110,7 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
             </button>
           </div>
           {hasCompany && calTab === 'team' && (
-            <div style={{ display: 'flex', gap: 4, padding: '0 12px', alignItems: 'center' }}>
+            <div id="emp-team-scope-toggle" style={{ display: 'flex', gap: 4, padding: '0 12px', alignItems: 'center' }}>
               <button
                 onClick={() => setTeamView('dept')}
                 style={{
@@ -135,7 +135,7 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
 
         {calTab === 'team' && teamView === 'dept' && (
           <div>
-            <div className="card mb2">
+            <div id="emp-team-self" className="card mb2">
               <div className="card-body" style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div className="avatar av-navy av-48">{ini(me.name)}</div>
                 <div style={{ flex: 1 }}>
@@ -255,8 +255,8 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
           </div>
         )}
 
-        {calTab === 'calendar' && (
-          <div className="card">
+{calTab === 'calendar' && (
+          <div id="emp-team-calendar" className="card">
             <div className="card-header">
               <h3>Team Calendar</h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
