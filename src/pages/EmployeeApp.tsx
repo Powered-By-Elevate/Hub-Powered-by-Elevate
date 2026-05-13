@@ -152,11 +152,13 @@ export function EmployeeApp() {
       .maybeSingle();
     if (!data) { setTourLoaded(true); return; }
 
-    // Onboarding tour not done? Show it
-    if (!data.tour_completed_at) {
+    // Determine which tour to show based on lifecycle status
+    if (employee?.lifecycle_status === 'onboarding' && !data.tour_completed_at) {
+      // New hire actively onboarding — show onboarding tour
       setTourState({ type: 'onboarding', step: data.tour_current_step ?? -1 });
     } else if (employee?.lifecycle_status === 'active' && !data.active_tour_completed_at) {
-      // Onboarding done, employee is active, active tour not done? Show it
+      // Active employee who hasn't seen the active tour — show it
+      // (This handles both: completed onboarding flips them to active, OR hired before Hub launch)
       setTourState({ type: 'active', step: data.active_tour_current_step ?? -1 });
     }
     setTourLoaded(true);
