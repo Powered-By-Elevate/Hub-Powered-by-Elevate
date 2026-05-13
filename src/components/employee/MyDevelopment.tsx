@@ -38,7 +38,7 @@ export function EmpMyGoals({ plans, pathways, employee }: MyGoalsProps) {
       <div className="content">
         {/* Only show current_level and pathway — NOT next_level, readiness_level, current_status */}
         {(employee.current_level || pathwayName) && (
-          <div className="card mb2" style={{ padding: '1rem 1.25rem' }}>
+          <div id="emp-mygoals-summary" className="card mb2" style={{ padding: '1rem 1.25rem' }}>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
               {employee.current_level && (
                 <div>
@@ -67,7 +67,7 @@ export function EmpMyGoals({ plans, pathways, employee }: MyGoalsProps) {
         ) : (
           <>
             {active.length > 0 && (
-              <div className="card mb2">
+              <div id="emp-mygoals-active" className="card mb2">
                 <div className="card-header"><h3>Active Goals ({active.length})</h3></div>
                 {active.map(p => {
                   const sc = PLAN_STATUS_COLORS[p.status] ?? PLAN_STATUS_COLORS['Not Started'];
@@ -95,7 +95,7 @@ export function EmpMyGoals({ plans, pathways, employee }: MyGoalsProps) {
               </div>
             )}
             {completed.length > 0 && (
-              <div className="card">
+              <div id="emp-mygoals-completed" className="card">
                 <div className="card-header"><h3>Completed ({completed.length})</h3></div>
                 {completed.map(p => (
                   <div key={p.id} style={{ padding: '12px 1.25rem', borderBottom: '1px solid #F2F1ED', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -151,7 +151,7 @@ export function EmpMyCertifications({ certifications }: MyCertificationsProps) {
             </div>
           </div>
         ) : (
-          <div className="card">
+          <div id="emp-mycerts-list" className="card">
             {([['In Progress', inProgress], ['Completed', completed], ['Not Started', notStarted]] as [string, Certification[]][]).map(([label, group]) => {
               if (group.length === 0) return null;
               return (
@@ -255,7 +255,7 @@ export function EmpMyCheckins({ checkins, quarterlyCheckins, lifecycleCheckins }
             </div>
           </div>
         ) : (
-          <div className="card">
+          <div id="emp-mycheckins-list" className="card">
             {combined.map(c => {
               const statusColor = c.status === 'completed'
                 ? { bg: '#D1FAE5', color: '#065F46' }
@@ -354,7 +354,7 @@ export function EmpMyReviews({ reviews, annualReviews }: MyReviewsProps) {
             </div>
           </div>
         ) : (
-          <div className="card">
+          <div id="emp-myreviews-list" className="card">
             {combined.map(r => {
               const statusColor = r.status === 'completed'
                 ? { bg: '#D1FAE5', color: '#065F46' }
