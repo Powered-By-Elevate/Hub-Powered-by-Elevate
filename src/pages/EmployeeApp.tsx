@@ -15,6 +15,8 @@ import { AddTaskModal } from '../components/hr/modals/AddTask';
 import { MobileLayout } from '../components/mobile/MobileLayout';
 import { MobileDashboard } from '../components/mobile/MobileDashboard';
 import { MobileDocuments } from '../components/mobile/MobileDocuments';
+import { SpotlightTour } from '../components/shared/SpotlightTour';
+import { employeeOnboardingTour, employeeOnboardingIntro, employeeOnboardingOutro, employeeActiveTour, employeeActiveIntro, employeeActiveOutro } from '../lib/tours';
 import { NotificationBell } from '../components/shared/NotificationBell';
 
 function useMobile() {
@@ -57,6 +59,8 @@ export function EmployeeApp() {
   const [myPathways, setMyPathways] = useState<Pathway[]>([]);
   const [announcements, setAnnouncements] = useState<HRAnnouncement[]>([]);
   const [showAddTask, setShowAddTask] = useState(false);
+  const [tourState, setTourState] = useState<{ type: 'onboarding' | 'active' | null; step: number }>({ type: null, step: -1 });
+  const [tourLoaded, setTourLoaded] = useState(false);
   const channelsRef = useRef<ReturnType<typeof supabase.channel>[]>([]);
   const empIdRef = useRef<string | null>(null);
   const isMobile = useMobile();
@@ -138,6 +142,27 @@ export function EmployeeApp() {
       }
     }
   }, [profile?.employee_id, loadDocuments]);
+
+  const loadTourState = useCallback(async () => {
+    if (!profile?.id) return;
+    const { data } = await supabase
+      .from('users')
+      .select('tour_completed_at, tour_current_step, active_tour_completed_at, active_tour_current_step')
+      .eq('id', profile.id)
+      .maybeSingle();
+    if (!data) { setTourLoaded(true); return; }
+
+    // Onboarding tour not done? Show it
+    if (!data.tour_completed_at) {
+      setTourState({ type: 'onboarding', step: data.tour_current_step ?? -1 });
+    } else if (employee?.lifecycle_status === 'active' && !data.active_tour_completed_at) {
+      // Onboarding done, employee is active, active tour not done? Show it
+      setTourState({ type: 'active', step: data.active_tour_current_step ?? -1 });
+    }
+    setTourLoaded(true);
+  }, [profile?.id, employee?.lifecycle_status]);
+
+  useEffect(() => { if (employee) loadTourState(); }, [employee, loadTourState]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -389,6 +414,50 @@ export function EmployeeApp() {
         {tab === 'my-checkins' && isActive && <EmpMyCheckins checkins={myCheckins} quarterlyCheckins={myQuarterlyCheckins} lifecycleCheckins={myLifecycleCheckins} employee={employee} />}
           {tab === 'my-reviews' && isActive && <EmpMyReviews reviews={myReviews} annualReviews={myAnnualReviews} employee={employee} />}
       </div>
+
+      {tourLoaded && tourState.type === 'onboarding' && profile?.id && (
+        <SpotlightTour
+          steps={employeeOnboardingTour}
+          currentStep={tourState.step}
+          introTitle={employeeOnboardingIntro.title}
+          introBody={employeeOnboardingIntro.body}
+          outroTitle={employeeOnboardingOutro.title}
+          outroBody={employeeOnboardingOutro.body}
+          onAdvance={async (newStep) => {
+            setTourState({ type: 'onboarding', step: newStep });
+            await supabase.from('users').update({ tour_current_step: newStep }).eq('id', profile.id);
+          }}
+          onComplete={async () => {
+            setTourState({ type: null, step: -1 });
+            await supabase.from('users').update({
+              tour_completed_at: new Date().toISOString(),
+              tour_current_step: employeeOnboardingTour.length,
+            }).eq('id', profile.id);
+          }}
+        />
+      )}
+      {tourLoaded && tourState.type === 'active' && profile?.id && (
+        <SpotlightTour
+          steps={employeeActiveTour}
+          currentStep={tourState.step}
+          introTitle={employeeActiveIntro.title}
+          introBody={employeeActiveIntro.body}
+          outroTitle={employeeActiveOutro.title}
+          outroBody={employeeActiveOutro.body}
+          onAdvance={async (newStep) => {
+            setTourState({ type: 'active', step: newStep });
+            await supabase.from('users').update({ active_tour_current_step: newStep }).eq('id', profile.id);
+          }}
+          onComplete={async () => {
+            setTourState({ type: null, step: -1 });
+            await supabase.from('users').update({
+              active_tour_completed_at: new Date().toISOString(),
+              active_tour_current_step: employeeActiveTour.length,
+            }).eq('id', profile.id);
+          }}
+        />
+      )}
+
       {showAddTask && employee && (
         <AddTaskModal
           employeeId={employee.id}

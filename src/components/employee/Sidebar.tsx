@@ -102,7 +102,12 @@ export function EmpSidebar({ employee, tab, onTab }: Props) {
         <div className="sidebar-nav">
           <div className="nav-section-label">{isActive ? 'Employee Hub' : 'My Onboarding'}</div>
           {nav.map(({ id, icon, label }) => (
-            <button key={id} className={`nav-btn${tab === id ? ' active' : ''}`} onClick={() => onTab(id)}>
+            <button
+              key={id}
+              id={`emp-sidebar-${id}`}
+              className={`nav-btn${tab === id ? ' active' : ''}`}
+              onClick={() => onTab(id)}
+            >
               <span className="nav-icon">{icon}</span>
               {label}
             </button>
