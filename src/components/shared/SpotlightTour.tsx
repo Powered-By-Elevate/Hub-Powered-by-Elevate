@@ -53,6 +53,20 @@ export function SpotlightTour({
     });
   }, [step]);
 
+  // Auto-skip steps where target element doesn't exist (e.g. conditional sections)
+  useEffect(() => {
+    if (phase !== 'spotlight' || !step) return;
+    const skipTimer = setTimeout(() => {
+      const el = document.getElementById(step.targetId);
+      if (!el) {
+        // Element never appeared — skip to next step
+        if (currentStep + 1 >= steps.length) onComplete();
+        else onAdvance(currentStep + 1);
+      }
+    }, 1500);
+    return () => clearTimeout(skipTimer);
+  }, [phase, currentStep, step, steps.length, onAdvance, onComplete]);
+
   useEffect(() => {
     if (phase !== 'spotlight') return;
     // Multiple measure attempts to handle late-rendering elements after tab switch

@@ -55,22 +55,18 @@ export const employeeOnboardingOutro = {
 export const employeeActiveTour = (setTab: (t: EmpTab) => void): TourStep[] => [
   // ---- Dashboard ----
   { targetId: 'emp-sidebar-overview', title: 'Your Dashboard', body: "Welcome to your Hub. Let's walk through everything available to you.", onEnter: () => setTab('overview') },
-  { targetId: 'emp-dashboard-banner', title: 'Announcements & Updates', body: "Important messages from HR show up here — open enrollment, policy changes, company-wide news." },
   { targetId: 'emp-dashboard-tasks', title: 'Open Tasks', body: "Tasks assigned to you across the company. Mark them complete as you go." },
   { targetId: 'emp-dashboard-schedule', title: "Today's Schedule", body: "Meetings, check-ins, and events scheduled for today." },
-  { targetId: 'emp-dashboard-development', title: 'My Development', body: "Quick access to your goals, certifications, check-ins, and reviews. We'll dive into each of these in a moment." },
   { targetId: 'emp-topbar-clock', title: 'Current Date & Time', body: "Always visible up here so you stay oriented." },
 
   // ---- Tasks ----
   { targetId: 'emp-sidebar-tasks', title: 'My Tasks', body: "All tasks assigned to you, organized by deadline.", onEnter: () => setTab('tasks') },
-  { targetId: 'emp-tasks-filter', title: 'Filter by Time', body: "View by week, month, year, or see everything at once. Critical tasks always sort to the top." },
-  { targetId: 'emp-tasks-list', title: 'Your Active Tasks', body: "Click the checkbox to mark complete. You can also create your own tasks with the + button." },
+  { targetId: 'emp-tasks-list', title: 'Your Active Tasks', body: "Click the checkbox to mark complete. You can also create your own tasks with the + button. Critical tasks always sort to the top." },
 
   // ---- Team ----
   { targetId: 'emp-sidebar-team', title: 'My Team', body: "Your department, your company, and a shared calendar of who's doing what.", onEnter: () => setTab('team') },
   { targetId: 'emp-team-tabs', title: 'Team or Calendar', body: "Switch between seeing teammates and seeing the team's combined schedule." },
-  { targetId: 'emp-team-scope-toggle', title: 'Department or Company', body: "Toggle between just your immediate team and everyone across your company." },
-  { targetId: 'emp-team-calendar', title: 'Shared Schedule', body: "See your teammates' meetings and events in one view — useful for finding free time to collaborate." },
+  { targetId: 'emp-team-self', title: 'You & Your Team', body: "Your card sits at the top, with the rest of your department below. Email or Teams chat anyone directly from their card." },
 
   // ---- Schedule ----
   { targetId: 'emp-sidebar-schedule', title: 'My Schedule', body: "Your personal calendar of meetings, check-ins, and reviews.", onEnter: () => setTab('schedule') },
@@ -83,12 +79,10 @@ export const employeeActiveTour = (setTab: (t: EmpTab) => void): TourStep[] => [
 
   // ---- Contacts ----
   { targetId: 'emp-sidebar-contacts', title: 'Contacts', body: "Your company directory plus external vendors.", onEnter: () => setTab('contacts') },
-  { targetId: 'emp-contacts-myteam', title: 'My Team', body: "Your immediate team is here at the top." },
-  { targetId: 'emp-contacts-search', title: 'Find Anyone', body: "Search across your whole company plus external vendors like IT and benefits providers." },
+  { targetId: 'emp-contacts-search', title: 'Find Anyone', body: "Search by name, role, or department across your whole company plus external vendors like IT and benefits providers." },
 
   // ---- My Goals ----
   { targetId: 'emp-sidebar-my-goals', title: 'My Goals', body: "Your development goals and career pathway live here.", onEnter: () => setTab('my-goals') },
-  { targetId: 'emp-mygoals-summary', title: 'Your Level & Pathway', body: "Your current career level and the pathway you're on — your roadmap for growth." },
   { targetId: 'emp-mygoals-active', title: 'Active Goals', body: "What you're working toward right now. Progress bars show how far you've come." },
 
   // ---- My Certifications ----
