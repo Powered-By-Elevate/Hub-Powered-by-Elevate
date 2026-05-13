@@ -6,7 +6,7 @@ import { Modal } from '../shared/Modal';
 import { Pencil, Trash2, Plus, Check, X } from 'lucide-react';
 import { ScheduleTemplatesSection } from './ScheduleTemplatesSection';
 
-type SettingsSection = 'schedule' | 'banners' | 'organization' | 'contacts' | 'schedule-templates';
+type SettingsSection = 'schedule' | 'banners' | 'organization' | 'contacts' | 'schedule-templates' | 'roles';
 
 interface Props {
   employees: Employee[];
@@ -227,6 +227,7 @@ const [editContact, setEditContact] = useState<Contact | null>(null);
     { id: 'banners', label: 'Hub Banners' },
     { id: 'organization', label: 'Organization Setup' },
     { id: 'contacts', label: 'External Contacts' },
+    { id: 'roles', label: 'User Roles & Visibility' },
   ];
 
   const titlesByCategory: Record<string, JobTitle[]> = {};
@@ -414,6 +415,9 @@ const [editContact, setEditContact] = useState<Contact | null>(null);
                   </table>
                 )}
               </div>
+            )}
+            {section === 'roles' && (
+              <UserRolesSection />
             )}
             {section === 'organization' && (
               <div>
@@ -1157,6 +1161,291 @@ function TitleModal({ jobTitle, onClose, onSaved }: TitleModalProps) {
             {TITLE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
+      </div>
+    </Modal>
+  );
+}
+// ============================================================
+// User Roles & Visibility section
+// ============================================================
+
+interface UserRow {
+  id: string;
+  email: string;
+  role: 'employee' | 'manager' | 'hr';
+  visibility_scope: 'direct_reports' | 'company_reports' | 'app_wide_reports' | null;
+  company_id: string | null;
+  employee_id: string | null;
+}
+
+function UserRolesSection() {
+  const { profile } = useAuth();
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [employees, setEmployees] = useState<{ id: string; name: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editUser, setEditUser] = useState<UserRow | null>(null);
+  const [search, setSearch] = useState('');
+
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+    const [{ data: usersData }, { data: companiesData }, { data: empsData }] = await Promise.all([
+      supabase.from('users').select('id, email, role, visibility_scope, company_id, employee_id').order('email'),
+      supabase.from('companies').select('*').eq('active', true).order('name'),
+      supabase.from('employees').select('id, name').eq('archived', false).order('name'),
+    ]);
+    setUsers((usersData as UserRow[]) ?? []);
+    setCompanies(companiesData ?? []);
+    setEmployees(empsData ?? []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { loadUsers(); }, [loadUsers]);
+
+  function companyName(id: string | null): string {
+    if (!id) return '—';
+    return companies.find(c => c.id === id)?.name ?? '—';
+  }
+
+  function employeeName(id: string | null): string {
+    if (!id) return '—';
+    return employees.find(e => e.id === id)?.name ?? '—';
+  }
+
+  function scopeLabel(scope: string | null): string {
+    if (!scope) return '—';
+    if (scope === 'direct_reports') return 'Direct Reports';
+    if (scope === 'company_reports') return 'Company';
+    if (scope === 'app_wide_reports') return 'App-Wide';
+    return scope;
+  }
+
+  function roleBadge(role: string) {
+    const styles: Record<string, { bg: string; color: string }> = {
+      hr: { bg: '#FDE68A', color: '#92400E' },
+      manager: { bg: '#E8EFF8', color: '#1B3F6E' },
+      employee: { bg: '#F2F1ED', color: '#6B6860' },
+    };
+    const s = styles[role] ?? styles.employee;
+    return (
+      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 12, background: s.bg, color: s.color, textTransform: 'capitalize' }}>
+        {role}
+      </span>
+    );
+  }
+
+  const filtered = search
+    ? users.filter(u =>
+        u.email.toLowerCase().includes(search.toLowerCase()) ||
+        employeeName(u.employee_id).toLowerCase().includes(search.toLowerCase())
+      )
+    : users;
+
+  return (
+    <>
+      <div className="card">
+        <div className="card-header">
+          <div>
+            <h3 style={{ marginBottom: 2 }}>User Roles & Visibility</h3>
+            <div style={{ fontSize: 12, color: '#9B9890' }}>
+              Manage who can see what. Manager tiers control employee visibility only — they don't grant admin authority.
+            </div>
+          </div>
+        </div>
+
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid #F2F1ED' }}>
+          <input
+            className="search-input"
+            placeholder="Search by email or name…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ maxWidth: 320 }}
+          />
+        </div>
+
+        {loading ? (
+          <div className="empty-state"><p>Loading users…</p></div>
+        ) : filtered.length === 0 ? (
+          <div className="empty-state">
+            <p>{search ? 'No users match your search' : 'No users yet'}</p>
+          </div>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Linked Employee</th>
+                <th>Role</th>
+                <th>Scope</th>
+                <th>Company</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(u => (
+                <tr key={u.id}>
+                  <td>
+                    <div className="emp-name">{u.email}</div>
+                    {u.id === profile?.id && (
+                      <span style={{ fontSize: 10, color: '#9B9890', background: '#F2F1ED', padding: '1px 6px', borderRadius: 4, fontWeight: 600, marginTop: 2, display: 'inline-block' }}>YOU</span>
+                    )}
+                  </td>
+                  <td style={{ fontSize: 12, color: '#6B6860' }}>{employeeName(u.employee_id)}</td>
+                  <td>{roleBadge(u.role)}</td>
+                  <td style={{ fontSize: 12, color: '#1A1916' }}>
+                    {u.role === 'manager' ? scopeLabel(u.visibility_scope) : <span style={{ color: '#C5C3BB' }}>—</span>}
+                  </td>
+                  <td style={{ fontSize: 12, color: '#6B6860' }}>
+                    {u.role === 'manager' && u.visibility_scope === 'company_reports' ? companyName(u.company_id) : <span style={{ color: '#C5C3BB' }}>—</span>}
+                  </td>
+                  <td>
+                    <button
+                      className="btn-ghost sm"
+                      style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                      onClick={() => setEditUser(u)}
+                    >
+                      <Pencil size={11} /> Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {editUser && (
+        <EditUserRoleModal
+          user={editUser}
+          isSelf={editUser.id === profile?.id}
+          companies={companies}
+          onClose={() => setEditUser(null)}
+          onSaved={() => { setEditUser(null); loadUsers(); }}
+        />
+      )}
+    </>
+  );
+}
+
+interface EditUserRoleModalProps {
+  user: UserRow;
+  isSelf: boolean;
+  companies: Company[];
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+function EditUserRoleModal({ user, isSelf, companies, onClose, onSaved }: EditUserRoleModalProps) {
+  const [role, setRole] = useState<UserRow['role']>(user.role);
+  const [scope, setScope] = useState<UserRow['visibility_scope']>(user.visibility_scope);
+  const [companyId, setCompanyId] = useState<string | null>(user.company_id);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function save() {
+    // Safety: prevent self-demotion from HR
+    if (isSelf && user.role === 'hr' && role !== 'hr') {
+      setError('You cannot remove your own HR role. Ask another HR admin to do it.');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+
+    const payload: Record<string, unknown> = {
+      role,
+      visibility_scope: role === 'manager' ? (scope ?? 'direct_reports') : null,
+      company_id: role === 'manager' && scope === 'company_reports' ? companyId : null,
+    };
+
+    const { error: err } = await supabase
+      .from('users')
+      .update(payload)
+      .eq('id', user.id);
+
+    setSaving(false);
+
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    onSaved();
+  }
+
+  return (
+    <Modal
+      title="Edit User Role & Visibility"
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn-primary" onClick={save} disabled={saving}>
+            {saving ? 'Saving…' : 'Save Changes'}
+          </button>
+        </>
+      }
+    >
+      {error && <div className="error-msg">{error}</div>}
+
+      <div style={{ marginBottom: 18, padding: '10px 12px', background: '#F8F7F4', borderRadius: 8, fontSize: 12, color: '#6B6860' }}>
+        <strong>{user.email}</strong>
+        {isSelf && (
+          <div style={{ marginTop: 4, color: '#92400E' }}>
+            You are editing your own account. Changes take effect after sign out and back in.
+          </div>
+        )}
+      </div>
+
+      <div className="form-grid">
+        <div className="field full">
+          <label>Role <span style={{ color: '#E53E3E' }}>*</span></label>
+          <select value={role} onChange={e => setRole(e.target.value as UserRow['role'])}>
+            <option value="employee">Employee — sees only their own data</option>
+            <option value="manager">Manager — sees others based on scope</option>
+            <option value="hr">HR Admin — full access, settings, customization</option>
+          </select>
+        </div>
+
+        {role === 'manager' && (
+          <div className="field full">
+            <label>Visibility Scope <span style={{ color: '#E53E3E' }}>*</span></label>
+            <select value={scope ?? 'direct_reports'} onChange={e => setScope(e.target.value as UserRow['visibility_scope'])}>
+              <option value="direct_reports">Direct Reports — sees only their direct reports</option>
+              <option value="company_reports">Company — sees everyone in their assigned company</option>
+              <option value="app_wide_reports">App-Wide — sees all employees, all companies</option>
+            </select>
+            <div style={{ fontSize: 11, color: '#9B9890', marginTop: 6, lineHeight: 1.5 }}>
+              {scope === 'direct_reports' && 'Manager will see only employees who report directly to them. No document access.'}
+              {scope === 'company_reports' && 'Manager will see all employees in their company. Includes document access.'}
+              {scope === 'app_wide_reports' && 'Manager will see all employees across all companies. Includes document access.'}
+            </div>
+          </div>
+        )}
+
+        {role === 'manager' && scope === 'company_reports' && (
+          <div className="field full">
+            <label>Company <span style={{ color: '#E53E3E' }}>*</span></label>
+            <select value={companyId ?? ''} onChange={e => setCompanyId(e.target.value || null)}>
+              <option value="">— select company —</option>
+              {companies.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            {!companyId && (
+              <div style={{ fontSize: 11, color: '#DC2626', marginTop: 6 }}>
+                Required when scope is Company-level.
+              </div>
+            )}
+          </div>
+        )}
+
+        {role === 'hr' && (
+          <div className="field full">
+            <div style={{ padding: '10px 12px', background: '#FEF3C7', borderRadius: 8, fontSize: 12, color: '#92400E' }}>
+              HR Admins always have app-wide visibility and full edit access. Use this role carefully.
+            </div>
+          </div>
+        )}
       </div>
     </Modal>
   );
