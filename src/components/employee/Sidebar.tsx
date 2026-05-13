@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AppLogo } from '../shared/AppLogo';
 import { useAuth } from '../../contexts/AuthContext';
+import { useViewer } from '../../contexts/ViewerContext';
 import { Employee } from '../../lib/database.types';
 import { ini } from '../shared/utils';
 import type { EmpTab } from '../../pages/EmployeeApp';
@@ -39,9 +40,11 @@ const MORE_ONBOARDING: { id: EmpTab; icon: string; label: string }[] = [
 
 export function EmpSidebar({ employee, tab, onTab }: Props) {
   const { signOut } = useAuth();
+  const viewer = useViewer();
   const [showMore, setShowMore] = useState(false);
   const [showAvatarDrop, setShowAvatarDrop] = useState(false);
   const isActive = employee.lifecycle_status === 'active';
+  const isManager = viewer?.role === 'manager';
 
   const onboardingNav: { id: EmpTab; icon: string; label: string }[] = [
     { id: 'overview', icon: '▦', label: 'My Overview' },
@@ -63,6 +66,20 @@ export function EmpSidebar({ employee, tab, onTab }: Props) {
     { id: 'my-checkins', icon: '📋', label: 'My Check-ins' },
     { id: 'my-reviews', icon: '📊', label: 'My Reviews' },
   ];
+
+  // Manager-only tabs (conditional on viewer.scope)
+  const managerNav: { id: EmpTab; icon: string; label: string }[] = isManager ? [
+    { id: 'mgr-dashboard', icon: '📊', label: 'Team Dashboard' },
+    { id: 'mgr-team', icon: '👨‍👩‍👧', label: 'Direct Team' },
+    ...(viewer?.scope === 'company_reports' || viewer?.scope === 'app_wide_reports'
+      ? [
+          { id: 'mgr-employees' as EmpTab, icon: '🏢', label: 'All Employees' },
+          { id: 'mgr-applicants' as EmpTab, icon: '📨', label: 'Applicants' },
+          { id: 'mgr-checkins' as EmpTab, icon: '📅', label: 'Check-ins & Reviews' },
+          { id: 'mgr-career' as EmpTab, icon: '🎯', label: 'Career Development' },
+        ]
+      : []),
+  ] : [];
 
   const nav = isActive ? activeNav : onboardingNav;
   const mobileNav = isActive ? MOBILE_NAV_ACTIVE : MOBILE_NAV_ONBOARDING;
@@ -95,7 +112,7 @@ export function EmpSidebar({ employee, tab, onTab }: Props) {
           <div>
             <div style={{ fontWeight: 600, fontSize: 13, color: '#fff', lineHeight: 1.2 }}>{employee.name}</div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>
-              {isActive ? employee.role : 'New Hire'}
+              {isManager ? 'Manager' : isActive ? employee.role : 'New Hire'}
             </div>
           </div>
         </div>
@@ -112,6 +129,22 @@ export function EmpSidebar({ employee, tab, onTab }: Props) {
               {label}
             </button>
           ))}
+          {isManager && managerNav.length > 0 && (
+            <>
+              <div className="nav-section-label" style={{ marginTop: 14 }}>Manager</div>
+              {managerNav.map(({ id, icon, label }) => (
+                <button
+                  key={id}
+                  id={`emp-sidebar-${id}`}
+                  className={`nav-btn${tab === id ? ' active' : ''}`}
+                  onClick={() => onTab(id)}
+                >
+                  <span className="nav-icon">{icon}</span>
+                  {label}
+                </button>
+              ))}
+            </>
+          )}
         </div>
         <div className="sidebar-footer">
           <button className="logout-btn-inner" onClick={signOut}>↩&nbsp; Sign out</button>
@@ -124,7 +157,7 @@ export function EmpSidebar({ employee, tab, onTab }: Props) {
           <img src="/GetImage.png" alt="TrueNorth" style={{ height: 26, width: 'auto', background: '#fff', borderRadius: 6, padding: '3px 6px' }} />
         </div>
         <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontSize: 14, fontWeight: 700, color: '#fff', letterSpacing: -0.2, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-          {tab === 'overview' ? (isActive ? 'Dashboard' : 'My Onboarding') : tab === 'tasks' ? 'My Tasks' : tab === 'schedule' ? 'Schedule' : tab === 'documents' ? 'Documents' : tab === 'team' ? 'My Team' : tab === 'contacts' ? 'Contacts' : tab === 'checkins' ? 'Check-ins' : tab === 'my-goals' ? 'My Goals' : tab === 'my-certifications' ? 'My Certifications' : tab === 'my-checkins' ? 'My Check-ins' : tab === 'my-reviews' ? 'My Reviews' : 'More'}
+          {tab === 'overview' ? (isActive ? 'Dashboard' : 'My Onboarding') : tab === 'tasks' ? 'My Tasks' : tab === 'schedule' ? 'Schedule' : tab === 'documents' ? 'Documents' : tab === 'team' ? 'My Team' : tab === 'contacts' ? 'Contacts' : tab === 'checkins' ? 'Check-ins' : tab === 'my-goals' ? 'My Goals' : tab === 'my-certifications' ? 'My Certifications' : tab === 'my-checkins' ? 'My Check-ins' : tab === 'my-reviews' ? 'My Reviews' : tab.startsWith('mgr-') ? 'Manager' : 'More'}
         </div>
         <div style={{ position: 'relative' }}>
           <button className="mobile-header-avatar" onClick={() => setShowAvatarDrop(v => !v)}>
@@ -135,7 +168,7 @@ export function EmpSidebar({ employee, tab, onTab }: Props) {
               <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowAvatarDrop(false)} />
               <div className="avatar-dropdown">
                 <div style={{ padding: '10px 14px 4px', fontSize: 12, color: '#9B9890', fontWeight: 600 }}>{employee.name}</div>
-                <div style={{ padding: '2px 14px 10px', fontSize: 11, color: '#9B9890' }}>{isActive ? employee.role : 'New Hire'}</div>
+                <div style={{ padding: '2px 14px 10px', fontSize: 11, color: '#9B9890' }}>{isManager ? 'Manager' : isActive ? employee.role : 'New Hire'}</div>
                 <hr />
                 <button onClick={() => { setShowAvatarDrop(false); signOut(); }}>↩ Sign out</button>
               </div>
@@ -178,6 +211,23 @@ export function EmpSidebar({ employee, tab, onTab }: Props) {
                 <span style={{ marginLeft: 'auto', fontSize: 16, color: '#C5C3BB' }}>›</span>
               </button>
             ))}
+            {isManager && managerNav.length > 0 && (
+              <>
+                <div className="more-sheet-divider" />
+                <div className="more-sheet-title">Manager</div>
+                {managerNav.map(({ id, icon, label }) => (
+                  <button
+                    key={id}
+                    className={`more-sheet-item${tab === id ? ' active' : ''}`}
+                    onClick={() => handleMoreItem(id)}
+                  >
+                    <span className="more-sheet-item-icon">{icon}</span>
+                    {label}
+                    <span style={{ marginLeft: 'auto', fontSize: 16, color: '#C5C3BB' }}>›</span>
+                  </button>
+                ))}
+              </>
+            )}
             <div className="more-sheet-divider" />
             <div className="more-sheet-title">Account</div>
             <button className="more-sheet-item" style={{ color: '#DC2626' }} onClick={() => { setShowMore(false); signOut(); }}>

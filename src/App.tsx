@@ -4,7 +4,6 @@ import { ViewerProvider } from './contexts/ViewerContext';
 import { LoginPage } from './pages/Login';
 import { SetupPage } from './pages/Setup';
 import { HRApp } from './pages/HRApp';
-import { ManagerApp } from './pages/ManagerApp';
 import { EmployeeApp } from './pages/EmployeeApp';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 
@@ -29,8 +28,7 @@ function AppRouter() {
   if (!user) return <LoginPage />;
   if (!profile) return <div className="loading-screen"><div className="loading-spinner" /></div>;
   if (profile.role === 'hr') return <ErrorBoundary><HRApp /></ErrorBoundary>;
-  if (profile.role === 'manager') return <ErrorBoundary><ManagerApp /></ErrorBoundary>;
-  if (profile.role === 'employee') {
+  if (profile.role === 'manager' || profile.role === 'employee') {
     if (!profile.employee_id) {
       return (
         <div className="loading-screen" style={{ flexDirection: 'column', gap: 12 }}>

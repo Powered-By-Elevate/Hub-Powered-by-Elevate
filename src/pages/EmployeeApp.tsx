@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Employee, OnboardingTask, Document, Schedule, Contact, HRAnnouncement, Review, DevelopmentPlan, Certification, Checkin, Pathway, QuarterlyCheckin, AnnualReview, LifecycleCheckin } from '../lib/database.types';
 import { useAuth } from '../contexts/AuthContext';
+import { useViewer } from '../contexts/ViewerContext';
+import { visibleEmployees } from '../lib/visibility';
 import { EmpSidebar } from '../components/employee/Sidebar';
 import { EmpOverview } from '../components/employee/Overview';
 import { EmpTasks } from '../components/employee/Tasks';
@@ -11,6 +13,9 @@ import { EmpContacts } from '../components/employee/Contacts';
 import { EmpTeam } from '../components/employee/Team';
 import { EmpCheckins } from '../components/employee/Checkins';
 import { EmpMyGoals, EmpMyCertifications, EmpMyCheckins, EmpMyReviews } from '../components/employee/MyDevelopment';
+import { ManagerDashboard } from '../components/manager/Dashboard';
+import { ManagerTeam } from '../components/manager/Team';
+import { ManagerEmployeeDetail } from '../components/manager/EmployeeDetail';
 import { AddTaskModal } from '../components/hr/modals/AddTask';
 import { MobileLayout } from '../components/mobile/MobileLayout';
 import { MobileDashboard } from '../components/mobile/MobileDashboard';
@@ -33,7 +38,10 @@ function ini(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
-export type EmpTab = 'overview' | 'tasks' | 'schedule' | 'documents' | 'contacts' | 'team' | 'checkins' | 'my-goals' | 'my-certifications' | 'my-checkins' | 'my-reviews' | 'more';
+export type EmpTab =
+  | 'overview' | 'tasks' | 'schedule' | 'documents' | 'contacts' | 'team' | 'checkins'
+  | 'my-goals' | 'my-certifications' | 'my-checkins' | 'my-reviews' | 'more'
+  | 'mgr-dashboard' | 'mgr-team' | 'mgr-detail' | 'mgr-employees' | 'mgr-applicants' | 'mgr-checkins' | 'mgr-career';
 
 async function logActivity(employeeId: string, action: string) {
   await supabase.from('activity_log').insert({ employee_id: employeeId, action, created_at: new Date().toISOString() });
@@ -41,6 +49,8 @@ async function logActivity(employeeId: string, action: string) {
 
 export function EmployeeApp() {
   const { profile, signOut } = useAuth();
+  const viewer = useViewer();
+  const isManager = viewer?.role === 'manager';
   const [tab, setTab] = useState<EmpTab>('overview');
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [tasks, setTasks] = useState<OnboardingTask[]>([]);
@@ -61,6 +71,13 @@ export function EmployeeApp() {
   const [showAddTask, setShowAddTask] = useState(false);
   const [tourState, setTourState] = useState<{ type: 'onboarding' | 'active' | null; step: number }>({ type: null, step: -1 });
   const [tourLoaded, setTourLoaded] = useState(false);
+
+  // Manager-specific state
+  const [team, setTeam] = useState<Employee[]>([]);
+  const [teamTasks, setTeamTasks] = useState<Record<string, OnboardingTask[]>>({});
+  const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<string | null>(null);
+  const [modal, setModal] = useState<{ type: string; eid?: string } | null>(null);
+
   const channelsRef = useRef<ReturnType<typeof supabase.channel>[]>([]);
   const empIdRef = useRef<string | null>(null);
   const isMobile = useMobile();
@@ -112,7 +129,6 @@ export function EmployeeApp() {
       let emp: Employee = empRes.data;
       empIdRef.current = emp.id;
 
-      // Repair: if all onboarding tasks are complete but lifecycle_status wasn't updated
       if (emp.lifecycle_status === 'onboarding' && allTasks.length > 0) {
         const onboardingTasks = allTasks.filter(t => t.task_phase === 'onboarding');
         if (onboardingTasks.length > 0 && onboardingTasks.every(t => t.status === 'complete')) {
@@ -143,6 +159,38 @@ export function EmployeeApp() {
     }
   }, [profile?.employee_id, loadDocuments]);
 
+  // Manager-only: load team based on viewer scope
+  const loadTeam = useCallback(async () => {
+    if (!viewer || viewer.role !== 'manager') return;
+
+    let query = supabase.from('employees')
+      .select('*')
+      .eq('archived', false)
+      .neq('is_test_account', true);
+
+    if (viewer.scope === 'app_wide_reports') {
+      // see everyone
+    } else if (viewer.scope === 'company_reports' && viewer.company_id) {
+      query = query.eq('company_id', viewer.company_id);
+    } else {
+      // direct_reports
+      if (!viewer.employee_id) { setTeam([]); return; }
+      query = query.or(
+        `manager_user_id.eq.${viewer.user_id},manager_id.eq.${viewer.employee_id},hiring_manager_id.eq.${viewer.employee_id}`
+      );
+    }
+
+    const { data } = await query.order('created_at', { ascending: false });
+    // Exclude self from team views
+    const filtered = (data ?? []).filter(e => e.id !== viewer.employee_id);
+    setTeam(visibleEmployees(viewer, filtered));
+  }, [viewer]);
+
+  const loadTeamMemberTasks = useCallback(async (empId: string) => {
+    const { data } = await supabase.from('onboarding_tasks').select('*').eq('employee_id', empId).order('created_at');
+    setTeamTasks(prev => ({ ...prev, [empId]: data ?? [] }));
+  }, []);
+
   const loadTourState = useCallback(async () => {
     if (!profile?.id) return;
     const { data } = await supabase
@@ -152,23 +200,23 @@ export function EmployeeApp() {
       .maybeSingle();
     if (!data) { setTourLoaded(true); return; }
 
-    // Determine which tour to show based on lifecycle status
     if (employee?.lifecycle_status === 'onboarding' && !data.tour_completed_at) {
-      // New hire actively onboarding — show onboarding tour
       setTourState({ type: 'onboarding', step: data.tour_current_step ?? -1 });
     } else if (employee?.lifecycle_status === 'active' && !data.active_tour_completed_at) {
-      // Active employee who hasn't seen the active tour — show it
-      // (This handles both: completed onboarding flips them to active, OR hired before Hub launch)
       setTourState({ type: 'active', step: data.active_tour_current_step ?? -1 });
     }
     setTourLoaded(true);
   }, [profile?.id, employee?.lifecycle_status]);
 
   useEffect(() => { if (employee) loadTourState(); }, [employee, loadTourState]);
-
   useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { if (isManager) loadTeam(); }, [isManager, loadTeam]);
 
-  // Real-time subscriptions for employee-facing data
+  useEffect(() => {
+    if (selectedTeamMemberId && !teamTasks[selectedTeamMemberId]) loadTeamMemberTasks(selectedTeamMemberId);
+  }, [selectedTeamMemberId, teamTasks, loadTeamMemberTasks]);
+
+  // Realtime subscriptions
   useEffect(() => {
     if (!profile?.employee_id) return;
     const empId = profile.employee_id;
@@ -176,7 +224,6 @@ export function EmployeeApp() {
     channelsRef.current.forEach(ch => supabase.removeChannel(ch));
     channelsRef.current = [];
 
-    // Tasks: re-fetch tasks and recompute progress when tasks change
     const tasksChannel = supabase
       .channel('emp-tasks-rt')
       .on('postgres_changes', {
@@ -188,7 +235,6 @@ export function EmployeeApp() {
       })
       .subscribe();
 
-    // Employee record: sync profile changes (progress, lifecycle, etc.) made by HR
     const empChannel = supabase
       .channel('emp-profile-rt')
       .on('postgres_changes', {
@@ -198,14 +244,12 @@ export function EmployeeApp() {
         const updated = payload.new as Employee;
         const oldData = payload.old as Employee;
         setEmployee(updated);
-        // If lifecycle_status changed, reload all data so My Check-ins, Reviews, etc. appear
         if (oldData.lifecycle_status !== updated.lifecycle_status) {
           await loadData();
         }
       })
       .subscribe();
 
-    // Documents: refresh when HR uploads or deletes docs for this employee
     const docsChannel = supabase
       .channel('emp-docs-rt')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'documents' }, async () => {
@@ -220,7 +264,7 @@ export function EmployeeApp() {
       channelsRef.current.forEach(ch => supabase.removeChannel(ch));
       channelsRef.current = [];
     };
-  }, [profile?.employee_id, loadDocuments]);
+  }, [profile?.employee_id, loadDocuments, loadData]);
 
   async function toggleTask(taskId: string) {
     const task = tasks.find(t => t.id === taskId);
@@ -231,23 +275,20 @@ export function EmployeeApp() {
       ? { status: 'complete', completed_at: now, archived: true }
       : { status: 'in-progress', completed_at: null, archived: false };
 
-    // Write task — DB trigger recalculates employees.progress/status/lifecycle automatically
     const { error: taskErr } = await supabase.from('onboarding_tasks').update(taskUpdates).eq('id', taskId);
     if (taskErr) return;
 
-    // Optimistic local task update for instant UI response
     const updated = tasks.map(t => t.id === taskId
       ? { ...t, status: (isCompleting ? 'complete' : 'in-progress') as OnboardingTask['status'], archived: isCompleting, completed_at: isCompleting ? now : null }
       : t
     );
     setTasks(updated);
-
-    // Log to activity
     await logActivity(employee.id, `${isCompleting ? 'Completed' : 'Reopened'} task "${task.title}"`);
+  }
 
-    // Real-time subscription on employees table (filtered to this employee) delivers
-    // the DB-computed progress, status, and lifecycle_status automatically.
-    // No manual employees.update() needed — the DB trigger handles it.
+  function viewTeamMember(id: string) {
+    setSelectedTeamMemberId(id);
+    setTab('mgr-detail');
   }
 
   if (!employee) return <div className="loading-screen"><div className="loading-spinner" /></div>;
@@ -257,6 +298,7 @@ export function EmployeeApp() {
   const pct = onboardingTasks.length ? Math.round((done / onboardingTasks.length) * 100) : 0;
   const activeAnnouncement = announcements[0] ?? null;
   const isActive = employee.lifecycle_status === 'active';
+  const selectedTeamMember = team.find(e => e.id === selectedTeamMemberId);
 
   const moreItems = isActive
     ? [
@@ -268,7 +310,6 @@ export function EmployeeApp() {
         { id: 'my-reviews', label: 'My Reviews', icon: '📊' },
       ]
     : [{ id: 'contacts', label: 'Contacts', icon: '👤' }];
-
   const moreTabIds = moreItems.map(i => i.id);
 
   async function handleDocDelete(id: string, filePath: string) {
@@ -297,6 +338,13 @@ export function EmployeeApp() {
       'my-certifications': 'My Certifications',
       'my-checkins': 'My Check-ins',
       'my-reviews': 'My Reviews',
+      'mgr-dashboard': 'Team Dashboard',
+      'mgr-team': 'Direct Team',
+      'mgr-detail': 'Team Member',
+      'mgr-employees': 'All Employees',
+      'mgr-applicants': 'Applicants',
+      'mgr-checkins': 'Check-ins & Reviews',
+      'mgr-career': 'Career Development',
       more: 'More',
     };
     const moreActiveTab = moreTabIds.includes(tab) ? tab : undefined;
@@ -353,6 +401,37 @@ export function EmployeeApp() {
           {tab === 'my-certifications' && isActive && <EmpMyCertifications certifications={myCertifications} employee={employee} />}
           {tab === 'my-checkins' && isActive && <EmpMyCheckins checkins={myCheckins} quarterlyCheckins={myQuarterlyCheckins} lifecycleCheckins={myLifecycleCheckins} employee={employee} />}
           {tab === 'my-reviews' && isActive && <EmpMyReviews reviews={myReviews} annualReviews={myAnnualReviews} employee={employee} />}
+          {tab === 'mgr-dashboard' && isManager && (
+            <ManagerDashboard team={team} myEmployee={employee} onViewEmployee={viewTeamMember} onOpenModal={(type, eid) => setModal({ type, eid })} />
+          )}
+          {tab === 'mgr-team' && isManager && (
+            <ManagerTeam team={team} onViewEmployee={viewTeamMember} onOpenModal={(type, eid) => setModal({ type, eid })} />
+          )}
+          {tab === 'mgr-detail' && isManager && selectedTeamMember && (
+            <ManagerEmployeeDetail
+              employee={selectedTeamMember}
+              tasks={teamTasks[selectedTeamMember.id] ?? []}
+              documents={documents}
+              schedules={schedules}
+              pathways={myPathways}
+              onBack={() => setTab('mgr-team')}
+              onOpenModal={(type, eid) => setModal({ type, eid })}
+              onToggleTask={() => {}}
+              onTaskStatusChange={() => {}}
+            />
+          )}
+          {tab === 'mgr-employees' && isManager && (
+            <ManagerTeam team={team} onViewEmployee={viewTeamMember} onOpenModal={(type, eid) => setModal({ type, eid })} />
+          )}
+          {tab === 'mgr-applicants' && isManager && (
+            <div className="content"><div className="card"><div className="card-header"><h3>Applicants</h3></div><div className="card-body"><p style={{ fontSize: 13, color: '#9B9890', padding: '0.5rem 0' }}>Applicant view coming soon for managers.</p></div></div></div>
+          )}
+          {tab === 'mgr-checkins' && isManager && (
+            <div className="content"><div className="card"><div className="card-header"><h3>Check-ins & Reviews</h3></div><div className="card-body"><p style={{ fontSize: 13, color: '#9B9890', padding: '0.5rem 0' }}>Check-ins view coming soon for managers.</p></div></div></div>
+          )}
+          {tab === 'mgr-career' && isManager && (
+            <div className="content"><div className="card"><div className="card-header"><h3>Career Development</h3></div><div className="card-body"><p style={{ fontSize: 13, color: '#9B9890', padding: '0.5rem 0' }}>Career development view coming soon for managers.</p></div></div></div>
+          )}
         </MobileLayout>
         {showAddTask && (
           <AddTaskModal
@@ -367,46 +446,57 @@ export function EmployeeApp() {
             }}
           />
         )}
+        {modal?.type === 'add-task' && modal.eid && isManager && (() => {
+          const taskEmp = team.find(e => e.id === modal.eid);
+          return (
+            <AddTaskModal
+              employeeId={modal.eid}
+              employee={taskEmp}
+              assignedByRole="manager"
+              assignedByName={employee?.name ?? profile?.email ?? undefined}
+              onClose={() => setModal(null)}
+              onCreated={() => { if (modal.eid) loadTeamMemberTasks(modal.eid); }}
+            />
+          );
+        })()}
       </>
     );
   }
 
   return (
     <div className="app-shell">
+      {profile?.id && (
+        <div style={{ position: 'fixed', top: 16, right: 24, zIndex: 50 }}>
+          <NotificationBell
+            userId={profile.id}
+            onNavigate={(linkType) => {
+              if (linkType === 'task') setTab('tasks');
+              else if (linkType === 'checkin' || linkType === 'review') setTab('my-checkins');
+              else if (linkType === 'document') setTab('documents');
+            }}
+          />
+        </div>
+      )}
       <EmpSidebar employee={employee} tab={tab} onTab={setTab} />
       <div className="main-area">
         {tab === 'overview' && (
           <EmpOverview
-          employee={employee}
-          tasks={tasks}
-          schedules={schedules}
-          announcements={announcements}
-          pct={pct}
-          onTab={setTab}
-          onToggle={toggleTask}
-          devGoalsCount={myDevPlans.length}
-          certCount={myCertifications.length}
-          checkinCount={myCheckins.length}
-          reviewCount={myReviews.length}
-          userId={profile?.id}
-        />
-        )}
-        {tab === 'tasks' && (
-          <EmpTasks
+            employee={employee}
             tasks={tasks}
-            onToggle={toggleTask}
-            onAddTask={() => setShowAddTask(true)}
-            employee={employee}
-          />
-        )}
-        {tab === 'schedule' && (
-          <EmpSchedule
-            employee={employee}
             schedules={schedules}
-            checkins={[]}
-            reviews={[]}
+            announcements={announcements}
+            pct={pct}
+            onTab={setTab}
+            onToggle={toggleTask}
+            devGoalsCount={myDevPlans.length}
+            certCount={myCertifications.length}
+            checkinCount={myCheckins.length}
+            reviewCount={myReviews.length}
+            userId={profile?.id}
           />
         )}
+        {tab === 'tasks' && <EmpTasks tasks={tasks} onToggle={toggleTask} onAddTask={() => setShowAddTask(true)} employee={employee} />}
+        {tab === 'schedule' && <EmpSchedule employee={employee} schedules={schedules} checkins={[]} reviews={[]} />}
         {tab === 'documents' && <EmpDocuments documents={documents} />}
         {tab === 'contacts' && <EmpContacts contacts={contacts} employee={employee} allEmployees={allEmployees.length > 0 ? allEmployees : [employee, ...teammates]} />}
         {tab === 'team' && <EmpTeam employee={employee} teammates={teammates} allEmployees={allEmployees} schedules={schedules} />}
@@ -414,7 +504,55 @@ export function EmployeeApp() {
         {tab === 'my-goals' && isActive && <EmpMyGoals plans={myDevPlans} pathways={myPathways} employee={employee} />}
         {tab === 'my-certifications' && isActive && <EmpMyCertifications certifications={myCertifications} employee={employee} />}
         {tab === 'my-checkins' && isActive && <EmpMyCheckins checkins={myCheckins} quarterlyCheckins={myQuarterlyCheckins} lifecycleCheckins={myLifecycleCheckins} employee={employee} />}
-          {tab === 'my-reviews' && isActive && <EmpMyReviews reviews={myReviews} annualReviews={myAnnualReviews} employee={employee} />}
+        {tab === 'my-reviews' && isActive && <EmpMyReviews reviews={myReviews} annualReviews={myAnnualReviews} employee={employee} />}
+
+        {/* Manager tabs */}
+        {tab === 'mgr-dashboard' && isManager && (
+          <ManagerDashboard team={team} myEmployee={employee} onViewEmployee={viewTeamMember} onOpenModal={(type, eid) => setModal({ type, eid })} />
+        )}
+        {tab === 'mgr-team' && isManager && (
+          <ManagerTeam team={team} onViewEmployee={viewTeamMember} onOpenModal={(type, eid) => setModal({ type, eid })} />
+        )}
+        {tab === 'mgr-detail' && isManager && selectedTeamMember && (
+          <ManagerEmployeeDetail
+            employee={selectedTeamMember}
+            tasks={teamTasks[selectedTeamMember.id] ?? []}
+            documents={documents}
+            schedules={schedules}
+            pathways={myPathways}
+            onBack={() => setTab('mgr-team')}
+            onOpenModal={(type, eid) => setModal({ type, eid })}
+            onToggleTask={() => {}}
+            onTaskStatusChange={() => {}}
+          />
+        )}
+        {tab === 'mgr-employees' && isManager && (
+          <ManagerTeam team={team} onViewEmployee={viewTeamMember} onOpenModal={(type, eid) => setModal({ type, eid })} />
+        )}
+        {tab === 'mgr-applicants' && isManager && (
+          <div className="content">
+            <div className="topbar"><div className="topbar-left"><h1>Applicants</h1><p>Applicants you can see</p></div></div>
+            <div className="card"><div className="card-body" style={{ padding: '1.5rem' }}>
+              <p style={{ fontSize: 13, color: '#9B9890' }}>Applicant view for managers is being built. For now, applicants assigned to you appear in your Direct Team list.</p>
+            </div></div>
+          </div>
+        )}
+        {tab === 'mgr-checkins' && isManager && (
+          <div className="content">
+            <div className="topbar"><div className="topbar-left"><h1>Check-ins & Reviews</h1><p>Read-only across your scope</p></div></div>
+            <div className="card"><div className="card-body" style={{ padding: '1.5rem' }}>
+              <p style={{ fontSize: 13, color: '#9B9890' }}>Check-ins and reviews view for managers is being built.</p>
+            </div></div>
+          </div>
+        )}
+        {tab === 'mgr-career' && isManager && (
+          <div className="content">
+            <div className="topbar"><div className="topbar-left"><h1>Career Development</h1><p>Read-only across your scope</p></div></div>
+            <div className="card"><div className="card-body" style={{ padding: '1.5rem' }}>
+              <p style={{ fontSize: 13, color: '#9B9890' }}>Career development view for managers is being built.</p>
+            </div></div>
+          </div>
+        )}
       </div>
 
       {tourLoaded && tourState.type === 'onboarding' && profile?.id && (
@@ -473,6 +611,20 @@ export function EmployeeApp() {
           }}
         />
       )}
+
+      {modal?.type === 'add-task' && modal.eid && isManager && (() => {
+        const taskEmp = team.find(e => e.id === modal.eid);
+        return (
+          <AddTaskModal
+            employeeId={modal.eid}
+            employee={taskEmp}
+            assignedByRole="manager"
+            assignedByName={employee?.name ?? profile?.email ?? undefined}
+            onClose={() => setModal(null)}
+            onCreated={() => { if (modal.eid) loadTeamMemberTasks(modal.eid); }}
+          />
+        );
+      })()}
     </div>
   );
 }
