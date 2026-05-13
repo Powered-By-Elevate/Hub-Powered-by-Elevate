@@ -215,6 +215,16 @@ export interface TemplateTask {
   created_at: string;
 }
 
+export interface DocumentBucket {
+  id: string;
+  name: string;
+  description: string | null;
+  sort_order: number;
+  active: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
 export interface Document {
   id: string;
   name: string;

@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Employee, HRAnnouncement, Department, JobTitle, Company, CompanyType, Contact } from '../../lib/database.types';
+import { Employee, HRAnnouncement, Department, JobTitle, Company, CompanyType, Contact, DocumentBucket } from '../../lib/database.types';
 import { useAuth } from '../../contexts/AuthContext';
 import { Modal } from '../shared/Modal';
 import { Pencil, Trash2, Plus, Check, X } from 'lucide-react';
 import { ScheduleTemplatesSection } from './ScheduleTemplatesSection';
 
-type SettingsSection = 'schedule' | 'banners' | 'organization' | 'contacts' | 'schedule-templates' | 'roles';
+type SettingsSection = 'schedule' | 'banners' | 'organization' | 'contacts' | 'schedule-templates' | 'roles' | 'document-buckets';
 
 interface Props {
   employees: Employee[];
@@ -227,6 +227,7 @@ const [editContact, setEditContact] = useState<Contact | null>(null);
     { id: 'banners', label: 'Hub Banners' },
     { id: 'organization', label: 'Organization Setup' },
     { id: 'contacts', label: 'External Contacts' },
+    { id: 'document-buckets', label: 'Document Buckets' },
     { id: 'roles', label: 'User Roles & Visibility' },
   ];
 
@@ -1446,6 +1447,275 @@ function EditUserRoleModal({ user, isSelf, companies, onClose, onSaved }: EditUs
             </div>
           </div>
         )}
+      </div>
+    </Modal>
+  );
+}
+// ============================================================
+// Document Buckets section
+// ============================================================
+
+function DocumentBucketsSection() {
+  const [buckets, setBuckets] = useState<DocumentBucket[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<DocumentBucket | null>(null);
+  const [docCounts, setDocCounts] = useState<Record<string, number>>({});
+
+  const loadBuckets = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from('document_buckets')
+      .select('*')
+      .order('sort_order')
+      .order('name');
+    setBuckets(data ?? []);
+
+    // Count documents per bucket
+    const { data: docs } = await supabase.from('documents').select('bucket_id');
+    const counts: Record<string, number> = {};
+    for (const d of docs ?? []) {
+      if (d.bucket_id) counts[d.bucket_id] = (counts[d.bucket_id] ?? 0) + 1;
+    }
+    setDocCounts(counts);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { loadBuckets(); }, [loadBuckets]);
+
+  async function toggleActive(bucket: DocumentBucket) {
+    await supabase.from('document_buckets').update({ active: !bucket.active }).eq('id', bucket.id);
+    setBuckets(prev => prev.map(b => b.id === bucket.id ? { ...b, active: !b.active } : b));
+  }
+
+  async function deleteBucket(bucket: DocumentBucket) {
+    const count = docCounts[bucket.id] ?? 0;
+    if (count > 0) {
+      alert(`Cannot delete "${bucket.name}" — ${count} document${count !== 1 ? 's' : ''} ${count === 1 ? 'is' : 'are'} assigned. Move or delete those documents first.`);
+      return;
+    }
+    if (!confirm(`Delete bucket "${bucket.name}"?`)) return;
+    const { error } = await supabase.from('document_buckets').delete().eq('id', bucket.id);
+    if (error) { alert(`Failed to delete: ${error.message}`); return; }
+    setBuckets(prev => prev.filter(b => b.id !== bucket.id));
+  }
+
+  async function moveBucket(bucket: DocumentBucket, direction: 'up' | 'down') {
+    const sorted = [...buckets].sort((a, b) => a.sort_order - b.sort_order);
+    const idx = sorted.findIndex(b => b.id === bucket.id);
+    if (direction === 'up' && idx === 0) return;
+    if (direction === 'down' && idx === sorted.length - 1) return;
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    const other = sorted[swapIdx];
+    await Promise.all([
+      supabase.from('document_buckets').update({ sort_order: other.sort_order }).eq('id', bucket.id),
+      supabase.from('document_buckets').update({ sort_order: bucket.sort_order }).eq('id', other.id),
+    ]);
+    await loadBuckets();
+  }
+
+  return (
+    <>
+      <div className="card">
+        <div className="card-header">
+          <div>
+            <h3 style={{ marginBottom: 2 }}>Document Buckets</h3>
+            <div style={{ fontSize: 12, color: '#9B9890' }}>
+              {buckets.filter(b => b.active).length} active · Customize how documents are organized for employees
+            </div>
+          </div>
+          <button
+            className="btn-primary sm"
+            style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+            onClick={() => { setEditing(null); setShowModal(true); }}
+          >
+            <Plus size={13} /> Add Bucket
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="empty-state"><p>Loading buckets…</p></div>
+        ) : buckets.length === 0 ? (
+          <div className="empty-state">
+            <p>No buckets yet</p>
+            <div className="esub">Add buckets to organize documents by category.</div>
+          </div>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th style={{ width: 80 }}>Order</th>
+                <th>Bucket</th>
+                <th>Documents</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {buckets.sort((a, b) => a.sort_order - b.sort_order).map((b, idx, arr) => {
+                const count = docCounts[b.id] ?? 0;
+                return (
+                  <tr key={b.id} style={{ opacity: b.active ? 1 : 0.55 }}>
+                    <td>
+                      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                        <button
+                          className="btn-ghost sm"
+                          style={{ padding: '2px 6px', opacity: idx === 0 ? 0.3 : 1, cursor: idx === 0 ? 'not-allowed' : 'pointer' }}
+                          onClick={() => moveBucket(b, 'up')}
+                          disabled={idx === 0}
+                          title="Move up"
+                        >▲</button>
+                        <button
+                          className="btn-ghost sm"
+                          style={{ padding: '2px 6px', opacity: idx === arr.length - 1 ? 0.3 : 1, cursor: idx === arr.length - 1 ? 'not-allowed' : 'pointer' }}
+                          onClick={() => moveBucket(b, 'down')}
+                          disabled={idx === arr.length - 1}
+                          title="Move down"
+                        >▼</button>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="emp-name">{b.name}</div>
+                      {b.description && <div className="emp-email">{b.description}</div>}
+                    </td>
+                    <td>
+                      <span style={{
+                        padding: '2px 9px', borderRadius: 12, fontSize: 12, fontWeight: 500,
+                        background: count > 0 ? '#E8EFF8' : '#F2F1ED',
+                        color: count > 0 ? '#1B3F6E' : '#9B9890',
+                      }}>
+                        {count} {count === 1 ? 'document' : 'documents'}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        onClick={() => toggleActive(b)}
+                        style={{
+                          padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                          border: 'none', cursor: 'pointer',
+                          background: b.active ? '#DCFCE7' : '#F2F1ED',
+                          color: b.active ? '#16A34A' : '#6B6860',
+                        }}
+                      >
+                        {b.active ? 'Active' : 'Inactive'}
+                      </button>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          className="btn-ghost sm"
+                          style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                          onClick={() => { setEditing(b); setShowModal(true); }}
+                        >
+                          <Pencil size={11} /> Edit
+                        </button>
+                        <button
+                          className="btn-danger-soft sm"
+                          style={{ display: 'flex', alignItems: 'center', gap: 4, opacity: count > 0 ? 0.4 : 1, cursor: count > 0 ? 'not-allowed' : 'pointer' }}
+                          onClick={() => deleteBucket(b)}
+                          title={count > 0 ? `${count} document(s) assigned` : 'Delete bucket'}
+                        >
+                          <Trash2 size={11} /> Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {showModal && (
+        <DocumentBucketModal
+          bucket={editing}
+          existingBuckets={buckets}
+          onClose={() => setShowModal(false)}
+          onSaved={() => { setShowModal(false); loadBuckets(); }}
+        />
+      )}
+    </>
+  );
+}
+
+interface DocumentBucketModalProps {
+  bucket: DocumentBucket | null;
+  existingBuckets: DocumentBucket[];
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+function DocumentBucketModal({ bucket, existingBuckets, onClose, onSaved }: DocumentBucketModalProps) {
+  const [name, setName] = useState(bucket?.name ?? '');
+  const [description, setDescription] = useState(bucket?.description ?? '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function save() {
+    const trimmed = name.trim();
+    if (!trimmed) { setError('Bucket name is required.'); return; }
+    setSaving(true);
+    setError('');
+
+    // For new buckets, set sort_order to the next available number
+    const nextSortOrder = bucket
+      ? bucket.sort_order
+      : (Math.max(...existingBuckets.map(b => b.sort_order), 0) + 1);
+
+    const payload = {
+      name: trimmed,
+      description: description.trim() || null,
+      sort_order: nextSortOrder,
+    };
+
+    const { error: err } = bucket
+      ? await supabase.from('document_buckets').update(payload).eq('id', bucket.id)
+      : await supabase.from('document_buckets').insert({ ...payload, active: true });
+
+    setSaving(false);
+    if (err) {
+      setError(err.message.toLowerCase().includes('unique') ? 'A bucket with that name already exists.' : err.message);
+      return;
+    }
+    onSaved();
+  }
+
+  return (
+    <Modal
+      title={bucket ? 'Edit Bucket' : 'Add Document Bucket'}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn-primary" onClick={save} disabled={saving}>
+            {saving ? 'Saving…' : bucket ? 'Save Changes' : 'Add Bucket'}
+          </button>
+        </>
+      }
+    >
+      {error && <div className="error-msg">{error}</div>}
+      <div className="form-grid">
+        <div className="field full">
+          <label>Bucket Name <span style={{ color: '#E53E3E' }}>*</span></label>
+          <input
+            type="text"
+            placeholder="e.g. Employee Handbook"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && save()}
+            autoFocus
+          />
+        </div>
+        <div className="field full">
+          <label>Description</label>
+          <input
+            type="text"
+            placeholder="Optional — short description shown to employees"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+          />
+        </div>
       </div>
     </Modal>
   );
