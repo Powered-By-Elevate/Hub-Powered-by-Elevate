@@ -4,7 +4,7 @@ export interface TourStep {
   targetId: string;
   title: string;
   body: string;
-  placement?: 'top' | 'bottom' | 'left' | 'right' | 'auto';
+  onEnter?: () => void; // Fires when this step becomes active — used to switch tabs
 }
 
 interface Props {
@@ -19,30 +19,34 @@ interface Props {
 }
 
 const PADDING = 8;
-const TOOLTIP_WIDTH = 320;
+const TOOLTIP_WIDTH = 340;
 const TOOLTIP_OFFSET = 14;
 
 export function SpotlightTour({
   steps, currentStep, onAdvance, onComplete,
   introTitle, introBody, outroTitle, outroBody,
 }: Props) {
-  // Phase: 'intro' (welcome modal) | 'spotlight' (highlighting steps) | 'outro' (done modal)
-  // -1 = intro, steps.length = outro
   const phase: 'intro' | 'spotlight' | 'outro' =
     currentStep === -1 ? 'intro' :
     currentStep >= steps.length ? 'outro' : 'spotlight';
 
   const step = phase === 'spotlight' ? steps[currentStep] : null;
   const [rect, setRect] = useState<DOMRect | null>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
+  const stepRanRef = useRef<number>(-2);
+
+  // Fire onEnter when step changes
+  useEffect(() => {
+    if (phase !== 'spotlight' || !step) return;
+    if (stepRanRef.current === currentStep) return;
+    stepRanRef.current = currentStep;
+    if (step.onEnter) step.onEnter();
+  }, [phase, currentStep, step]);
 
   const updateRect = useCallback(() => {
     if (!step) { setRect(null); return; }
     const el = document.getElementById(step.targetId);
     if (!el) { setRect(null); return; }
-    // Scroll the element into view if needed
     el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-    // Wait a moment for scroll before measuring
     requestAnimationFrame(() => {
       const r = el.getBoundingClientRect();
       setRect(r);
@@ -51,23 +55,21 @@ export function SpotlightTour({
 
   useEffect(() => {
     if (phase !== 'spotlight') return;
-    updateRect();
-    // Re-measure on resize and after a small delay (allows for late-rendering elements)
-    const t1 = setTimeout(updateRect, 100);
-    const t2 = setTimeout(updateRect, 400);
+    // Multiple measure attempts to handle late-rendering elements after tab switch
+    const t1 = setTimeout(updateRect, 50);
+    const t2 = setTimeout(updateRect, 250);
+    const t3 = setTimeout(updateRect, 500);
     window.addEventListener('resize', updateRect);
     window.addEventListener('scroll', updateRect, true);
     return () => {
-      clearTimeout(t1); clearTimeout(t2);
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
       window.removeEventListener('resize', updateRect);
       window.removeEventListener('scroll', updateRect, true);
     };
   }, [phase, currentStep, updateRect]);
 
-  // Block all keyboard shortcuts and outside clicks during tour
   useEffect(() => {
     function block(e: KeyboardEvent) {
-      // Allow nothing — tour is mandatory
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); }
     }
     window.addEventListener('keydown', block, true);
@@ -85,7 +87,6 @@ export function SpotlightTour({
     else if (phase === 'outro') onAdvance(steps.length - 1);
   }
 
-  // ─── Intro modal ─────────────────────────────────────────────
   if (phase === 'intro') {
     return (
       <div style={overlayStyle}>
@@ -99,7 +100,6 @@ export function SpotlightTour({
     );
   }
 
-  // ─── Outro modal ─────────────────────────────────────────────
   if (phase === 'outro') {
     return (
       <div style={overlayStyle}>
@@ -116,9 +116,7 @@ export function SpotlightTour({
     );
   }
 
-  // ─── Spotlight phase ─────────────────────────────────────────
   if (!step || !rect) {
-    // Element not found — show waiting overlay
     return (
       <div style={overlayStyle}>
         <div style={{ ...modalStyle, padding: 20 }}>
@@ -128,7 +126,6 @@ export function SpotlightTour({
     );
   }
 
-  // Compute tooltip position
   const viewportH = window.innerHeight;
   const viewportW = window.innerWidth;
 
@@ -136,21 +133,17 @@ export function SpotlightTour({
   let tooltipLeft = rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2;
   let arrowSide: 'top' | 'bottom' | 'left' | 'right' = 'top';
 
-  // Try below first
-  if (tooltipTop + 200 > viewportH) {
-    // Try above
-    if (rect.top - 200 - TOOLTIP_OFFSET > 0) {
-      tooltipTop = rect.top - TOOLTIP_OFFSET - 200;
+  if (tooltipTop + 220 > viewportH) {
+    if (rect.top - 220 - TOOLTIP_OFFSET > 0) {
+      tooltipTop = rect.top - TOOLTIP_OFFSET - 220;
       arrowSide = 'bottom';
     } else {
-      // Place to the right
       tooltipTop = rect.top + rect.height / 2 - 100;
       tooltipLeft = rect.right + TOOLTIP_OFFSET;
       arrowSide = 'left';
     }
   }
 
-  // Clamp horizontal
   if (tooltipLeft < 10) tooltipLeft = 10;
   if (tooltipLeft + TOOLTIP_WIDTH > viewportW - 10) tooltipLeft = viewportW - TOOLTIP_WIDTH - 10;
   if (tooltipTop < 10) tooltipTop = 10;
@@ -170,41 +163,21 @@ export function SpotlightTour({
 
   return (
     <>
-      {/* Click blocker behind everything */}
-      <div
-        onClick={e => { e.stopPropagation(); e.preventDefault(); }}
-        style={{
-          position: 'fixed', inset: 0, zIndex: 9997,
-          pointerEvents: 'auto',
-        }}
-      />
-      {/* Spotlight cutout */}
+      <div onClick={e => { e.stopPropagation(); e.preventDefault(); }}
+        style={{ position: 'fixed', inset: 0, zIndex: 9997, pointerEvents: 'auto' }} />
       <div style={spotlightStyle} />
-      {/* Tooltip */}
-      <div
-        ref={tooltipRef}
-        style={{
-          position: 'fixed',
-          top: tooltipTop,
-          left: tooltipLeft,
-          width: TOOLTIP_WIDTH,
-          background: '#fff',
-          borderRadius: 12,
-          padding: '18px 20px',
-          boxShadow: '0 16px 48px rgba(0,0,0,0.25)',
-          zIndex: 10000,
-          transition: 'all 0.3s ease-in-out',
-        }}
-      >
-        {/* Arrow */}
+      <div style={{
+        position: 'fixed', top: tooltipTop, left: tooltipLeft, width: TOOLTIP_WIDTH,
+        background: '#fff', borderRadius: 12, padding: '18px 20px',
+        boxShadow: '0 16px 48px rgba(0,0,0,0.25)', zIndex: 10000,
+        transition: 'all 0.3s ease-in-out',
+      }}>
         <div style={getArrowStyle(arrowSide, rect, tooltipTop, tooltipLeft)} />
-
         <div style={{ fontSize: 11, fontWeight: 700, color: '#1B3F6E', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 }}>
           Step {currentStep + 1} of {steps.length}
         </div>
         <h3 style={{ margin: '0 0 8px', fontSize: 16, color: '#1A1916' }}>{step.title}</h3>
         <p style={{ fontSize: 13, color: '#6B6860', lineHeight: 1.55, marginBottom: 16 }}>{step.body}</p>
-
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <div style={{ display: 'flex', gap: 4 }}>
             {steps.map((_, i) => (
@@ -215,9 +188,7 @@ export function SpotlightTour({
             ))}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            {currentStep > 0 && (
-              <button onClick={back} style={ghostSmBtnStyle}>← Back</button>
-            )}
+            {currentStep > 0 && <button onClick={back} style={ghostSmBtnStyle}>← Back</button>}
             <button onClick={next} style={primarySmBtnStyle}>
               {currentStep === steps.length - 1 ? 'Almost done →' : 'Next →'}
             </button>
@@ -228,75 +199,30 @@ export function SpotlightTour({
   );
 }
 
-// ─── Style constants ─────────────────────────────────────────
-
 const overlayStyle: React.CSSProperties = {
   position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
-  zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
-  padding: 20,
+  zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
 };
-
 const modalStyle: React.CSSProperties = {
   maxWidth: 480, background: '#fff', borderRadius: 14, padding: '36px 32px',
   textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,0.3)',
 };
-
 const primaryBtnStyle: React.CSSProperties = {
   padding: '12px 28px', borderRadius: 8, border: 'none', background: '#1B3F6E',
   color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
 };
-
-const primarySmBtnStyle: React.CSSProperties = {
-  ...primaryBtnStyle, padding: '7px 14px', fontSize: 13,
-};
-
+const primarySmBtnStyle: React.CSSProperties = { ...primaryBtnStyle, padding: '7px 14px', fontSize: 13 };
 const ghostBtnStyle: React.CSSProperties = {
   padding: '12px 24px', borderRadius: 8, border: '1px solid #E5E3DC',
   background: '#F8F7F4', color: '#1A1916', fontSize: 14, fontWeight: 600, cursor: 'pointer',
 };
-
-const ghostSmBtnStyle: React.CSSProperties = {
-  ...ghostBtnStyle, padding: '7px 14px', fontSize: 13,
-};
+const ghostSmBtnStyle: React.CSSProperties = { ...ghostBtnStyle, padding: '7px 14px', fontSize: 13 };
 
 function getArrowStyle(side: 'top' | 'bottom' | 'left' | 'right', rect: DOMRect, tooltipTop: number, tooltipLeft: number): React.CSSProperties {
-  const arrowSize = 12;
-  const base: React.CSSProperties = {
-    position: 'absolute', width: 0, height: 0,
-    border: `${arrowSize}px solid transparent`,
-  };
-  if (side === 'top') {
-    return {
-      ...base,
-      top: -arrowSize * 2,
-      left: Math.min(Math.max(rect.left + rect.width / 2 - tooltipLeft - arrowSize, 16), TOOLTIP_WIDTH - 32),
-      borderBottomColor: '#fff',
-      borderTopWidth: 0,
-    };
-  }
-  if (side === 'bottom') {
-    return {
-      ...base,
-      bottom: -arrowSize * 2,
-      left: Math.min(Math.max(rect.left + rect.width / 2 - tooltipLeft - arrowSize, 16), TOOLTIP_WIDTH - 32),
-      borderTopColor: '#fff',
-      borderBottomWidth: 0,
-    };
-  }
-  if (side === 'left') {
-    return {
-      ...base,
-      left: -arrowSize * 2,
-      top: Math.min(Math.max(rect.top + rect.height / 2 - tooltipTop - arrowSize, 16), 200 - 32),
-      borderRightColor: '#fff',
-      borderLeftWidth: 0,
-    };
-  }
-  return {
-    ...base,
-    right: -arrowSize * 2,
-    top: Math.min(Math.max(rect.top + rect.height / 2 - tooltipTop - arrowSize, 16), 200 - 32),
-    borderLeftColor: '#fff',
-    borderRightWidth: 0,
-  };
+  const sz = 12;
+  const base: React.CSSProperties = { position: 'absolute', width: 0, height: 0, border: `${sz}px solid transparent` };
+  if (side === 'top') return { ...base, top: -sz * 2, left: Math.min(Math.max(rect.left + rect.width / 2 - tooltipLeft - sz, 16), TOOLTIP_WIDTH - 32), borderBottomColor: '#fff', borderTopWidth: 0 };
+  if (side === 'bottom') return { ...base, bottom: -sz * 2, left: Math.min(Math.max(rect.left + rect.width / 2 - tooltipLeft - sz, 16), TOOLTIP_WIDTH - 32), borderTopColor: '#fff', borderBottomWidth: 0 };
+  if (side === 'left') return { ...base, left: -sz * 2, top: Math.min(Math.max(rect.top + rect.height / 2 - tooltipTop - sz, 16), 200 - 32), borderRightColor: '#fff', borderLeftWidth: 0 };
+  return { ...base, right: -sz * 2, top: Math.min(Math.max(rect.top + rect.height / 2 - tooltipTop - sz, 16), 200 - 32), borderLeftColor: '#fff', borderRightWidth: 0 };
 }
