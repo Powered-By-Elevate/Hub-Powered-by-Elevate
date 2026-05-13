@@ -103,7 +103,7 @@ export function EmpOverview({ employee, tasks, schedules, announcements, pct, on
             else if (linkType === 'review') onTab('my-reviews');
             else if (linkType === 'document') onTab('documents');
           }} />}
-          <div className="topbar-clock">{formatClock(now)}</div>
+          <div id="emp-topbar-clock" className="topbar-clock">{formatClock(now)}</div>
         </div>
       </div>
       <div className="content">
@@ -118,10 +118,10 @@ export function EmpOverview({ employee, tasks, schedules, announcements, pct, on
           </div>
         )}
 
-        {isActive && !showOBBanner && activeBanner && (() => {
+{isActive && !showOBBanner && activeBanner && (() => {
           const colors = ANNOUNCEMENT_COLORS[activeBanner.type] ?? ANNOUNCEMENT_COLORS.announcement;
           return (
-            <div style={{
+            <div id="emp-dashboard-banner" style={{
               background: colors.bg,
               border: colors.isGrad ? 'none' : `1px solid ${colors.border}`,
               borderRadius: 14, padding: '1.25rem 1.5rem', marginBottom: '1.5rem', color: colors.text,
@@ -148,7 +148,7 @@ export function EmpOverview({ employee, tasks, schedules, announcements, pct, on
           </div>
         )}
         {!isActive && (
-          <div className="welcome-banner">
+          <div id="emp-dashboard-progress" className="welcome-banner">
             <h2>You're {pct}% onboarded!</h2>
             <p>{remaining} task{remaining !== 1 ? 's' : ''} remaining — you're doing great.</p>
             <div className="wb-row">
@@ -158,8 +158,8 @@ export function EmpOverview({ employee, tasks, schedules, announcements, pct, on
           </div>
         )}
 
-        <div className="two-col">
-          <div className="card">
+<div className="two-col">
+          <div id="emp-dashboard-tasks" className="card">
             <div className="card-header">
               <h3>{isActive ? 'Open Tasks' : 'Up Next'}</h3>
               <button className="btn-ghost sm" onClick={() => onTab('tasks')}>View all tasks</button>
@@ -173,7 +173,7 @@ export function EmpOverview({ employee, tasks, schedules, announcements, pct, on
             ) : upcoming.map(t => <CheckItem key={t.id} task={t} isHR={false} onToggle={onToggle} />)}
           </div>
           <div>
-            <div className="card mb2">
+          <div id="emp-dashboard-schedule" className="card mb2">
               <div className="card-header">
                 <h3>Today's Schedule</h3>
                 <button className="btn-ghost sm" onClick={() => onTab('schedule')}>View all</button>
@@ -190,7 +190,7 @@ export function EmpOverview({ employee, tasks, schedules, announcements, pct, on
               </div>
             </div>
             {!isActive && (
-              <div className="card">
+              <div id="emp-dashboard-stats" className="card">
                 <div className="card-header"><h3>My Progress</h3></div>
                 <div className="card-body">
                   {statRows.map(([label, val, fc, tc]) => (
@@ -211,9 +211,9 @@ export function EmpOverview({ employee, tasks, schedules, announcements, pct, on
         </div>
 
         {isActive && (employee.current_level || employee.pathway_id || devGoalsCount > 0 || certCount > 0 || checkinCount > 0 || reviewCount > 0) && (
-          <div className="card" style={{ marginTop: 16 }}>
-            <div className="card-header">
-              <h3>My Development</h3>
+          <div id="emp-dashboard-development" className="card" style={{ marginTop: 16 }}>
+          <div className="card-header">
+            <h3>My Development</h3>
             </div>
             <div style={{ padding: '0 1.25rem 1.25rem' }}>
               {/* Only show current_level and pathway — readiness_level, next_level, current_status are HR-only */}

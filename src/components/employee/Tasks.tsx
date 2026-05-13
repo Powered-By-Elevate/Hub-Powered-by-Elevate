@@ -103,8 +103,8 @@ export function EmpTasks({ tasks, onToggle, onTriageChange, onAddTask }: Props) 
         <button className="fab" onClick={onAddTask} title="Add task" aria-label="Add task">+</button>
       )}
       <div className="content">
-        <div className="card">
-          <div style={{ display: 'flex', borderBottom: '1px solid #E5E3DC', padding: '0 1.25rem', gap: 4 }}>
+      <div id="emp-tasks-list" className="card">
+          <div id="emp-tasks-filter" style={{ display: 'flex', borderBottom: '1px solid #E5E3DC', padding: '0 1.25rem', gap: 4 }}>
             {views.map(v => (
               <button
                 key={v.id}
@@ -137,7 +137,7 @@ export function EmpTasks({ tasks, onToggle, onTriageChange, onAddTask }: Props) 
         </div>
 
         {archivedTasks.length > 0 && (
-          <div className="card" style={{ marginTop: '1.25rem' }}>
+          <div id="emp-tasks-archived" className="card" style={{ marginTop: '1.25rem' }}>
             <button
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',

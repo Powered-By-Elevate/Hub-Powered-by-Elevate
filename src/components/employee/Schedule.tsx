@@ -80,7 +80,7 @@ export function EmpSchedule({ employee, schedules, checkins, reviews }: Props) {
       <div className="content">
 
         {/* Week view card */}
-        <div className="card mb2">
+        <div id="emp-schedule-week" className="card mb2">
           <div className="card-header">
             <h3>Week View</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -185,7 +185,7 @@ export function EmpSchedule({ employee, schedules, checkins, reviews }: Props) {
         {console.log('[Schedule] employee.lifecycle_status:', employee.lifecycle_status) as unknown as null}
         {/* Day 1 schedule — only for onboarding employees */}
         {employee.lifecycle_status === 'onboarding' && (
-        <div className="card mb2">
+        <div id="emp-schedule-day1" className="card mb2">
           <div className="card-header"><h3>Today's Schedule</h3></div>
           <div style={{ padding: '0 1.25rem' }}>
             {day1Items.length === 0 ? (
@@ -204,7 +204,7 @@ export function EmpSchedule({ employee, schedules, checkins, reviews }: Props) {
         )}
 
         {/* Upcoming check-ins & reviews */}
-        <div className="card">
+        <div id="emp-schedule-upcoming" className="card">
           <div className="card-header"><h3>Upcoming Check-ins &amp; Reviews</h3></div>
           <div style={{ padding: '0 1.25rem' }}>
             {!hasUpcoming ? (
