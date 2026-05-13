@@ -564,6 +564,9 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
             onTab={t => setTab(t as HRTab)}
           />
         )}
+        {tab === 'documents' && (
+          <HRDocuments employees={employees} companies={companies} />
+        )}
         {tab === 'applicants' && (
           <HRApplicants
             employees={employees}
