@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { Employee, OnboardingTask, Document, Schedule, Pathway } from '../lib/database.types';
 import { useAuth } from '../contexts/AuthContext';
+import { useViewer } from '../contexts/ViewerContext';
+import { visibleEmployees } from '../lib/visibility';
 import { NotificationBell } from '../components/shared/NotificationBell';
 import { ManagerSidebar } from '../components/manager/Sidebar';
 import { ManagerDashboard } from '../components/manager/Dashboard';
@@ -14,6 +16,7 @@ export type ManagerTab = 'dashboard' | 'team' | 'detail';
 
 export function ManagerApp() {
   const { profile } = useAuth();
+const viewer = useViewer();
   const [tab, setTab] = useState<ManagerTab>('dashboard');
   const [myEmployee, setMyEmployee] = useState<Employee | null>(null);
   const [team, setTeam] = useState<Employee[]>([]);
@@ -25,17 +28,30 @@ export function ManagerApp() {
   const [modal, setModal] = useState<{ type: string; eid?: string } | null>(null);
 
   const loadTeam = useCallback(async () => {
-    if (!profile?.id || !profile?.employee_id) return;
-    // Pull both direct reports (manager_user_id) and applicants (hiring_manager_id)
-    const { data } = await supabase
-      .from('employees')
+    if (!viewer) return;
+
+    let query = supabase.from('employees')
       .select('*')
-      .or(`manager_user_id.eq.${profile.id},manager_id.eq.${profile.employee_id},hiring_manager_id.eq.${profile.employee_id}`)
       .eq('archived', false)
-      .neq('is_test_account', true)
-      .order('created_at', { ascending: false });
-    setTeam(data ?? []);
-  }, [profile?.id, profile?.employee_id]);
+      .neq('is_test_account', true);
+
+    if (viewer.role === 'manager') {
+      if (viewer.scope === 'app_wide_reports') {
+        // No additional filter — manager sees everyone
+      } else if (viewer.scope === 'company_reports' && viewer.company_id) {
+        query = query.eq('company_id', viewer.company_id);
+      } else {
+        // direct_reports (default) — only their direct reports + applicants they hire
+        if (!viewer.employee_id) { setTeam([]); return; }
+        query = query.or(
+          `manager_user_id.eq.${viewer.user_id},manager_id.eq.${viewer.employee_id},hiring_manager_id.eq.${viewer.employee_id}`
+        );
+      }
+    }
+
+    const { data } = await query.order('created_at', { ascending: false });
+    setTeam(visibleEmployees(viewer, data ?? []));
+  }, [viewer]);
 
   const loadMyProfile = useCallback(async () => {
     if (!profile?.employee_id) return;
