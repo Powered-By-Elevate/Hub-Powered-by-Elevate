@@ -30,6 +30,7 @@ import { HRTemplates } from '../components/hr/Templates';
 import { HRCheckins } from '../components/hr/Checkins';
 import { HRSettings } from '../components/hr/Settings';
 import { HRApplicants } from '../components/hr/Applicants';
+import { HRDocuments } from '../components/hr/Documents';
 import { AddEmployeeModal } from '../components/hr/modals/AddEmployee';
 import { AddTaskModal } from '../components/hr/modals/AddTask';
 import { AddDepartmentModal } from '../components/hr/modals/AddDepartment';
@@ -48,7 +49,7 @@ import { ToastContainer, ToastItem } from '../components/shared/Toast';
 import { GlobalSearch } from '../components/shared/GlobalSearch';
 import { NotificationBell } from '../components/shared/NotificationBell';
 
-export type HRTab = 'dashboard' | 'applicants' | 'employees' | 'templates' | 'checkins' | 'career' | 'detail' | 'settings';
+export type HRTab = 'dashboard' | 'employees' | 'applicants' | 'documents' | 'templates' | 'checkins' | 'career' | 'settings' | 'detail';
 
 async function logActivity(employeeId: string | null, action: string) {
   await supabase.from('activity_log').insert({ employee_id: employeeId, action, created_at: new Date().toISOString() });
@@ -452,6 +453,9 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
               onEdit={(id: string) => setEditEmpId(id)}
             />
           )}
+{tab === 'documents' && (
+          <HRDocuments employees={employees} companies={companies} />
+        )}
           {tab === 'settings' && (
             <MobileHRSettings
               onOrgTab={() => setTab('settings')}

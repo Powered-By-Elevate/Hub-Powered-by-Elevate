@@ -228,21 +228,48 @@ export interface DocumentBucket {
 export interface Document {
   id: string;
   name: string;
-  type: string | null;
+  type: string;
   file_url: string | null;
-  file_path: string | null;
   size_label: string | null;
-  file_size_bytes: number | null;
-  mime_type: string | null;
+  created_at: string | null;
   employee_id: string | null;
   uploaded_by: string | null;
   category: string;
+  visible_to_employee: boolean;
+  file_path: string | null;
   section: string | null;
   description: string | null;
-  requires_acknowledgment: boolean;
+  requires_acknowledgment: boolean | null;
+  file_size_bytes: number | null;
+  mime_type: string | null;
   acknowledged_at: string | null;
-  visible_to_employee: boolean;
-  created_at: string;
+  bucket_id: string | null;
+  target_type: 'all' | 'company' | 'department' | 'individual' | null;
+  target_company_id: string | null;
+  target_department: string | null;
+  published_status: 'draft' | 'published' | 'archived' | null;
+  published_at: string | null;
+  version_number: number | null;
+}
+
+export interface DocumentAcknowledgment {
+  id: string;
+  document_id: string;
+  employee_id: string;
+  acknowledged_at: string | null;
+}
+
+export interface DocumentVersion {
+  id: string;
+  document_id: string;
+  version_number: number;
+  file_path: string | null;
+  file_url: string | null;
+  file_size_bytes: number | null;
+  mime_type: string | null;
+  notes: string | null;
+  created_at: string | null;
+  created_by: string | null;
 }
 
 export interface Schedule {

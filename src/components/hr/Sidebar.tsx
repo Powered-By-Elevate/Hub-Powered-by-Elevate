@@ -8,6 +8,7 @@ const navItems: { id: HRTab; icon: string; label: string }[] = [
   { id: 'applicants', icon: '📨', label: 'Applicants' },
   { id: 'employees', icon: '👥', label: 'All Employees' },
   { id: 'templates', icon: '📋', label: 'Templates' },
+  { id: 'documents', icon: '📄', label: 'Documents' },
   { id: 'checkins', icon: '📅', label: 'Check-ins & Reviews' },
   { id: 'career', icon: '🎯', label: 'Career Development' },
   { id: 'settings', icon: '⚙', label: 'Settings' },
