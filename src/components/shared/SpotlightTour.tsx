@@ -192,21 +192,21 @@ export function SpotlightTour({
         </div>
         <h3 style={{ margin: '0 0 8px', fontSize: 16, color: '#1A1916' }}>{step.title}</h3>
         <p style={{ fontSize: 13, color: '#6B6860', lineHeight: 1.55, marginBottom: 16 }}>{step.body}</p>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {steps.map((_, i) => (
-              <div key={i} style={{
-                width: 6, height: 6, borderRadius: '50%',
-                background: i === currentStep ? '#1B3F6E' : i < currentStep ? '#1B3F6E66' : '#E5E3DC',
-              }} />
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {currentStep > 0 && <button onClick={back} style={ghostSmBtnStyle}>← Back</button>}
-            <button onClick={next} style={primarySmBtnStyle}>
-              {currentStep === steps.length - 1 ? 'Almost done →' : 'Next →'}
-            </button>
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginBottom: 12 }}>
+          {steps.map((_, i) => (
+            <div key={i} style={{
+              width: 6, height: 6, borderRadius: '50%',
+              background: i === currentStep ? '#1B3F6E' : i < currentStep ? '#1B3F6E66' : '#E5E3DC',
+            }} />
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+          {currentStep > 0 && (
+            <button onClick={back} style={{ ...ghostSmBtnStyle, flex: 1 }}>← Back</button>
+          )}
+          <button onClick={next} style={{ ...primarySmBtnStyle, flex: 1 }}>
+            {currentStep === steps.length - 1 ? 'Almost done →' : 'Next →'}
+          </button>
         </div>
       </div>
     </>
