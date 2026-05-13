@@ -591,7 +591,7 @@ export function EmployeeApp() {
 
       {tourLoaded && tourState.type === 'onboarding' && profile?.id && (
         <SpotlightTour
-          steps={employeeOnboardingTour}
+        steps={employeeOnboardingTour(setTab)}
           currentStep={tourState.step}
           introTitle={employeeOnboardingIntro.title}
           introBody={employeeOnboardingIntro.body}
@@ -612,7 +612,7 @@ export function EmployeeApp() {
       )}
       {tourLoaded && tourState.type === 'active' && profile?.id && (
         <SpotlightTour
-          steps={employeeActiveTour}
+        steps={employeeActiveTour(setTab)}
           currentStep={tourState.step}
           introTitle={employeeActiveIntro.title}
           introBody={employeeActiveIntro.body}

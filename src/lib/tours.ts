@@ -1,32 +1,38 @@
 import { TourStep } from '../components/shared/SpotlightTour';
+import type { EmpTab } from '../pages/EmployeeApp';
 
-// Onboarding Employee Tour — fires on first login while in onboarding status
-export const employeeOnboardingTour: TourStep[] = [
-  {
-    targetId: 'emp-sidebar-overview',
-    title: 'Your Dashboard',
-    body: "This is your home base. You'll see your onboarding progress, upcoming tasks, and any announcements from HR right here.",
-  },
-  {
-    targetId: 'emp-sidebar-tasks',
-    title: 'My Tasks',
-    body: "Your onboarding checklist lives here. Mark tasks complete as you finish them — HR sees your progress in real time.",
-  },
-  {
-    targetId: 'emp-sidebar-schedule',
-    title: 'My Schedule',
-    body: "Day 1 and beyond — meetings, shadowing sessions, and trainings your HR team set up. Click on any item to see details.",
-  },
-  {
-    targetId: 'emp-sidebar-documents',
-    title: 'Documents',
-    body: "Your employee handbook, policies, and any forms HR has sent your way. Some require your acknowledgment before you can complete onboarding.",
-  },
-  {
-    targetId: 'emp-sidebar-contacts',
-    title: 'Contacts',
-    body: "Quick access to HR, IT support, and other vendors. Click email or Teams to reach out directly.",
-  },
+// ============================================================
+// ONBOARDING EMPLOYEE TOUR
+// Walks the new hire through every tab, highlighting key sections.
+// ============================================================
+
+export const employeeOnboardingTour = (setTab: (t: EmpTab) => void): TourStep[] => [
+  // ---- Dashboard ----
+  { targetId: 'emp-sidebar-overview', title: 'Your Dashboard', body: "Let's start at your home base. The Dashboard is where you'll land each time you log in.", onEnter: () => setTab('overview') },
+  { targetId: 'emp-dashboard-progress', title: 'Your Onboarding Progress', body: "This banner tracks how far along you are. Complete your tasks and it fills up — when you hit 100%, your full Hub unlocks." },
+  { targetId: 'emp-dashboard-tasks', title: "What's Up Next", body: "The most important tasks waiting for you. Click any one to mark it complete, or visit My Tasks for the full list." },
+  { targetId: 'emp-dashboard-schedule', title: "Today's Schedule", body: "Meetings, shadowing sessions, and trainings your HR team set up for you. Don't miss your Day 1 plan." },
+  { targetId: 'emp-dashboard-stats', title: 'Your Progress at a Glance', body: "A quick breakdown of your tasks by status — complete, in progress, not started, and overdue." },
+  { targetId: 'emp-topbar-clock', title: 'Current Date & Time', body: "Always visible up here so you stay oriented in your day." },
+
+  // ---- Tasks ----
+  { targetId: 'emp-sidebar-tasks', title: 'My Tasks', body: "Now let's look at your full onboarding checklist.", onEnter: () => setTab('tasks') },
+  { targetId: 'emp-tasks-filter', title: 'Filter by Time', body: "Focus on this week, this month, or see everything. Critical tasks always rise to the top." },
+  { targetId: 'emp-tasks-list', title: 'Your Checklist', body: "Click the checkbox to mark a task complete. HR sees your progress in real time." },
+
+  // ---- Schedule ----
+  { targetId: 'emp-sidebar-schedule', title: 'My Schedule', body: "Your weekly view of meetings, trainings, and check-ins.", onEnter: () => setTab('schedule') },
+  { targetId: 'emp-schedule-week', title: 'Your Week', body: "See what's planned across the whole week. Use the arrows to look ahead or back." },
+  { targetId: 'emp-schedule-day1', title: 'Day 1 Plan', body: "Your first-day schedule. Orientation, intro meetings, and anything your team has set up for you." },
+  { targetId: 'emp-schedule-upcoming', title: 'Upcoming Check-ins', body: "Your 30-60-90 milestones and quarterly check-ins with HR will appear here as they're scheduled." },
+
+  // ---- Documents ----
+  { targetId: 'emp-sidebar-documents', title: 'Documents', body: "Handbook, policies, and forms — everything HR shares with you lives here.", onEnter: () => setTab('documents') },
+  { targetId: 'emp-documents-list', title: 'Organized by Bucket', body: "Documents are grouped into categories like Handbook, Benefits, and Training so they're easy to find." },
+
+  // ---- Contacts ----
+  { targetId: 'emp-sidebar-contacts', title: 'Contacts', body: "Quick access to HR, IT, and other people you might need to reach.", onEnter: () => setTab('contacts') },
+  { targetId: 'emp-contacts-search', title: 'Search the Directory', body: "Search by name, role, or department to find who you need. Email or Teams chat them directly from each card." },
 ];
 
 export const employeeOnboardingIntro = {
@@ -39,119 +45,87 @@ export const employeeOnboardingOutro = {
   body: "That's everything you need to get started. Reach out to your manager or HR if you have any questions along the way. Welcome to the team!",
 };
 
-// Active Employee Tour — fires when lifecycle flips from onboarding to active
-export const employeeActiveTour: TourStep[] = [
-  {
-    targetId: 'emp-sidebar-team',
-    title: 'My Team',
-    body: "See your department and your company at a glance. Email or Teams chat with any teammate directly from here.",
-  },
-  {
-    targetId: 'emp-sidebar-my-goals',
-    title: 'My Goals',
-    body: "Your development goals — what you're working toward in your career. Track progress as you go.",
-  },
-  {
-    targetId: 'emp-sidebar-my-certifications',
-    title: 'My Certifications',
-    body: "Trainings, certifications, and credentials you've earned or are working toward.",
-  },
-  {
-    targetId: 'emp-sidebar-my-checkins',
-    title: 'My Check-ins',
-    body: "Your quarterly conversations with HR, plus 30-60-90 milestones for new hires. This is where alignment happens.",
-  },
-  {
-    targetId: 'emp-sidebar-my-reviews',
-    title: 'My Reviews',
-    body: "Your annual performance reviews. A record of feedback, growth, and recognition over time.",
-  },
+// ============================================================
+// ACTIVE EMPLOYEE TOUR
+// Full walkthrough — every tab, every major section.
+// Fires for employees who were hired before The Hub launched,
+// or who finished onboarding and got upgraded.
+// ============================================================
+
+export const employeeActiveTour = (setTab: (t: EmpTab) => void): TourStep[] => [
+  // ---- Dashboard ----
+  { targetId: 'emp-sidebar-overview', title: 'Your Dashboard', body: "Welcome to your Hub. Let's walk through everything available to you.", onEnter: () => setTab('overview') },
+  { targetId: 'emp-dashboard-banner', title: 'Announcements & Updates', body: "Important messages from HR show up here — open enrollment, policy changes, company-wide news." },
+  { targetId: 'emp-dashboard-tasks', title: 'Open Tasks', body: "Tasks assigned to you across the company. Mark them complete as you go." },
+  { targetId: 'emp-dashboard-schedule', title: "Today's Schedule", body: "Meetings, check-ins, and events scheduled for today." },
+  { targetId: 'emp-dashboard-development', title: 'My Development', body: "Quick access to your goals, certifications, check-ins, and reviews. We'll dive into each of these in a moment." },
+  { targetId: 'emp-topbar-clock', title: 'Current Date & Time', body: "Always visible up here so you stay oriented." },
+
+  // ---- Tasks ----
+  { targetId: 'emp-sidebar-tasks', title: 'My Tasks', body: "All tasks assigned to you, organized by deadline.", onEnter: () => setTab('tasks') },
+  { targetId: 'emp-tasks-filter', title: 'Filter by Time', body: "View by week, month, year, or see everything at once. Critical tasks always sort to the top." },
+  { targetId: 'emp-tasks-list', title: 'Your Active Tasks', body: "Click the checkbox to mark complete. You can also create your own tasks with the + button." },
+
+  // ---- Team ----
+  { targetId: 'emp-sidebar-team', title: 'My Team', body: "Your department, your company, and a shared calendar of who's doing what.", onEnter: () => setTab('team') },
+  { targetId: 'emp-team-tabs', title: 'Team or Calendar', body: "Switch between seeing teammates and seeing the team's combined schedule." },
+  { targetId: 'emp-team-scope-toggle', title: 'Department or Company', body: "Toggle between just your immediate team and everyone across your company." },
+  { targetId: 'emp-team-calendar', title: 'Shared Schedule', body: "See your teammates' meetings and events in one view — useful for finding free time to collaborate." },
+
+  // ---- Schedule ----
+  { targetId: 'emp-sidebar-schedule', title: 'My Schedule', body: "Your personal calendar of meetings, check-ins, and reviews.", onEnter: () => setTab('schedule') },
+  { targetId: 'emp-schedule-week', title: 'Week View', body: "See your week at a glance. Use the arrows to navigate to other weeks." },
+  { targetId: 'emp-schedule-upcoming', title: 'Upcoming Check-ins & Reviews', body: "Your scheduled quarterly check-ins and annual reviews are listed here so you know what's coming." },
+
+  // ---- Documents ----
+  { targetId: 'emp-sidebar-documents', title: 'Documents', body: "Handbook, policies, training materials, and anything HR shares.", onEnter: () => setTab('documents') },
+  { targetId: 'emp-documents-list', title: 'Organized by Bucket', body: "Documents are grouped into categories so they're easy to find. Any required documents will be flagged for you to acknowledge." },
+
+  // ---- Contacts ----
+  { targetId: 'emp-sidebar-contacts', title: 'Contacts', body: "Your company directory plus external vendors.", onEnter: () => setTab('contacts') },
+  { targetId: 'emp-contacts-myteam', title: 'My Team', body: "Your immediate team is here at the top." },
+  { targetId: 'emp-contacts-search', title: 'Find Anyone', body: "Search across your whole company plus external vendors like IT and benefits providers." },
+
+  // ---- My Goals ----
+  { targetId: 'emp-sidebar-my-goals', title: 'My Goals', body: "Your development goals and career pathway live here.", onEnter: () => setTab('my-goals') },
+  { targetId: 'emp-mygoals-summary', title: 'Your Level & Pathway', body: "Your current career level and the pathway you're on — your roadmap for growth." },
+  { targetId: 'emp-mygoals-active', title: 'Active Goals', body: "What you're working toward right now. Progress bars show how far you've come." },
+
+  // ---- My Certifications ----
+  { targetId: 'emp-sidebar-my-certifications', title: 'My Certifications', body: "Trainings and credentials you've earned or are working toward.", onEnter: () => setTab('my-certifications') },
+  { targetId: 'emp-mycerts-list', title: 'Your Certifications', body: "Sorted by status — in progress, completed, and not yet started. View proof of completion for any you've finished." },
+
+  // ---- My Check-ins ----
+  { targetId: 'emp-sidebar-my-checkins', title: 'My Check-ins', body: "Your quarterly conversations with HR, plus any 30-60-90 milestones if you're new.", onEnter: () => setTab('my-checkins') },
+  { targetId: 'emp-mycheckins-list', title: 'Your Check-in History', body: "A record of every check-in. This is where alignment, feedback, and growth conversations happen." },
+
+  // ---- My Reviews ----
+  { targetId: 'emp-sidebar-my-reviews', title: 'My Reviews', body: "Your annual performance reviews live here.", onEnter: () => setTab('my-reviews') },
+  { targetId: 'emp-myreviews-list', title: 'Review History', body: "A timeline of your performance reviews — a record of feedback, growth, and recognition over time." },
 ];
 
 export const employeeActiveIntro = {
-  title: "🎉 You're fully onboarded!",
-  body: "Welcome to the team officially. Your full Employee Hub has been unlocked, and you've got access to a few new sections we want to show you.",
+  title: "Welcome to The Hub",
+  body: "We've built The Hub to be your home for everything career-related — your tasks, your team, your development goals, and your performance reviews. Let's take a quick tour so you know where everything lives.",
 };
 
 export const employeeActiveOutro = {
   title: "You're all set",
-  body: "Explore your new Hub at your own pace. If you have questions about career development, your goals, or anything else — your manager and HR are here to help.",
+  body: "That's the full tour. Explore at your own pace — your manager and HR are always here if you have questions about your goals, your reviews, or anything else.",
 };
 
-// Manager Tour — fires on first manager login
-export const managerTour: TourStep[] = [
-  {
-    targetId: 'mgr-sidebar-dashboard',
-    title: 'Your Dashboard',
-    body: "Quick view of your direct reports, applicants assigned to you, and any tasks needing attention.",
-  },
-  {
-    targetId: 'mgr-sidebar-team',
-    title: 'My Team',
-    body: "Every employee who reports to you. Click into anyone's profile to assign tasks, view their progress, or schedule check-ins.",
-  },
-  {
-    targetId: 'mgr-sidebar-applicants',
-    title: 'Open Applicants',
-    body: "Candidates assigned to you as the hiring manager. Track them through phases and provide hiring decisions.",
-  },
-];
+// ============================================================
+// MANAGER TOUR — placeholder, fills in next phase
+// ============================================================
 
-export const managerIntro = {
-  title: 'Welcome to The Hub',
-  body: "As a manager, you have visibility into your team's progress, applicants you're interviewing, and tools to assign tasks. Let's show you around.",
-};
+export const managerTour: TourStep[] = [];
+export const managerIntro = { title: 'Welcome', body: 'Manager tour coming soon.' };
+export const managerOutro = { title: 'All set', body: 'Enjoy the Hub.' };
 
-export const managerOutro = {
-  title: "You're ready to lead",
-  body: "Your dashboard is your home base — start there each day. Reach out to HR if you need to add a new hire to your team or have any questions.",
-};
+// ============================================================
+// HR TOUR — placeholder, fills in next phase
+// ============================================================
 
-// HR Tour — fires on first HR login
-export const hrTour: TourStep[] = [
-  {
-    targetId: 'hr-sidebar-dashboard',
-    title: 'HR Dashboard',
-    body: "Your control center — total active employees, onboarding progress, check-ins due, and recent activity at a glance.",
-  },
-  {
-    targetId: 'hr-sidebar-applicants',
-    title: 'Applicants',
-    body: "Your hiring pipeline. Add candidates, move them through phases, and convert them to onboarding when they accept.",
-  },
-  {
-    targetId: 'hr-sidebar-employees',
-    title: 'All Employees',
-    body: "Every team member, filterable by status, department, and company. Click any employee to view or edit their full profile.",
-  },
-  {
-    targetId: 'hr-sidebar-templates',
-    title: 'Templates',
-    body: "Reusable onboarding task lists. Clone an existing one or save an employee's tasks as a new template.",
-  },
-  {
-    targetId: 'hr-sidebar-checkins',
-    title: 'Check-ins & Reviews',
-    body: "Schedule quarterly check-ins, annual reviews, and 30-60-90 milestones. The 30-60-90 auto-generates for new hires.",
-  },
-  {
-    targetId: 'hr-sidebar-career',
-    title: 'Career Development',
-    body: "Track each employee's pathway, level, and readiness for promotion. The big picture of your team's growth.",
-  },
-  {
-    targetId: 'hr-sidebar-settings',
-    title: 'Settings',
-    body: "Companies, departments, schedule templates, banners, and external contacts all live here.",
-  },
-];
-
-export const hrIntro = {
-  title: 'Welcome to The Hub',
-  body: "You're the heart of the operation. The Hub gives you a single place to manage applicants, employees, onboarding, and everything in between. Let's take a quick tour.",
-};
-
-export const hrOutro = {
-  title: "You're ready to roll",
-  body: "Pro tip: press Ctrl+K from anywhere to instantly search across employees, applicants, and documents. Reach out to support if you need anything.",
-};
+export const hrTour: TourStep[] = [];
+export const hrIntro = { title: 'Welcome', body: 'HR tour coming soon.' };
+export const hrOutro = { title: 'All set', body: 'Enjoy the Hub.' };
