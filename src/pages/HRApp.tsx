@@ -193,7 +193,11 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
     setSchedules(data ?? []);
   }, []);
   const loadActivity = useCallback(async () => {
-    const { data } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(100);
+    const { data } = await supabase
+  .from('activity_log')
+  .select('*, employee:employees!activity_log_employee_id_fkey(id, name)')
+  .order('created_at', { ascending: false })
+  .limit(100);
     setActivity(data ?? []);
   }, []);
 

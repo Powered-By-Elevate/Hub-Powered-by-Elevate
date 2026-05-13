@@ -339,7 +339,8 @@ export interface ActivityLog {
   employee_id: string | null;
   action: string;
   actor_id: string | null;
-  created_at: string;
+  created_at: string | null;
+  employee?: { id: string; name: string } | null;
 }
 
 export interface SetupToken {

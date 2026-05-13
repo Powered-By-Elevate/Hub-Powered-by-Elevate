@@ -87,7 +87,7 @@ export function HRDashboard({ employees, activity, checkins, reviews, lifecycleC
                       </div>
                     </td>
                     <td>
-                    {e.lifecycle_status === 'onboarding' ? (
+                      {e.lifecycle_status === 'onboarding' ? (
                         <>
                           <div className="prog-bar"><div className={`prog-fill ${pfColor(e.progress, e.status)}`} style={{ width: e.progress + '%' }} /></div>
                           <div className="prog-label">{e.progress}% onboarding</div>
@@ -131,16 +131,39 @@ export function HRDashboard({ employees, activity, checkins, reviews, lifecycleC
             <div className="card">
               <div className="card-header"><h3>Recent Activity</h3></div>
               <div className="card-body" style={{ padding: '.5rem 1.25rem' }}>
-              {activity.slice(0, 15).map(a => (
-                  <div key={a.id} className="act-row">
-                    <div className="act-dot" />
-                    <div>
-                      <div className="act-text">{a.action}</div>
-                      <div className="act-time">{new Date(a.created_at).toLocaleDateString()}</div>
+                {activity.slice(0, 15).map(a => {
+                  const empName = a.employee?.name ?? null;
+                  const startsWithName = empName && a.action.toLowerCase().startsWith(empName.toLowerCase());
+                  return (
+                    <div
+                      key={a.id}
+                      className="act-row"
+                      style={{ cursor: a.employee_id ? 'pointer' : 'default' }}
+                      onClick={() => a.employee_id && onViewEmployee(a.employee_id)}
+                    >
+                      <div className="act-dot" />
+                      <div>
+                        <div className="act-text">
+                          {empName && !startsWithName && (
+                            <>
+                              <strong style={{ color: '#1A1916' }}>{empName}</strong>
+                              {' · '}
+                            </>
+                          )}
+                          {a.action}
+                        </div>
+                        <div className="act-time">
+                          {a.created_at ? new Date(a.created_at).toLocaleDateString() : ''}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {activity.length === 0 && <p style={{ fontSize: 13, color: '#9B9890', padding: '0.5rem 0' }}>No recent activity.</p>}
+                  );
+                })}
+                {activity.length === 0 && (
+                  <p style={{ fontSize: 13, color: '#9B9890', padding: '0.5rem 0' }}>
+                    No recent activity.
+                  </p>
+                )}
               </div>
             </div>
           </div>
