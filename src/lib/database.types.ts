@@ -18,8 +18,12 @@ export interface UserProfile {
   email: string;
   role: Role;
   employee_id: string | null;
+  visibility_scope: VisibilityScope | null;
+  company_id: string | null;
   created_at: string;
 }
+
+export type VisibilityScope = 'direct_reports' | 'company_reports' | 'app_wide_reports';
 
 export interface Department {
   id: string;

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ViewerProvider } from './contexts/ViewerContext';
 import { LoginPage } from './pages/Login';
 import { SetupPage } from './pages/Setup';
 import { HRApp } from './pages/HRApp';
@@ -47,7 +48,9 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <AppRouter />
+        <ViewerProvider>
+          <AppRouter />
+        </ViewerProvider>
       </AuthProvider>
     </ErrorBoundary>
   );
