@@ -310,8 +310,8 @@ export function EmployeeDetail({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '4px 0' }}>
                     <span style={{ fontSize: 11, color: '#C4420A', fontWeight: 600 }}>Permanently delete this employee and all their data?</span>
                     <div style={{ display: 'flex', gap: 6 }}>
-                    <button className="btn-ghost sm" style={{ flex: 1, borderColor: '#C4420A', color: '#C4420A', fontWeight: 600 }} onClick={() => { console.log('[Yes, Delete] clicked. onDelete defined?', typeof onDelete, 'employee id:', e.id); onDelete?.(e.id); setConfirmDelete(false); }}>Yes, Delete</button>
-                      <button className="btn-ghost sm" style={{ flex: 1 }} onClick={() => setConfirmDelete(false)}>Cancel</button>
+                    <button className="btn-ghost sm" style={{ flex: 1, borderColor: '#C4420A', color: '#C4420A', fontWeight: 600 }} onClick={() => { onDelete?.(e.id); setConfirmDelete(false); }}>Yes, Delete</button>
+                    <button className="btn-ghost sm" style={{ flex: 1 }} onClick={() => setConfirmDelete(false)}>Cancel</button>
                     </div>
                   </div>
                 )}

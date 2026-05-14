@@ -445,8 +445,8 @@ export function EmployeeApp() {
               pathways={myPathways}
               onBack={() => setTab('mgr-team')}
               onOpenModal={(type, eid) => setModal({ type, eid })}
-              onToggleTask={() => {}}
-              onTaskStatusChange={() => {}}
+              onToggleTask={() => alert('View only — only HR can mark tasks complete')}
+              onTaskStatusChange={() => alert('View only — only HR can change task status')}
             />
           )}
           {tab === 'mgr-employees' && isManager && (
@@ -566,8 +566,8 @@ export function EmployeeApp() {
             pathways={myPathways}
             onBack={() => setTab('mgr-team')}
             onOpenModal={(type, eid) => setModal({ type, eid })}
-            onToggleTask={() => {}}
-            onTaskStatusChange={() => {}}
+            onToggleTask={() => alert('View only — only HR can mark tasks complete')}
+              onTaskStatusChange={() => alert('View only — only HR can change task status')}
           />
         )}
         {tab === 'mgr-employees' && isManager && (

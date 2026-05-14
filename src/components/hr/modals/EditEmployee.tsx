@@ -56,7 +56,6 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
       .select('role')
       .eq('id', e.user_id)
       .maybeSingle();
-    console.log('loadAccessLevel:', { user_id: e.user_id, data, error });
     if (data?.role) {
       const role = String(data.role).toLowerCase().trim();
       setForm(f => ({ ...f, auth_role: reverseMap[role] || 'Employee' }));
@@ -133,15 +132,12 @@ export function EditEmployeeModal({ employee: e, departments, companies, employe
 
     const updates = { ...coreUpdates, ...extendedFields };
 
-    console.log('[EditEmployee] updates payload:', updates);
-    console.log('[EditEmployee] employee id:', e.id);
     let { data, error: saveErr } = await supabase
       .from('employees')
       .update(updates)
       .eq('id', e.id)
       .select()
       .single();
-    console.log('[EditEmployee] first update result:', { data, saveErr });
 
     // Always persist access_role on the employees table
     if (!saveErr && form.auth_role) {

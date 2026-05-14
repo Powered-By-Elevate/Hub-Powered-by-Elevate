@@ -552,7 +552,6 @@ export type Database = {
           onboarding_completed_at: string | null
           pathway: string | null
           pathway_id: string | null
-          phase: string
           phone: string | null
           pillar_focus: string | null
           position_applied_for: string | null
@@ -593,7 +592,6 @@ export type Database = {
           onboarding_completed_at?: string | null
           pathway?: string | null
           pathway_id?: string | null
-          phase?: string
           phone?: string | null
           pillar_focus?: string | null
           position_applied_for?: string | null
@@ -634,7 +632,6 @@ export type Database = {
           onboarding_completed_at?: string | null
           pathway?: string | null
           pathway_id?: string | null
-          phase?: string
           phone?: string | null
           pillar_focus?: string | null
           position_applied_for?: string | null
