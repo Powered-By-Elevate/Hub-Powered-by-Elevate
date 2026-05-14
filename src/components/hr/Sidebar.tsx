@@ -97,9 +97,10 @@ export function HRSidebar({ tab, onTab }: Props) {
       {/* Mobile bottom nav */}
       <div className="mobile-bottom-nav">
         <div className="mobile-bottom-nav-inner">
-          {mobileNavItems.map(({ id, icon, label }) => (
+        {mobileNavItems.map(({ id, icon, label }) => (
             <button
               key={id}
+              id={`hr-mobile-${id}`}
               className={`mobile-nav-btn${tab === id || (id === 'employees' && tab === 'detail') ? ' active' : ''}`}
               onClick={() => onTab(id)}
             >

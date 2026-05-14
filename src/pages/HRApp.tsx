@@ -32,7 +32,7 @@ import { HRSettings } from '../components/hr/Settings';
 import { HRApplicants } from '../components/hr/Applicants';
 import { HRDocuments } from '../components/hr/Documents';
 import { SpotlightTour } from '../components/shared/SpotlightTour';
-import { hrTour, hrIntro, hrOutro } from '../lib/tours';
+import { hrTour, hrIntro, hrOutro, hrMobileTour, hrMobileIntro, hrMobileOutro } from '../lib/tours';
 import { AddEmployeeModal } from '../components/hr/modals/AddEmployee';
 import { AddTaskModal } from '../components/hr/modals/AddTask';
 import { AddDepartmentModal } from '../components/hr/modals/AddDepartment';
@@ -502,24 +502,24 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
           )}
 {tourLoaded && tourStep > -2 && profile?.id && (
           <SpotlightTour
-            steps={hrTour(t => setTab(t as HRTab))}
-            currentStep={tourStep}
-            introTitle={hrIntro.title}
-            introBody={hrIntro.body}
-            outroTitle={hrOutro.title}
-            outroBody={hrOutro.body}
-            onAdvance={async (newStep) => {
-              setTourStep(newStep);
-              await supabase.from('users').update({ hr_tour_current_step: newStep }).eq('id', profile.id);
-            }}
-            onComplete={async () => {
-              setTab('dashboard');
-              setTourStep(-2);
-              await supabase.from('users').update({
-                hr_tour_completed_at: new Date().toISOString(),
-                hr_tour_current_step: hrTour(t => setTab(t as HRTab)).length,
-              }).eq('id', profile.id);
-            }}
+          steps={hrMobileTour(t => setTab(t as HRTab))}
+          currentStep={tourStep}
+          introTitle={hrMobileIntro.title}
+          introBody={hrMobileIntro.body}
+          outroTitle={hrMobileOutro.title}
+          outroBody={hrMobileOutro.body}
+          onAdvance={async (newStep) => {
+            setTourStep(newStep);
+            await supabase.from('users').update({ hr_tour_current_step: newStep }).eq('id', profile.id);
+          }}
+          onComplete={async () => {
+            setTab('dashboard');
+            setTourStep(-2);
+            await supabase.from('users').update({
+              hr_tour_completed_at: new Date().toISOString(),
+              hr_tour_current_step: hrMobileTour(t => setTab(t as HRTab)).length,
+            }).eq('id', profile.id);
+          }}
           />
         )}
         </MobileLayout>

@@ -196,6 +196,30 @@ export const hrTour = (setTab: (t: string) => void): TourStep[] => [
   { targetId: 'hr-sidebar-settings', title: 'Settings', body: "Companies, departments, schedule templates, banners, document buckets, user roles, and external contacts — everything customizable.", onEnter: () => setTab('settings') },
 ];
 
+// ============================================================
+// HR MOBILE TOUR — covers the 5 tabs accessible from mobile bottom nav
+// (Dashboard, Employees, Career, Check-ins, Settings).
+// Full HR tour with all sections runs on desktop only.
+// ============================================================
+
+export const hrMobileTour = (setTab: (t: string) => void): TourStep[] => [
+  { targetId: 'hr-mobile-dashboard', title: 'HR Dashboard', body: "Your home base. Quick stats, recent employees, upcoming check-ins, and activity at a glance.", onEnter: () => setTab('dashboard') },
+  { targetId: 'hr-mobile-employees', title: 'All Employees', body: "Your full team roster. Tap any employee to view or edit their profile.", onEnter: () => setTab('employees') },
+  { targetId: 'hr-mobile-career', title: 'Career Development', body: "Each employee's pathway, level, and readiness for promotion.", onEnter: () => setTab('career') },
+  { targetId: 'hr-mobile-checkins', title: 'Check-ins & Reviews', body: "Quarterly check-ins, annual reviews, and 30-60-90 milestones.", onEnter: () => setTab('checkins') },
+  { targetId: 'hr-mobile-settings', title: 'Settings', body: "Companies, departments, document buckets, user roles, and more. For deeper customization, log in on desktop.", onEnter: () => setTab('settings') },
+];
+
+export const hrMobileIntro = {
+  title: 'Welcome to The Hub',
+  body: "Here's a quick tour of what's available on mobile. For the full HR experience — Applicants, Templates, Documents, and detailed Settings — log in from your desktop.",
+};
+
+export const hrMobileOutro = {
+  title: "You're ready to roll",
+  body: "Tap any tab in the bottom nav to dive in. For full features, head to your desktop.",
+};
+
 export const hrIntro = {
   title: 'Welcome to The Hub',
   body: "You're the operations heart of this app. The Hub gives you a single place to manage applicants, employees, onboarding, documents, and everything in between. Let's walk through every section.",
