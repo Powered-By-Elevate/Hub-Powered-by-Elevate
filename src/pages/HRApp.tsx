@@ -32,7 +32,7 @@ import { HRSettings } from '../components/hr/Settings';
 import { HRApplicants } from '../components/hr/Applicants';
 import { HRDocuments } from '../components/hr/Documents';
 import { SpotlightTour } from '../components/shared/SpotlightTour';
-import { hrTour, hrIntro, hrOutro, hrMobileTour, hrMobileIntro, hrMobileOutro } from '../lib/tours';
+import { hrTour, hrIntro, hrOutro } from '../lib/tours';
 import { AddEmployeeModal } from '../components/hr/modals/AddEmployee';
 import { AddTaskModal } from '../components/hr/modals/AddTask';
 import { AddDepartmentModal } from '../components/hr/modals/AddDepartment';
@@ -76,8 +76,8 @@ export function HRApp() {
   const [empCertifications, setEmpCertifications] = useState<Record<string, Certification[]>>({});
   const [empCheckins, setEmpCheckins] = useState<Record<string, Checkin[]>>({});
   const [quarterlyCheckins, setQuarterlyCheckins] = useState<import('../lib/database.types').QuarterlyCheckin[]>([]);
-const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types').AnnualReview[]>([]);
-const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/database.types').LifecycleCheckin[]>([]);
+  const [annualReviews, setAnnualReviews] = useState<import('../lib/database.types').AnnualReview[]>([]);
+  const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/database.types').LifecycleCheckin[]>([]);
   const [notes, setNotes] = useState<Record<string, EmployeeNote[]>>({});
   const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null);
   const [modal, setModal] = useState<{ type: string; eid?: string } | null>(null);
@@ -86,10 +86,13 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
   const channelsRef = useRef<ReturnType<typeof supabase.channel>[]>([]);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
+  const isMobile = useMobile();
 
   useEffect(() => {
     async function loadHrTour() {
       if (!profile?.id) return;
+      // Mobile users skip the tour entirely
+      if (window.innerWidth < 768) { setTourLoaded(true); return; }
       const { data } = await supabase
         .from('users')
         .select('hr_tour_completed_at, hr_tour_current_step')
@@ -115,7 +118,6 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
-  const isMobile = useMobile();
 
   function showToast(message: string, type: ToastItem['type'] = 'success') {
     const id = crypto.randomUUID();
@@ -216,10 +218,10 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
   }, []);
   const loadActivity = useCallback(async () => {
     const { data } = await supabase
-  .from('activity_log')
-  .select('*, employee:employees!activity_log_employee_id_fkey(id, name)')
-  .order('created_at', { ascending: false })
-  .limit(100);
+      .from('activity_log')
+      .select('*, employee:employees!activity_log_employee_id_fkey(id, name)')
+      .order('created_at', { ascending: false })
+      .limit(100);
     setActivity(data ?? []);
   }, []);
 
@@ -247,7 +249,6 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
 
   // Real-time subscriptions
   useEffect(() => {
-    // Clean up previous channels
     channelsRef.current.forEach(ch => supabase.removeChannel(ch));
     channelsRef.current = [];
 
@@ -261,7 +262,6 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
         } else if (payload.eventType === 'UPDATE') {
           const updated = payload.new as Employee;
           if (updated.is_test_account) {
-            // Test account being updated — make sure it's not in the list
             setEmployees(prev => prev.filter(e => e.id !== updated.id));
             return;
           }
@@ -334,13 +334,9 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
     }
   }, [selectedEmpId, tasks, notes, loadTasks, loadNotes, loadDocumentsForEmp, loadEmpReviews, loadEmpDevPlans, loadEmpCertifications, loadEmpCheckins]);
 
-  // DB trigger now handles all progress/status/lifecycle recalculation.
-  // No frontend auto-promote needed — the trigger fires on every task change.
-
   async function viewEmployee(id: string) {
     setSelectedEmpId(id);
     setTab('detail');
-    // Fetch fresh employee record — never trust cached version for detail view
     const { data } = await supabase.from('employees').select('*').eq('id', id).maybeSingle();
     if (data) setEmployees(prev => prev.map(e => e.id === id ? data as Employee : e));
   }
@@ -357,10 +353,8 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
     if (isCompleting) { updates.completed_at = now; updates.archived = true; }
     else { updates.completed_at = null; updates.archived = false; }
 
-    // Write task — DB trigger recalculates employees.progress/status automatically
     await supabase.from('onboarding_tasks').update(updates).eq('id', taskId);
 
-    // Optimistic local update for instant UI response
     const updated = empTasks.map(t => t.id === taskId
       ? { ...t, status: newStatus as import('../lib/database.types').TaskStatus, archived: isCompleting, completed_at: isCompleting ? now : null }
       : t
@@ -369,16 +363,13 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
 
     const emp = employees.find(e => e.id === selectedEmpId);
     await logActivity(selectedEmpId, `${isCompleting ? 'Completed' : 'Reopened'} task "${task.title}"${emp ? ` for ${emp.name}` : ''}`);
-    // Real-time subscription on employees table will deliver the DB-computed values
   }
 
   async function taskStatusChange(taskId: string, status: string) {
     if (!selectedEmpId) return;
-    // Write task — DB trigger handles employee progress recalculation
     await supabase.from('onboarding_tasks').update({ status }).eq('id', taskId);
     const updated = (tasks[selectedEmpId] ?? []).map(t => t.id === taskId ? { ...t, status: status as import('../lib/database.types').TaskStatus } : t);
     setTasks(prev => ({ ...prev, [selectedEmpId]: updated }));
-    // Real-time subscription on employees table delivers correct recalculated values
   }
 
   function taskTriageChange(taskId: string, triage: 'critical' | 'normal') {
@@ -392,14 +383,12 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
     await supabase.from('employees').update({ archived: true }).eq('id', id);
     await logActivity(id, `Archived employee ${emp?.name ?? id}`);
     setTab('employees');
-    // Real-time subscription handles state update
   }
 
   async function restoreEmployee(id: string) {
     const emp = employees.find(e => e.id === id);
     await supabase.from('employees').update({ archived: false }).eq('id', id);
     await logActivity(id, `Restored employee ${emp?.name ?? id}`);
-    // Real-time subscription handles state update
   }
 
   async function deleteEmployee(id: string) {
@@ -428,7 +417,6 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
       return;
     }
 
-    // Update UI immediately — don't wait for realtime
     setEmployees(prev => prev.filter(e => e.id !== id));
     setSelectedEmpId(null);
     setTab('employees');
@@ -460,7 +448,8 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
         >
           {tab === 'dashboard' && (
             <MobileDashboard
-            employee={{ id: '', name: profile?.email?.split('@')[0] ?? 'HR', email: profile?.email ?? '', phone: null, role: 'HR Administrator', department: null, team_id: null, manager: null, manager_user_id: null, start_date: null, status: 'complete', progress: 100, archived: false, user_id: null, avatar_url: null, bio: null, onboarding_completed_at: null, lifecycle_status: 'active', birthday_month: null, birthday_day: null, company_id: null, created_at: '', current_level: null, next_level: null, pathway_id: null, readiness_level: null, current_status: null, employment_type: null, pillar_focus: null, applicant_phase: null, applicant_stage: null, hiring_manager_id: null, position_applied_for: null, resume_url: null, applicant_source: null, access_role: null, manager_id: null, pathway: null, is_test_account: false }}tasks={[]}
+              employee={{ id: '', name: profile?.email?.split('@')[0] ?? 'HR', email: profile?.email ?? '', phone: null, role: 'HR Administrator', department: null, team_id: null, manager: null, manager_user_id: null, start_date: null, status: 'complete', progress: 100, archived: false, user_id: null, avatar_url: null, bio: null, onboarding_completed_at: null, lifecycle_status: 'active', birthday_month: null, birthday_day: null, company_id: null, created_at: '', current_level: null, next_level: null, pathway_id: null, readiness_level: null, current_status: null, employment_type: null, pillar_focus: null, applicant_phase: null, applicant_stage: null, hiring_manager_id: null, position_applied_for: null, resume_url: null, applicant_source: null, access_role: null, manager_id: null, pathway: null, is_test_account: false }}
+              tasks={[]}
               schedules={[]}
               announcement={null}
               onToggleTask={() => {}}
@@ -474,9 +463,9 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
               onEdit={(id: string) => setEditEmpId(id)}
             />
           )}
-{tab === 'documents' && (
-          <HRDocuments employees={employees} companies={companies} />
-        )}
+          {tab === 'documents' && (
+            <HRDocuments employees={employees} companies={companies} />
+          )}
           {tab === 'settings' && (
             <MobileHRSettings
               onOrgTab={() => setTab('settings')}
@@ -500,28 +489,6 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
               onLifecycleCheckinUpdated={loadLifecycleCheckins}
             />
           )}
-{tourLoaded && tourStep > -2 && profile?.id && (
-          <SpotlightTour
-          steps={hrMobileTour(t => setTab(t as HRTab))}
-          currentStep={tourStep}
-          introTitle={hrMobileIntro.title}
-          introBody={hrMobileIntro.body}
-          outroTitle={hrMobileOutro.title}
-          outroBody={hrMobileOutro.body}
-          onAdvance={async (newStep) => {
-            setTourStep(newStep);
-            await supabase.from('users').update({ hr_tour_current_step: newStep }).eq('id', profile.id);
-          }}
-          onComplete={async () => {
-            setTab('dashboard');
-            setTourStep(-2);
-            await supabase.from('users').update({
-              hr_tour_completed_at: new Date().toISOString(),
-              hr_tour_current_step: hrMobileTour(t => setTab(t as HRTab)).length,
-            }).eq('id', profile.id);
-          }}
-          />
-        )}
         </MobileLayout>
         {modal?.type === 'add-emp' && (
           <AddEmployeeModal
@@ -591,306 +558,306 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
 
   return (
     <>
-    <div className="app-shell">
-      <HRSidebar tab={tab} onTab={t => { setTab(t as HRTab); if (t !== 'detail') setSelectedEmpId(null); }} />
-      <div className="main-area">
-      {tab === 'dashboard' && (
-          <HRDashboard
-            employees={employees}
-            activity={activity}
-            checkins={quarterlyCheckins}
-            reviews={annualReviews}
-            lifecycleCheckins={lifecycleCheckins}
-            userId={profile?.id}
-            onViewEmployee={viewEmployee}
-            onOpenModal={(type, eid) => setModal({ type, eid })}
-            onTab={t => setTab(t as HRTab)}
-          />
-        )}
-        {tab === 'documents' && (
-          <HRDocuments employees={employees} companies={companies} />
-        )}
-        {tab === 'applicants' && (
-          <HRApplicants
-            employees={employees}
-            onAddApplicant={() => setModal({ type: 'add-applicant' })}
-            onEditApplicant={id => setEditApplicantId(id)}
-            onConvertApplicant={id => setModal({ type: 'convert-applicant', eid: id })}
-            onViewApplicant={viewEmployee}
-          />
-        )}
-        {tab === 'employees' && (
-          <EmployeeList
-            employees={employees}
-            companies={companies}
-            departments={departments}
-            onViewEmployee={viewEmployee}
-            onOpenModal={(type, eid) => setModal({ type, eid })}
-            onRestoreEmployee={restoreEmployee}
-            onEditEmployee={id => setEditEmpId(id)}
-          />
-        )}
-        {tab === 'templates' && (
-          <HRTemplates templates={templates} onOpenModal={(type, eid) => setModal({ type, eid })} />
-        )}
-        {tab === 'checkins' && (
-          <HRCheckins
-            employees={employees.filter(e => !e.archived)}
-            checkins={quarterlyCheckins}
-            reviews={annualReviews}
-            lifecycleCheckins={lifecycleCheckins}
-            onOpenModal={(type, eid) => setModal({ type, eid })}
-            onCheckinUpdated={loadQuarterlyCheckins}
-            onReviewUpdated={loadAnnualReviews}
-            onLifecycleCheckinUpdated={loadLifecycleCheckins}
-          />
-        )}
-        {tab === 'career' && (
-          <CareerDevelopment
-            employees={employees}
-            pathways={pathways}
-            onViewEmployee={viewEmployee}
-            onRefresh={loadEmployees}
-          />
-        )}
-        {tab === 'settings' && (
-          <HRSettings employees={employees.filter(e => !e.archived)} onCheckinUpdated={() => {}} onReviewUpdated={() => {}} onDepartmentChanged={loadDepartments} />
-        )}
-        {tab === 'detail' && selectedEmp && (
-          <EmployeeDetail
-            employee={selectedEmp}
-            tasks={tasks[selectedEmp.id] ?? []}
-            documents={documents}
-            schedules={schedules}
-            checkins={empCheckins[selectedEmp.id] ?? []}
-            reviews={empReviews[selectedEmp.id] ?? []}
-            developmentPlans={empDevPlans[selectedEmp.id] ?? []}
-            certifications={empCertifications[selectedEmp.id] ?? []}
-            notes={notes[selectedEmp.id] ?? []}
-            companies={companies}
-            pathways={pathways}
-            onBack={() => setTab('employees')}
-            onOpenModal={(type, eid) => setModal({ type, eid })}
-            onToggleTask={toggleTask}
-            onTaskStatusChange={taskStatusChange}
-            onTaskTriageChange={taskTriageChange}
-            onArchive={archiveEmployee}
-            onRestore={restoreEmployee}
-            onDelete={deleteEmployee}
-            onEditEmployee={id => setEditEmpId(id)}
-            onDocumentsChanged={loadDocumentsForEmp}
-            onDataChanged={empId => {
-              loadEmpReviews(empId);
-              loadEmpDevPlans(empId);
-              loadEmpCertifications(empId);
-              loadEmpCheckins(empId);
-              loadSchedules();
-            }}
-          />
-        )}
-      </div>
+      <div className="app-shell">
+        <HRSidebar tab={tab} onTab={t => { setTab(t as HRTab); if (t !== 'detail') setSelectedEmpId(null); }} />
+        <div className="main-area">
+          {tab === 'dashboard' && (
+            <HRDashboard
+              employees={employees}
+              activity={activity}
+              checkins={quarterlyCheckins}
+              reviews={annualReviews}
+              lifecycleCheckins={lifecycleCheckins}
+              userId={profile?.id}
+              onViewEmployee={viewEmployee}
+              onOpenModal={(type, eid) => setModal({ type, eid })}
+              onTab={t => setTab(t as HRTab)}
+            />
+          )}
+          {tab === 'documents' && (
+            <HRDocuments employees={employees} companies={companies} />
+          )}
+          {tab === 'applicants' && (
+            <HRApplicants
+              employees={employees}
+              onAddApplicant={() => setModal({ type: 'add-applicant' })}
+              onEditApplicant={id => setEditApplicantId(id)}
+              onConvertApplicant={id => setModal({ type: 'convert-applicant', eid: id })}
+              onViewApplicant={viewEmployee}
+            />
+          )}
+          {tab === 'employees' && (
+            <EmployeeList
+              employees={employees}
+              companies={companies}
+              departments={departments}
+              onViewEmployee={viewEmployee}
+              onOpenModal={(type, eid) => setModal({ type, eid })}
+              onRestoreEmployee={restoreEmployee}
+              onEditEmployee={id => setEditEmpId(id)}
+            />
+          )}
+          {tab === 'templates' && (
+            <HRTemplates templates={templates} onOpenModal={(type, eid) => setModal({ type, eid })} />
+          )}
+          {tab === 'checkins' && (
+            <HRCheckins
+              employees={employees.filter(e => !e.archived)}
+              checkins={quarterlyCheckins}
+              reviews={annualReviews}
+              lifecycleCheckins={lifecycleCheckins}
+              onOpenModal={(type, eid) => setModal({ type, eid })}
+              onCheckinUpdated={loadQuarterlyCheckins}
+              onReviewUpdated={loadAnnualReviews}
+              onLifecycleCheckinUpdated={loadLifecycleCheckins}
+            />
+          )}
+          {tab === 'career' && (
+            <CareerDevelopment
+              employees={employees}
+              pathways={pathways}
+              onViewEmployee={viewEmployee}
+              onRefresh={loadEmployees}
+            />
+          )}
+          {tab === 'settings' && (
+            <HRSettings employees={employees.filter(e => !e.archived)} onCheckinUpdated={() => {}} onReviewUpdated={() => {}} onDepartmentChanged={loadDepartments} />
+          )}
+          {tab === 'detail' && selectedEmp && (
+            <EmployeeDetail
+              employee={selectedEmp}
+              tasks={tasks[selectedEmp.id] ?? []}
+              documents={documents}
+              schedules={schedules}
+              checkins={empCheckins[selectedEmp.id] ?? []}
+              reviews={empReviews[selectedEmp.id] ?? []}
+              developmentPlans={empDevPlans[selectedEmp.id] ?? []}
+              certifications={empCertifications[selectedEmp.id] ?? []}
+              notes={notes[selectedEmp.id] ?? []}
+              companies={companies}
+              pathways={pathways}
+              onBack={() => setTab('employees')}
+              onOpenModal={(type, eid) => setModal({ type, eid })}
+              onToggleTask={toggleTask}
+              onTaskStatusChange={taskStatusChange}
+              onTaskTriageChange={taskTriageChange}
+              onArchive={archiveEmployee}
+              onRestore={restoreEmployee}
+              onDelete={deleteEmployee}
+              onEditEmployee={id => setEditEmpId(id)}
+              onDocumentsChanged={loadDocumentsForEmp}
+              onDataChanged={empId => {
+                loadEmpReviews(empId);
+                loadEmpDevPlans(empId);
+                loadEmpCertifications(empId);
+                loadEmpCheckins(empId);
+                loadSchedules();
+              }}
+            />
+          )}
+        </div>
 
-      {modal?.type === 'add-emp' && (
-        <AddEmployeeModal
-          departments={departments}
-          companies={companies}
-          employees={employees}
-          onClose={() => setModal(null)}
-          onCreated={async (newEmp) => {
-            if (newEmp) {
-              setEmployees(prev => [newEmp, ...prev]);
-            }
-            await loadActivity();
-            showToast('Employee added successfully');
-          }}
-        />
-      )}
-      {modal?.type === 'add-applicant' && (
-        <AddApplicantModal
-          employees={employees}
-          onClose={() => setModal(null)}
-          onCreated={async (newApplicant) => {
-            if (newApplicant) {
-              setEmployees(prev => [newApplicant, ...prev]);
-            }
-            await loadActivity();
-            showToast('Applicant added');
-          }}
-        />
-      )}
-      {modal?.type === 'convert-applicant' && modal.eid && (() => {
-        const applicant = employees.find(e => e.id === modal.eid);
-        return applicant ? (
-          <ConvertApplicantModal
-            applicant={applicant}
-            templates={templates}
-            departments={departments}
-            onClose={() => setModal(null)}
-            onConverted={async (updated) => {
-              setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
-              await loadActivity();
-              showToast(`${updated.name} converted to onboarding`);
-            }}
-          />
-        ) : null;
-      })()}
-      {modal?.type === 'add-dept' && (
-        <AddDepartmentModal onClose={() => setModal(null)} onCreated={() => loadDepartments()} />
-      )}
-      {modal?.type === 'add-task' && modal.eid && (() => {
-        const taskEmp = employees.find(e => e.id === modal.eid);
-        return <AddTaskModal
-          employeeId={modal.eid}
-          employee={taskEmp}
-          assignedByRole="hr"
-          assignedByName={profile?.email ?? undefined}
-          onClose={() => setModal(null)}
-          onCreated={async () => {
-            if (modal.eid) {
-              await loadTasks(modal.eid);
-              await logActivity(modal.eid, `HR added a task to ${taskEmp?.name ?? modal.eid}`);
-              await loadActivity();
-            }
-          }}
-        />;
-      })()}
-      {modal?.type === 'send-invite' && modal.eid && (() => {
-        const emp = employees.find(e => e.id === modal.eid);
-        return emp ? <SendInviteModal employee={emp} onClose={() => setModal(null)} /> : null;
-      })()}
-      {modal?.type === 'apply-template' && (
-        <ApplyTemplateModal
-          templates={templates}
-          employees={employees.filter(e => !e.archived)}
-          defaultTemplateId={modal.eid}
-          onClose={() => setModal(null)}
-          onApplied={eid => { loadTasks(eid); viewEmployee(eid); }}
-        />
-      )}
-      {modal?.type === 'new-template' && (
-        <CreateTemplateModal departments={departments} onClose={() => setModal(null)} onCreated={loadTemplates} />
-      )}
-      {modal?.type === 'edit-template' && modal.eid && (() => {
-        const tpl = templates.find(t => t.id === modal.eid);
-        return tpl ? <EditTemplateModal template={tpl} departments={departments} onClose={() => setModal(null)} onUpdated={loadTemplates} /> : null;
-      })()}
-      {modal?.type === 'clone-template' && modal.eid && (() => {
-        const tpl = templates.find(t => t.id === modal.eid);
-        return tpl ? (
-          <CloneTemplateModal
-            template={tpl}
-            onClose={() => setModal(null)}
-            onCloned={async (newId) => {
-              await loadTemplates();
-              setModal({ type: 'edit-template', eid: newId });
-              showToast(`Cloned template "${tpl.name}"`);
-            }}
-          />
-        ) : null;
-      })()}
-      {modal?.type === 'save-as-template' && modal.eid && (() => {
-        const emp = employees.find(e => e.id === modal.eid);
-        return emp ? (
-          <SaveAsTemplateModal
-            employeeName={emp.name}
-            employeeId={emp.id}
-            department={emp.department}
-            onClose={() => setModal(null)}
-            onSaved={async () => {
-              await loadTemplates();
-              showToast(`Saved ${emp.name}'s tasks as template`);
-            }}
-          />
-        ) : null;
-      })()}
-      {modal?.type === 'add-checkin' && (
-        <AddCheckinModal
-          employees={employees.filter(e => !e.archived)}
-          defaultEmpId={modal.eid}
-          onClose={() => setModal(null)}
-          onCreated={async () => {
-            await loadQuarterlyCheckins();
-            if (modal.eid) {
-              const emp = employees.find(e => e.id === modal.eid);
-              await logActivity(modal.eid ?? null, `Scheduled check-in for ${emp?.name ?? modal.eid}`);
-              await loadActivity();
-            }
-          }}
-        />
-      )}
-      {modal?.type === 'add-review' && (
-        <AddReviewModal
-          employees={employees.filter(e => !e.archived)}
-          defaultEmpId={modal.eid}
-          onClose={() => setModal(null)}
-          onCreated={async () => {
-            await loadAnnualReviews();
-            if (modal.eid) {
-              const emp = employees.find(e => e.id === modal.eid);
-              await logActivity(modal.eid ?? null, `Scheduled annual review for ${emp?.name ?? modal.eid}`);
-              await loadActivity();
-            }
-          }}
-        />
-      )}
-      {modal?.type === 'add-note' && modal.eid && (
-        <AddNoteModal
-          employeeId={modal.eid}
-          onClose={() => setModal(null)}
-          onCreated={async () => {
-            if (modal.eid) {
-              await loadNotes(modal.eid);
-              const emp = employees.find(e => e.id === modal.eid);
-              await logActivity(modal.eid, `HR added a note for ${emp?.name ?? modal.eid}`);
-              await loadActivity();
-            }
-          }}
-        />
-      )}
-      {editEmpId && (() => {
-        const emp = employees.find(e => e.id === editEmpId);
-        return emp ? (
-          <EditEmployeeModal
-            employee={emp}
+        {modal?.type === 'add-emp' && (
+          <AddEmployeeModal
             departments={departments}
             companies={companies}
             employees={employees}
-            pathways={pathways}
-            onClose={() => setEditEmpId(null)}
-            onSaved={async updated => {
-              setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
-              setEditEmpId(null);
-              await logActivity(updated.id, `HR updated profile for ${updated.name}`);
+            onClose={() => setModal(null)}
+            onCreated={async (newEmp) => {
+              if (newEmp) {
+                setEmployees(prev => [newEmp, ...prev]);
+              }
               await loadActivity();
+              showToast('Employee added successfully');
             }}
           />
-        ) : null;
-      })()}
-      {editApplicantId && (() => {
-        const applicant = employees.find(e => e.id === editApplicantId);
-        return applicant ? (
-          <EditApplicantModal
-            applicant={applicant}
+        )}
+        {modal?.type === 'add-applicant' && (
+          <AddApplicantModal
             employees={employees}
-            onClose={() => setEditApplicantId(null)}
-            onSaved={async updated => {
-              setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
-              setEditApplicantId(null);
-              await logActivity(updated.id, `HR updated applicant ${updated.name}`);
+            onClose={() => setModal(null)}
+            onCreated={async (newApplicant) => {
+              if (newApplicant) {
+                setEmployees(prev => [newApplicant, ...prev]);
+              }
               await loadActivity();
+              showToast('Applicant added');
             }}
           />
-        ) : null;
-      })()}
-    </div>
-    <ToastContainer toasts={toasts} onRemove={removeToast} />
-    <GlobalSearch
-      isOpen={searchOpen}
-      onClose={() => setSearchOpen(false)}
-      onSelectEmployee={(id) => viewEmployee(id)}
-      onSelectApplicant={(id) => { setTab('applicants'); viewEmployee(id); }}
-    />
-    {tourLoaded && tourStep > -2 && profile?.id && (
+        )}
+        {modal?.type === 'convert-applicant' && modal.eid && (() => {
+          const applicant = employees.find(e => e.id === modal.eid);
+          return applicant ? (
+            <ConvertApplicantModal
+              applicant={applicant}
+              templates={templates}
+              departments={departments}
+              onClose={() => setModal(null)}
+              onConverted={async (updated) => {
+                setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
+                await loadActivity();
+                showToast(`${updated.name} converted to onboarding`);
+              }}
+            />
+          ) : null;
+        })()}
+        {modal?.type === 'add-dept' && (
+          <AddDepartmentModal onClose={() => setModal(null)} onCreated={() => loadDepartments()} />
+        )}
+        {modal?.type === 'add-task' && modal.eid && (() => {
+          const taskEmp = employees.find(e => e.id === modal.eid);
+          return <AddTaskModal
+            employeeId={modal.eid}
+            employee={taskEmp}
+            assignedByRole="hr"
+            assignedByName={profile?.email ?? undefined}
+            onClose={() => setModal(null)}
+            onCreated={async () => {
+              if (modal.eid) {
+                await loadTasks(modal.eid);
+                await logActivity(modal.eid, `HR added a task to ${taskEmp?.name ?? modal.eid}`);
+                await loadActivity();
+              }
+            }}
+          />;
+        })()}
+        {modal?.type === 'send-invite' && modal.eid && (() => {
+          const emp = employees.find(e => e.id === modal.eid);
+          return emp ? <SendInviteModal employee={emp} onClose={() => setModal(null)} /> : null;
+        })()}
+        {modal?.type === 'apply-template' && (
+          <ApplyTemplateModal
+            templates={templates}
+            employees={employees.filter(e => !e.archived)}
+            defaultTemplateId={modal.eid}
+            onClose={() => setModal(null)}
+            onApplied={eid => { loadTasks(eid); viewEmployee(eid); }}
+          />
+        )}
+        {modal?.type === 'new-template' && (
+          <CreateTemplateModal departments={departments} onClose={() => setModal(null)} onCreated={loadTemplates} />
+        )}
+        {modal?.type === 'edit-template' && modal.eid && (() => {
+          const tpl = templates.find(t => t.id === modal.eid);
+          return tpl ? <EditTemplateModal template={tpl} departments={departments} onClose={() => setModal(null)} onUpdated={loadTemplates} /> : null;
+        })()}
+        {modal?.type === 'clone-template' && modal.eid && (() => {
+          const tpl = templates.find(t => t.id === modal.eid);
+          return tpl ? (
+            <CloneTemplateModal
+              template={tpl}
+              onClose={() => setModal(null)}
+              onCloned={async (newId) => {
+                await loadTemplates();
+                setModal({ type: 'edit-template', eid: newId });
+                showToast(`Cloned template "${tpl.name}"`);
+              }}
+            />
+          ) : null;
+        })()}
+        {modal?.type === 'save-as-template' && modal.eid && (() => {
+          const emp = employees.find(e => e.id === modal.eid);
+          return emp ? (
+            <SaveAsTemplateModal
+              employeeName={emp.name}
+              employeeId={emp.id}
+              department={emp.department}
+              onClose={() => setModal(null)}
+              onSaved={async () => {
+                await loadTemplates();
+                showToast(`Saved ${emp.name}'s tasks as template`);
+              }}
+            />
+          ) : null;
+        })()}
+        {modal?.type === 'add-checkin' && (
+          <AddCheckinModal
+            employees={employees.filter(e => !e.archived)}
+            defaultEmpId={modal.eid}
+            onClose={() => setModal(null)}
+            onCreated={async () => {
+              await loadQuarterlyCheckins();
+              if (modal.eid) {
+                const emp = employees.find(e => e.id === modal.eid);
+                await logActivity(modal.eid ?? null, `Scheduled check-in for ${emp?.name ?? modal.eid}`);
+                await loadActivity();
+              }
+            }}
+          />
+        )}
+        {modal?.type === 'add-review' && (
+          <AddReviewModal
+            employees={employees.filter(e => !e.archived)}
+            defaultEmpId={modal.eid}
+            onClose={() => setModal(null)}
+            onCreated={async () => {
+              await loadAnnualReviews();
+              if (modal.eid) {
+                const emp = employees.find(e => e.id === modal.eid);
+                await logActivity(modal.eid ?? null, `Scheduled annual review for ${emp?.name ?? modal.eid}`);
+                await loadActivity();
+              }
+            }}
+          />
+        )}
+        {modal?.type === 'add-note' && modal.eid && (
+          <AddNoteModal
+            employeeId={modal.eid}
+            onClose={() => setModal(null)}
+            onCreated={async () => {
+              if (modal.eid) {
+                await loadNotes(modal.eid);
+                const emp = employees.find(e => e.id === modal.eid);
+                await logActivity(modal.eid, `HR added a note for ${emp?.name ?? modal.eid}`);
+                await loadActivity();
+              }
+            }}
+          />
+        )}
+        {editEmpId && (() => {
+          const emp = employees.find(e => e.id === editEmpId);
+          return emp ? (
+            <EditEmployeeModal
+              employee={emp}
+              departments={departments}
+              companies={companies}
+              employees={employees}
+              pathways={pathways}
+              onClose={() => setEditEmpId(null)}
+              onSaved={async updated => {
+                setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
+                setEditEmpId(null);
+                await logActivity(updated.id, `HR updated profile for ${updated.name}`);
+                await loadActivity();
+              }}
+            />
+          ) : null;
+        })()}
+        {editApplicantId && (() => {
+          const applicant = employees.find(e => e.id === editApplicantId);
+          return applicant ? (
+            <EditApplicantModal
+              applicant={applicant}
+              employees={employees}
+              onClose={() => setEditApplicantId(null)}
+              onSaved={async updated => {
+                setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
+                setEditApplicantId(null);
+                await logActivity(updated.id, `HR updated applicant ${updated.name}`);
+                await loadActivity();
+              }}
+            />
+          ) : null;
+        })()}
+      </div>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+      <GlobalSearch
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onSelectEmployee={(id) => viewEmployee(id)}
+        onSelectApplicant={(id) => { setTab('applicants'); viewEmployee(id); }}
+      />
+      {tourLoaded && tourStep > -2 && profile?.id && (
         <SpotlightTour
           steps={hrTour(t => setTab(t as HRTab))}
           currentStep={tourStep}
