@@ -500,6 +500,28 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
               onLifecycleCheckinUpdated={loadLifecycleCheckins}
             />
           )}
+{tourLoaded && tourStep > -2 && profile?.id && (
+          <SpotlightTour
+            steps={hrTour(t => setTab(t as HRTab))}
+            currentStep={tourStep}
+            introTitle={hrIntro.title}
+            introBody={hrIntro.body}
+            outroTitle={hrOutro.title}
+            outroBody={hrOutro.body}
+            onAdvance={async (newStep) => {
+              setTourStep(newStep);
+              await supabase.from('users').update({ hr_tour_current_step: newStep }).eq('id', profile.id);
+            }}
+            onComplete={async () => {
+              setTab('dashboard');
+              setTourStep(-2);
+              await supabase.from('users').update({
+                hr_tour_completed_at: new Date().toISOString(),
+                hr_tour_current_step: hrTour(t => setTab(t as HRTab)).length,
+              }).eq('id', profile.id);
+            }}
+          />
+        )}
         </MobileLayout>
         {modal?.type === 'add-emp' && (
           <AddEmployeeModal
