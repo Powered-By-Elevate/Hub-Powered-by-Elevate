@@ -231,6 +231,12 @@ export function EmployeeApp() {
 
   useEffect(() => { if (employee) loadTourState(); }, [employee, loadTourState]);
   useEffect(() => { loadData(); }, [loadData]);
+  // Company/app-wide managers default to Team Dashboard
+  useEffect(() => {
+    if (viewer?.role === 'manager' && (viewer.scope === 'company_reports' || viewer.scope === 'app_wide_reports')) {
+      setTab(prev => prev === 'overview' ? 'mgr-dashboard' : prev);
+    }
+  }, [viewer?.role, viewer?.scope]);
   useEffect(() => { if (isManager) loadTeam(); }, [isManager, loadTeam]);
   useEffect(() => { if (isManager) loadTeamCheckinData(); }, [isManager, loadTeamCheckinData]);
 

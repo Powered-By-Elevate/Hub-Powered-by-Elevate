@@ -114,36 +114,76 @@ export function ManagerDashboard({ team, myEmployee, onViewEmployee, onOpenModal
             </table>
           )}
         </div>
-        {myApplicants.length > 0 && (
-          <div id="mgr-dashboard-applicants" className="card" style={{ marginTop: 16 }}>
-            <div className="card-header">
-              <h3>My Open Applicants</h3>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Applicant</th><th>Position</th><th>Phase</th><th>Stage</th><th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {myApplicants.map(a => (
-                  <tr key={a.id} className="tr-click" onClick={() => onViewEmployee(a.id)}>
-                    <td>
-                      <div className="emp-name">{a.name}</div>
-                      <div className="emp-email">{a.email}</div>
-                    </td>
-                    <td style={{ fontSize: 13 }}>{a.position_applied_for ?? '—'}</td>
-                    <td style={{ fontSize: 12, color: '#6B6860' }}>{a.applicant_phase ?? '—'}</td>
-                    <td style={{ fontSize: 12, color: '#1A1916' }}>{a.applicant_stage ?? '—'}</td>
-                    <td onClick={ev => ev.stopPropagation()}>
-                      <button className="btn-ghost sm" onClick={() => onViewEmployee(a.id)}>View</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Onboarding in Progress on my team */}
+        <div id="mgr-dashboard-onboarding" className="card" style={{ marginTop: 16 }}>
+          <div className="card-header">
+            <h3>Onboarding in Progress</h3>
           </div>
-        )}
+          <div style={{ padding: '0 1.25rem' }}>
+            {onboarding.length === 0 ? (
+              <p style={{ fontSize: 13, color: '#9B9890', padding: '0.75rem 0' }}>No team members currently onboarding.</p>
+            ) : onboarding.slice(0, 5).map(e => (
+              <div
+                key={e.id}
+                onClick={() => onViewEmployee(e.id)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '8px 0', borderBottom: '1px solid #F2F1ED',
+                  cursor: 'pointer',
+                }}
+              >
+                <div className="avatar av-navy av-32" style={{ flexShrink: 0 }}>{ini(e.name)}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: '#1A1916' }}>{e.name}</div>
+                  <div style={{ fontSize: 11, color: '#9B9890' }}>{e.role}{e.start_date ? ` · Started ${e.start_date}` : ''}</div>
+                </div>
+                <div style={{ flexShrink: 0, minWidth: 100 }}>
+                  <div className="prog-bar" style={{ width: 90 }}><div className={`prog-fill ${pfColor(e.progress, e.status)}`} style={{ width: e.progress + '%' }} /></div>
+                  <div style={{ fontSize: 10, color: '#9B9890', marginTop: 2 }}>{e.progress}%</div>
+                </div>
+                <div style={{ flexShrink: 0 }}>
+                  <StatusBadge status={e.status} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* My Open Applicants */}
+        <div id="mgr-dashboard-applicants" className="card" style={{ marginTop: 16 }}>
+          <div className="card-header">
+            <h3>My Open Applicants</h3>
+          </div>
+          <div style={{ padding: '0 1.25rem' }}>
+            {myApplicants.length === 0 ? (
+              <p style={{ fontSize: 13, color: '#9B9890', padding: '0.75rem 0' }}>No applicants currently assigned to you.</p>
+            ) : myApplicants.slice(0, 5).map(a => (
+              <div
+                key={a.id}
+                onClick={() => onViewEmployee(a.id)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '8px 0', borderBottom: '1px solid #F2F1ED',
+                  cursor: 'pointer',
+                }}
+              >
+                <div className="avatar av-navy av-32" style={{ flexShrink: 0 }}>{ini(a.name)}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: '#1A1916' }}>{a.name}</div>
+                  <div style={{ fontSize: 11, color: '#9B9890' }}>{a.position_applied_for ?? a.role ?? 'Applicant'}</div>
+                </div>
+                <div style={{ flexShrink: 0 }}>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
+                    background: '#FEF3C7', color: '#92400E',
+                  }}>
+                    {a.applicant_stage ?? a.applicant_phase ?? 'Applicant'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </>
   );

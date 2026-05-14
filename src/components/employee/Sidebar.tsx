@@ -117,21 +117,9 @@ export function EmpSidebar({ employee, tab, onTab }: Props) {
           </div>
         </div>
         <div className="sidebar-nav">
-          <div className="nav-section-label">{isActive ? 'Employee Hub' : 'My Onboarding'}</div>
-          {nav.map(({ id, icon, label }) => (
-            <button
-              key={id}
-              id={`emp-sidebar-${id}`}
-              className={`nav-btn${tab === id ? ' active' : ''}`}
-              onClick={() => onTab(id)}
-            >
-              <span className="nav-icon">{icon}</span>
-              {label}
-            </button>
-          ))}
-          {isManager && managerNav.length > 0 && (
+          {isManager && managerNav.length > 0 && (viewer?.scope === 'company_reports' || viewer?.scope === 'app_wide_reports') && (
             <>
-              <div className="nav-section-label" style={{ marginTop: 14 }}>Manager</div>
+              <div className="nav-section-label">Manager</div>
               {managerNav.map(({ id, icon, label }) => (
                 <button
                   key={id}
@@ -143,6 +131,50 @@ export function EmpSidebar({ employee, tab, onTab }: Props) {
                   {label}
                 </button>
               ))}
+              <div className="nav-section-label" style={{ marginTop: 14 }}>{isActive ? 'Employee Hub' : 'My Onboarding'}</div>
+              {nav.map(({ id, icon, label }) => (
+                <button
+                  key={id}
+                  id={`emp-sidebar-${id}`}
+                  className={`nav-btn${tab === id ? ' active' : ''}`}
+                  onClick={() => onTab(id)}
+                >
+                  <span className="nav-icon">{icon}</span>
+                  {label}
+                </button>
+              ))}
+            </>
+          )}
+          {(!isManager || managerNav.length === 0 || viewer?.scope === 'direct_reports') && (
+            <>
+              <div className="nav-section-label">{isActive ? 'Employee Hub' : 'My Onboarding'}</div>
+              {nav.map(({ id, icon, label }) => (
+                <button
+                  key={id}
+                  id={`emp-sidebar-${id}`}
+                  className={`nav-btn${tab === id ? ' active' : ''}`}
+                  onClick={() => onTab(id)}
+                >
+                  <span className="nav-icon">{icon}</span>
+                  {label}
+                </button>
+              ))}
+              {isManager && managerNav.length > 0 && (
+                <>
+                  <div className="nav-section-label" style={{ marginTop: 14 }}>Manager</div>
+                  {managerNav.map(({ id, icon, label }) => (
+                    <button
+                      key={id}
+                      id={`emp-sidebar-${id}`}
+                      className={`nav-btn${tab === id ? ' active' : ''}`}
+                      onClick={() => onTab(id)}
+                    >
+                      <span className="nav-icon">{icon}</span>
+                      {label}
+                    </button>
+                  ))}
+                </>
+              )}
             </>
           )}
         </div>
