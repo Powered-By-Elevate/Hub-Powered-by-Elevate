@@ -45,7 +45,7 @@ export function HRDashboard({ employees, activity, checkins, reviews, lifecycleC
         </div>
       </div>
       <div className="content">
-      <div id="hr-dashboard-stats" className="stats-grid">
+        <div id="hr-dashboard-stats" className="stats-grid">
           <div className="stat-card">
             <div className="stat-label">Total Active</div>
             <div className="stat-value">{active.length}</div>
@@ -68,7 +68,7 @@ export function HRDashboard({ employees, activity, checkins, reviews, lifecycleC
           </div>
         </div>
         <div className="two-col">
-        <div id="hr-dashboard-recent" className="card">
+          <div id="hr-dashboard-recent" className="card">
             <div className="card-header">
               <h3>Recent Employees</h3>
               <button className="btn-ghost sm" onClick={() => onTab('employees')}>View all</button>
@@ -89,10 +89,10 @@ export function HRDashboard({ employees, activity, checkins, reviews, lifecycleC
                     <div style={{ fontWeight: 600, fontSize: 13, color: '#1A1916' }}>{e.name}</div>
                     <div style={{ fontSize: 11, color: '#9B9890' }}>{e.role}</div>
                   </div>
-                  <div style={{ flexShrink: 0, minWidth: 120 }}>
+                  <div style={{ flexShrink: 0, minWidth: 100 }}>
                     {e.lifecycle_status === 'onboarding' ? (
                       <>
-                        <div className="prog-bar" style={{ width: 100 }}><div className={`prog-fill ${pfColor(e.progress, e.status)}`} style={{ width: e.progress + '%' }} /></div>
+                        <div className="prog-bar" style={{ width: 90 }}><div className={`prog-fill ${pfColor(e.progress, e.status)}`} style={{ width: e.progress + '%' }} /></div>
                         <div style={{ fontSize: 10, color: '#9B9890', marginTop: 2 }}>{e.progress}%</div>
                       </>
                     ) : (
@@ -107,7 +107,7 @@ export function HRDashboard({ employees, activity, checkins, reviews, lifecycleC
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div id="hr-dashboard-upcoming" className="card">
+            <div id="hr-dashboard-upcoming" className="card">
               <div className="card-header">
                 <h3>Upcoming Check-ins</h3>
                 <button className="btn-ghost sm" onClick={() => onTab('checkins')}>View all</button>
