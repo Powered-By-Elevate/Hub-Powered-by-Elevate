@@ -18,7 +18,7 @@ export function ManagerTeam({ team, onViewEmployee, onOpenModal }: Props) {
         </div>
       </div>
       <div className="content">
-        <div className="card">
+        <div id="mgr-team-list" className="card">
           {team.length === 0 ? (
             <div className="empty-state">
               <div className="empty-icon">👥</div>

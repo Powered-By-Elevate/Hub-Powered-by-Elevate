@@ -51,10 +51,11 @@ export function HRSidebar({ tab, onTab }: Props) {
           <div className="nav-section-label">Main Menu</div>
           {navItems.map(({ id, icon, label }) => (
             <button
-              key={id}
-              className={`nav-btn${tab === id || (id === 'employees' && tab === 'detail') ? ' active' : ''}`}
-              onClick={() => onTab(id)}
-            >
+            key={id}
+            id={`hr-sidebar-${id}`}
+            className={`nav-btn${tab === id || (id === 'employees' && tab === 'detail') ? ' active' : ''}`}
+            onClick={() => onTab(id)}
+          >
               <span className="nav-icon">{icon}</span>
               {label}
             </button>

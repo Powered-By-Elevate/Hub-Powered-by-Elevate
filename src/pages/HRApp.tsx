@@ -31,6 +31,8 @@ import { HRCheckins } from '../components/hr/Checkins';
 import { HRSettings } from '../components/hr/Settings';
 import { HRApplicants } from '../components/hr/Applicants';
 import { HRDocuments } from '../components/hr/Documents';
+import { SpotlightTour } from '../components/shared/SpotlightTour';
+import { hrTour, hrIntro, hrOutro } from '../lib/tours';
 import { AddEmployeeModal } from '../components/hr/modals/AddEmployee';
 import { AddTaskModal } from '../components/hr/modals/AddTask';
 import { AddDepartmentModal } from '../components/hr/modals/AddDepartment';
@@ -58,6 +60,8 @@ async function logActivity(employeeId: string | null, action: string) {
 export function HRApp() {
   const { profile, signOut } = useAuth();
   const [tab, setTab] = useState<HRTab>('dashboard');
+  const [tourStep, setTourStep] = useState<number>(-2);
+  const [tourLoaded, setTourLoaded] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -82,6 +86,23 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
   const channelsRef = useRef<ReturnType<typeof supabase.channel>[]>([]);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    async function loadHrTour() {
+      if (!profile?.id) return;
+      const { data } = await supabase
+        .from('users')
+        .select('hr_tour_completed_at, hr_tour_current_step')
+        .eq('id', profile.id)
+        .maybeSingle();
+      if (!data) { setTourLoaded(true); return; }
+      if (!data.hr_tour_completed_at) {
+        setTourStep(data.hr_tour_current_step ?? -1);
+      }
+      setTourLoaded(true);
+    }
+    loadHrTour();
+  }, [profile?.id]);
 
   // Global Cmd-K / Ctrl-K shortcut
   useEffect(() => {
@@ -847,6 +868,27 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
       onSelectEmployee={(id) => viewEmployee(id)}
       onSelectApplicant={(id) => { setTab('applicants'); viewEmployee(id); }}
     />
+    {tourLoaded && tourStep > -2 && profile?.id && (
+        <SpotlightTour
+          steps={hrTour(t => setTab(t as HRTab))}
+          currentStep={tourStep}
+          introTitle={hrIntro.title}
+          introBody={hrIntro.body}
+          outroTitle={hrOutro.title}
+          outroBody={hrOutro.body}
+          onAdvance={async (newStep) => {
+            setTourStep(newStep);
+            await supabase.from('users').update({ hr_tour_current_step: newStep }).eq('id', profile.id);
+          }}
+          onComplete={async () => {
+            setTourStep(-2);
+            await supabase.from('users').update({
+              hr_tour_completed_at: new Date().toISOString(),
+              hr_tour_current_step: hrTour(t => setTab(t as HRTab)).length,
+            }).eq('id', profile.id);
+          }}
+        />
+      )}
     </>
   );
 }

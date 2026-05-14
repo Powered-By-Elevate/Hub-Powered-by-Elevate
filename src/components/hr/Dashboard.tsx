@@ -35,7 +35,7 @@ export function HRDashboard({ employees, activity, checkins, reviews, lifecycleC
           <h1>Dashboard</h1>
           <p>Overview of all employee activity</p>
         </div>
-        <div className="topbar-actions">
+        <div id="hr-dashboard-actions" className="topbar-actions">
           {userId && <NotificationBell userId={userId} onNavigate={(linkType) => {
             if (linkType === 'checkin' || linkType === 'review') onTab('checkins');
             else onTab('employees');
@@ -45,7 +45,7 @@ export function HRDashboard({ employees, activity, checkins, reviews, lifecycleC
         </div>
       </div>
       <div className="content">
-        <div className="stats-grid">
+      <div id="hr-dashboard-stats" className="stats-grid">
           <div className="stat-card">
             <div className="stat-label">Total Active</div>
             <div className="stat-value">{active.length}</div>
@@ -68,7 +68,7 @@ export function HRDashboard({ employees, activity, checkins, reviews, lifecycleC
           </div>
         </div>
         <div className="two-col">
-          <div className="card">
+          <div id="hr-dashboard-recent" className="card">
             <div className="card-header">
               <h3>Recent Employees</h3>
               <button className="btn-ghost sm" onClick={() => onTab('employees')}>View all</button>
@@ -103,7 +103,7 @@ export function HRDashboard({ employees, activity, checkins, reviews, lifecycleC
             </table>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div className="card">
+          <div id="hr-dashboard-upcoming" className="card">
               <div className="card-header">
                 <h3>Upcoming Check-ins</h3>
                 <button className="btn-ghost sm" onClick={() => onTab('checkins')}>View all</button>
@@ -128,7 +128,7 @@ export function HRDashboard({ employees, activity, checkins, reviews, lifecycleC
               </div>
             </div>
             <UpcomingDates employees={employees} />
-            <div className="card">
+            <div id="hr-dashboard-activity" className="card">
               <div className="card-header"><h3>Recent Activity</h3></div>
               <div className="card-body" style={{ padding: '.5rem 1.25rem' }}>
                 {activity.slice(0, 15).map(a => {

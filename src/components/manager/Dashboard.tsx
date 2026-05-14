@@ -32,7 +32,7 @@ export function ManagerDashboard({ team, myEmployee, onViewEmployee, onOpenModal
         </div>
       </div>
       <div className="content">
-      <div className="stats-grid">
+      <div id="mgr-dashboard-stats" className="stats-grid">
           <div className="stat-card">
             <div className="stat-label">My Team</div>
             <div className="stat-value">{team.filter(e => e.lifecycle_status !== 'applicant').length}</div>
@@ -60,7 +60,7 @@ export function ManagerDashboard({ team, myEmployee, onViewEmployee, onOpenModal
           </div>
         </div>
 
-        <div className="card">
+        <div id="mgr-dashboard-team" className="card">
           <div className="card-header">
             <h3>Team Members</h3>
           </div>
@@ -115,7 +115,7 @@ export function ManagerDashboard({ team, myEmployee, onViewEmployee, onOpenModal
           )}
         </div>
         {myApplicants.length > 0 && (
-          <div className="card" style={{ marginTop: 16 }}>
+          <div id="mgr-dashboard-applicants" className="card" style={{ marginTop: 16 }}>
             <div className="card-header">
               <h3>My Open Applicants</h3>
             </div>
