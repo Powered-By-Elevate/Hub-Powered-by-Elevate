@@ -6,16 +6,19 @@ interface Props {
   isHR: boolean;
   onToggle: (taskId: string) => void;
   onStatusChange?: (taskId: string, status: string) => void;
+  readOnly?: boolean;
 }
 
-export function CheckItem({ task, isHR, onToggle, onStatusChange }: Props) {
+export function CheckItem({ task, isHR, onToggle, onStatusChange, readOnly }: Props) {
   const done = task.status === 'complete';
   const over = task.status === 'overdue';
   return (
     <div className="check-item">
       <button
         className={`check-box-btn${done ? ' checked' : ''}`}
-        onClick={() => onToggle(task.id)}
+        onClick={() => !readOnly && onToggle(task.id)}
+        disabled={readOnly}
+        style={readOnly ? { cursor: 'default', opacity: 0.85 } : undefined}
       >
         {done ? '✓' : ''}
       </button>
@@ -29,7 +32,7 @@ export function CheckItem({ task, isHR, onToggle, onStatusChange }: Props) {
         </div>
         {task.notes && <div className="check-note">📍 {task.notes}</div>}
       </div>
-      {isHR && onStatusChange && (
+      {isHR && onStatusChange && !readOnly && (
         <select
           style={{ fontSize: 11, padding: '5px 8px', border: '1.5px solid #E5E3DC', borderRadius: 7, cursor: 'pointer', background: '#fff', color: '#1A1916', flexShrink: 0 }}
           value={task.status}

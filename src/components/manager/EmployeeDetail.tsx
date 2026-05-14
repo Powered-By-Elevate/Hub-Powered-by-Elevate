@@ -45,11 +45,12 @@ interface Props {
   onOpenModal: (type: string, eid?: string) => void;
   onToggleTask: (taskId: string) => void;
   onTaskStatusChange: (taskId: string, status: string) => void;
+  readOnly?: boolean;
 }
 
 export function ManagerEmployeeDetail({
   employee: e, tasks, documents, schedules, pathways,
-  onBack, onOpenModal, onToggleTask, onTaskStatusChange,
+  onBack, onOpenModal, onToggleTask, onTaskStatusChange, readOnly,
 }: Props) {
   const [detailTab, setDetailTab] = useState<DetailTab>('overview');
   const [devPlans, setDevPlans] = useState<DevelopmentPlan[]>([]);
@@ -88,7 +89,8 @@ export function ManagerEmployeeDetail({
           <p>{e.role} · {e.department} · Started {e.start_date}</p>
         </div>
         <div className="topbar-actions">
-          <button className="btn-primary" onClick={() => onOpenModal('add-task', e.id)}>+ Assign Task</button>
+        {!readOnly && <button className="btn-primary" onClick={() => onOpenModal('add-task', e.id)}>+ Assign Task</button>}
+        {readOnly && <span style={{ fontSize: 11, color: '#9B9890', fontStyle: 'italic' }}>View only — HR can manage tasks</span>}
         </div>
       </div>
       <div className="content">
@@ -193,7 +195,7 @@ export function ManagerEmployeeDetail({
                     <button className="btn-ghost sm" onClick={() => setDetailTab('tasks')}>View all</button>
                   </div>
                   {tasks.slice(0, 5).map(t => (
-                    <CheckItem key={t.id} task={t} isHR onToggle={onToggleTask} onStatusChange={onTaskStatusChange} />
+                    <CheckItem key={t.id} task={t} isHR onToggle={onToggleTask} onStatusChange={onTaskStatusChange} readOnly={readOnly} />
                   ))}
                 </div>
               </>
@@ -203,12 +205,12 @@ export function ManagerEmployeeDetail({
               <div className="card">
                 <div className="card-header">
                   <h3>All Tasks ({tasks.length})</h3>
-                  <button className="btn-primary sm" onClick={() => onOpenModal('add-task', e.id)}>+ Assign Task</button>
+                  {!readOnly && <button className="btn-primary sm" onClick={() => onOpenModal('add-task', e.id)}>+ Assign Task</button>}
                 </div>
                 {tasks.length === 0 ? (
                   <div className="empty-state"><div className="empty-icon">📋</div><p>No tasks yet</p></div>
                 ) : tasks.map(t => (
-                  <CheckItem key={t.id} task={t} isHR onToggle={onToggleTask} onStatusChange={onTaskStatusChange} />
+                  <CheckItem key={t.id} task={t} isHR onToggle={onToggleTask} onStatusChange={onTaskStatusChange} readOnly={readOnly} />
                 ))}
               </div>
             )}
