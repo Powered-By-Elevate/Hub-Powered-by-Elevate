@@ -605,10 +605,11 @@ export function EmployeeApp() {
             await supabase.from('users').update({ tour_current_step: newStep }).eq('id', profile.id);
           }}
           onComplete={async () => {
+            setTab('overview');
             setTourState({ type: null, step: -1 });
             await supabase.from('users').update({
               tour_completed_at: new Date().toISOString(),
-              tour_current_step: employeeOnboardingTour.length,
+              tour_current_step: employeeOnboardingTour(setTab).length,
             }).eq('id', profile.id);
           }}
         />
@@ -626,10 +627,11 @@ export function EmployeeApp() {
             await supabase.from('users').update({ active_tour_current_step: newStep }).eq('id', profile.id);
           }}
           onComplete={async () => {
+            setTab('overview');
             setTourState({ type: null, step: -1 });
             await supabase.from('users').update({
               active_tour_completed_at: new Date().toISOString(),
-              active_tour_current_step: employeeActiveTour.length,
+              active_tour_current_step: employeeActiveTour(setTab).length,
             }).eq('id', profile.id);
           }}
         />
@@ -648,6 +650,7 @@ export function EmployeeApp() {
             await supabase.from('users').update({ manager_tour_current_step: newStep }).eq('id', profile.id);
           }}
           onComplete={async () => {
+            setTab('overview');
             setTourState({ type: null, step: -1 });
             await supabase.from('users').update({
               manager_tour_completed_at: new Date().toISOString(),

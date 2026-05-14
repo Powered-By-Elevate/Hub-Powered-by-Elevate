@@ -68,39 +68,43 @@ export function HRDashboard({ employees, activity, checkins, reviews, lifecycleC
           </div>
         </div>
         <div className="two-col">
-          <div id="hr-dashboard-recent" className="card">
+        <div id="hr-dashboard-recent" className="card">
             <div className="card-header">
               <h3>Recent Employees</h3>
               <button className="btn-ghost sm" onClick={() => onTab('employees')}>View all</button>
             </div>
-            <table>
-              <tbody>
-                {active.slice(0, 5).map(e => (
-                  <tr key={e.id} className="tr-click" onClick={() => onViewEmployee(e.id)}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div className="avatar av-navy av-32">{ini(e.name)}</div>
-                        <div>
-                          <div className="emp-name">{e.name}</div>
-                          <div className="emp-email">{e.role}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      {e.lifecycle_status === 'onboarding' ? (
-                        <>
-                          <div className="prog-bar"><div className={`prog-fill ${pfColor(e.progress, e.status)}`} style={{ width: e.progress + '%' }} /></div>
-                          <div className="prog-label">{e.progress}% onboarding</div>
-                        </>
-                      ) : (
-                        <span className="badge b-success">Active Employee</span>
-                      )}
-                    </td>
-                    <td><StatusBadge status={e.status} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div style={{ padding: '0 1.25rem' }}>
+              {active.slice(0, 5).map(e => (
+                <div
+                  key={e.id}
+                  onClick={() => onViewEmployee(e.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '8px 0', borderBottom: '1px solid #F2F1ED',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div className="avatar av-navy av-32" style={{ flexShrink: 0 }}>{ini(e.name)}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: '#1A1916' }}>{e.name}</div>
+                    <div style={{ fontSize: 11, color: '#9B9890' }}>{e.role}</div>
+                  </div>
+                  <div style={{ flexShrink: 0, minWidth: 120 }}>
+                    {e.lifecycle_status === 'onboarding' ? (
+                      <>
+                        <div className="prog-bar" style={{ width: 100 }}><div className={`prog-fill ${pfColor(e.progress, e.status)}`} style={{ width: e.progress + '%' }} /></div>
+                        <div style={{ fontSize: 10, color: '#9B9890', marginTop: 2 }}>{e.progress}%</div>
+                      </>
+                    ) : (
+                      <span className="badge b-success" style={{ fontSize: 10 }}>Active</span>
+                    )}
+                  </div>
+                  <div style={{ flexShrink: 0 }}>
+                    <StatusBadge status={e.status} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div id="hr-dashboard-upcoming" className="card">

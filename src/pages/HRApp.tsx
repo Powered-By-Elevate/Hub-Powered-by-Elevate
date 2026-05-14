@@ -881,6 +881,7 @@ const [lifecycleCheckins, setLifecycleCheckins] = useState<import('../lib/databa
             await supabase.from('users').update({ hr_tour_current_step: newStep }).eq('id', profile.id);
           }}
           onComplete={async () => {
+            setTab('dashboard');
             setTourStep(-2);
             await supabase.from('users').update({
               hr_tour_completed_at: new Date().toISOString(),
