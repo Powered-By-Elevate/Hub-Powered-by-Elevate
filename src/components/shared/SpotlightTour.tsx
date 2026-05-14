@@ -19,7 +19,7 @@ interface Props {
 }
 
 const PADDING = 8;
-const TOOLTIP_WIDTH = 340;
+const TOOLTIP_WIDTH = typeof window !== 'undefined' && window.innerWidth < 480 ? Math.min(window.innerWidth - 32, 320) : 340;
 const TOOLTIP_OFFSET = 14;
 
 export function SpotlightTour({
@@ -46,9 +46,23 @@ export function SpotlightTour({
     if (!step) { setRect(null); return; }
     const el = document.getElementById(step.targetId);
     if (!el) { setRect(null); return; }
-    el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+    
+    // Don't scroll fixed-position elements (like mobile bottom nav) — they're already in view
+    const computed = window.getComputedStyle(el);
+    const isFixed = computed.position === 'fixed';
+    const parentFixed = el.closest('.mobile-bottom-nav, .mobile-header') !== null;
+    
+    if (!isFixed && !parentFixed) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+    }
+    
     requestAnimationFrame(() => {
       const r = el.getBoundingClientRect();
+      // Validate rect — skip if element has no dimensions (hidden, display:none, etc.)
+      if (r.width === 0 && r.height === 0) {
+        setRect(null);
+        return;
+      }
       setRect(r);
     });
   }, [step]);
