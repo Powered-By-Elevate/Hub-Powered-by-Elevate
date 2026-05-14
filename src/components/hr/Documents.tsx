@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Document, DocumentBucket, Employee, Company, DocumentAcknowledgment } from '../../lib/database.types';
+import { Document, DocumentBucket, Employee, Company, DocumentAcknowledgment, DocumentVersion } from '../../lib/database.types';
 import { Modal } from '../shared/Modal';
-import { Plus, Pencil, Trash2, FileText, Upload, X, Check, Eye, Users } from 'lucide-react';
+import { Pencil, Trash2, FileText, Upload, X, Check, Users, History, Download } from 'lucide-react';
 
 interface Props {
   employees: Employee[];
@@ -15,6 +15,11 @@ function fmtSize(bytes: number): string {
   return (bytes / 1024 / 1024).toFixed(1) + ' MB';
 }
 
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 export function HRDocuments({ employees, companies }: Props) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [buckets, setBuckets] = useState<DocumentBucket[]>([]);
@@ -23,6 +28,7 @@ export function HRDocuments({ employees, companies }: Props) {
   const [showUpload, setShowUpload] = useState(false);
   const [editDoc, setEditDoc] = useState<Document | null>(null);
   const [viewAcks, setViewAcks] = useState<Document | null>(null);
+  const [viewHistory, setViewHistory] = useState<Document | null>(null);
   const [selectedBucket, setSelectedBucket] = useState<string>('all');
   const [showArchived, setShowArchived] = useState(false);
 
@@ -30,14 +36,9 @@ export function HRDocuments({ employees, companies }: Props) {
     setLoading(true);
     try {
       const docsRes = await supabase.from('documents').select('*').order('created_at', { ascending: false });
-      if (docsRes.error) console.error('documents load error:', docsRes.error);
-      
       const bksRes = await supabase.from('document_buckets').select('*').eq('active', true).order('sort_order');
-      if (bksRes.error) console.error('buckets load error:', bksRes.error);
-      
       const ackRes = await supabase.from('document_acknowledgments').select('*');
-      if (ackRes.error) console.error('acks load error:', ackRes.error);
-      
+
       setDocuments(docsRes.data ?? []);
       setBuckets(bksRes.data ?? []);
       setAcks(ackRes.data ?? []);
@@ -51,8 +52,14 @@ export function HRDocuments({ employees, companies }: Props) {
   useEffect(() => { loadAll(); }, [loadAll]);
 
   async function deleteDoc(doc: Document) {
-    if (!confirm(`Delete "${doc.name}"? This cannot be undone.`)) return;
+    if (!confirm(`Delete "${doc.name}"? This cannot be undone. All version history will also be deleted.`)) return;
     if (doc.file_path) await supabase.storage.from('employee-documents').remove([doc.file_path]);
+    // Cascade-delete versions and their storage objects
+    const { data: versions } = await supabase.from('document_versions').select('file_path').eq('document_id', doc.id);
+    if (versions && versions.length > 0) {
+      const paths = versions.map(v => v.file_path).filter(Boolean) as string[];
+      if (paths.length > 0) await supabase.storage.from('employee-documents').remove(paths);
+    }
     await supabase.from('documents').delete().eq('id', doc.id);
     loadAll();
   }
@@ -185,14 +192,23 @@ export function HRDocuments({ employees, companies }: Props) {
                             </button>
                           ) : <span style={{ color: '#C5C3BB', fontSize: 12 }}>—</span>}
                         </td>
-                        <td style={{ fontSize: 12, color: '#6B6860' }}>v{d.version_number ?? 1}</td>
+                        <td style={{ fontSize: 12, color: '#6B6860' }}>
+                          <button
+                            className="btn-ghost sm"
+                            onClick={() => setViewHistory(d)}
+                            title="View version history"
+                            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                          >
+                            <History size={11} /> v{d.version_number ?? 1}
+                          </button>
+                        </td>
                         <td>
                           <div style={{ display: 'flex', gap: 4 }}>
-                            <button className="btn-ghost sm" onClick={() => setEditDoc(d)}><Pencil size={11} /></button>
+                            <button className="btn-ghost sm" onClick={() => setEditDoc(d)} title="Edit"><Pencil size={11} /></button>
                             <button className="btn-ghost sm" onClick={() => archiveDoc(d)} title={d.published_status === 'archived' ? 'Unarchive' : 'Archive'}>
                               {d.published_status === 'archived' ? <Check size={11} /> : <X size={11} />}
                             </button>
-                            <button className="btn-danger-soft sm" onClick={() => deleteDoc(d)}><Trash2 size={11} /></button>
+                            <button className="btn-danger-soft sm" onClick={() => deleteDoc(d)} title="Delete"><Trash2 size={11} /></button>
                           </div>
                         </td>
                       </tr>
@@ -246,6 +262,13 @@ export function HRDocuments({ employees, companies }: Props) {
           onClose={() => setViewAcks(null)}
         />
       )}
+
+      {viewHistory && (
+        <VersionHistoryModal
+          document={viewHistory}
+          onClose={() => setViewHistory(null)}
+        />
+      )}
     </>
   );
 }
@@ -271,6 +294,8 @@ function UploadDocumentModal({ doc, buckets, employees, companies, onClose, onSa
   const [requiresAck, setRequiresAck] = useState(doc?.requires_acknowledgment ?? false);
   const [publishedStatus, setPublishedStatus] = useState<'draft' | 'published'>(doc?.published_status === 'archived' ? 'published' : (doc?.published_status as 'draft' | 'published') ?? 'published');
   const [file, setFile] = useState<File | null>(null);
+  const [replaceFile, setReplaceFile] = useState(false);
+  const [versionNotes, setVersionNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [progress, setProgress] = useState(0);
@@ -285,18 +310,42 @@ function UploadDocumentModal({ doc, buckets, employees, companies, onClose, onSa
     if (targetType === 'department' && !targetDepartment) { setError('Department is required when targeting a department.'); return; }
     if (targetType === 'individual' && !targetEmployeeId) { setError('Employee is required when targeting an individual.'); return; }
     if (!isEdit && !file) { setError('Please select a file.'); return; }
+    if (isEdit && replaceFile && !file) { setError('Please select a replacement file.'); return; }
+    if (isEdit && replaceFile && !versionNotes.trim()) { setError('Version notes are required when replacing the file.'); return; }
 
     setSaving(true);
     let filePath = doc?.file_path ?? null;
     let mimeType = doc?.mime_type ?? null;
     let fileSize = doc?.file_size_bytes ?? null;
     let sizeLabel = doc?.size_label ?? null;
+    let newVersionNumber = doc?.version_number ?? 1;
 
-    if (file) {
+    // If we have a new file (new upload OR explicit replace), upload it
+    if (file && (!isEdit || replaceFile)) {
       setProgress(20);
       const path = `docs/company/${Date.now()}-${file.name}`;
       const { error: upErr } = await supabase.storage.from('employee-documents').upload(path, file);
       if (upErr) { setError('Upload failed: ' + upErr.message); setSaving(false); return; }
+
+      // If editing AND replacing, archive the old file as a version row
+      if (isEdit && replaceFile && doc) {
+        const versionRow = {
+          document_id: doc.id,
+          version_number: doc.version_number ?? 1,
+          file_path: doc.file_path,
+          file_size_bytes: doc.file_size_bytes,
+          mime_type: doc.mime_type,
+          notes: versionNotes.trim(),
+        };
+        const { error: versionErr } = await supabase.from('document_versions').insert(versionRow);
+        if (versionErr) { setError('Failed to save version history: ' + versionErr.message); setSaving(false); return; }
+
+        // Reset acknowledgments — new version requires re-ack
+        await supabase.from('document_acknowledgments').delete().eq('document_id', doc.id);
+
+        newVersionNumber = (doc.version_number ?? 1) + 1;
+      }
+
       filePath = path;
       mimeType = file.type;
       fileSize = file.size;
@@ -319,6 +368,7 @@ function UploadDocumentModal({ doc, buckets, employees, companies, onClose, onSa
       mime_type: mimeType,
       file_size_bytes: fileSize,
       size_label: sizeLabel,
+      version_number: newVersionNumber,
       visible_to_employee: true,
       category: 'Other',
       type: mimeType ?? 'application/octet-stream',
@@ -356,6 +406,47 @@ function UploadDocumentModal({ doc, buckets, employees, companies, onClose, onSa
             <label>File <span style={{ color: '#E53E3E' }}>*</span></label>
             <input type="file" onChange={e => { const f = e.target.files?.[0]; if (f) { setFile(f); if (!name) setName(f.name); } }} />
             {file && <div style={{ fontSize: 11, color: '#6B6860', marginTop: 4 }}>{file.name} · {fmtSize(file.size)}</div>}
+          </div>
+        )}
+
+        {isEdit && (
+          <div className="field full" style={{ background: '#FAFAF7', padding: '12px', borderRadius: 8, border: '1px solid #F2F1ED' }}>
+            <label style={{ marginBottom: 8 }}>Current File · Version {doc?.version_number ?? 1}</label>
+            <div style={{ fontSize: 12, color: '#6B6860', marginBottom: 10 }}>
+              {doc?.file_path ? doc.file_path.split('/').pop() : 'No file'}
+              {doc?.size_label && ` · ${doc.size_label}`}
+            </div>
+            {!replaceFile ? (
+              <button className="btn-ghost sm" onClick={() => setReplaceFile(true)} type="button">
+                <Upload size={11} style={{ marginRight: 4 }} /> Replace with new version
+              </button>
+            ) : (
+              <>
+                <div style={{ background: '#FEF3C7', padding: 10, borderRadius: 6, fontSize: 12, color: '#92400E', marginBottom: 10 }}>
+                  ⚠️ Replacing the file creates a new version. The old version stays accessible in version history.
+                  {requiresAck && <div style={{ marginTop: 4, fontWeight: 600 }}>All employees will need to re-acknowledge this document.</div>}
+                </div>
+                <input type="file" onChange={e => { const f = e.target.files?.[0]; if (f) setFile(f); }} />
+                {file && <div style={{ fontSize: 11, color: '#6B6860', marginTop: 4 }}>{file.name} · {fmtSize(file.size)}</div>}
+                <div style={{ marginTop: 10 }}>
+                  <label style={{ fontSize: 12, marginBottom: 4, display: 'block' }}>What changed? <span style={{ color: '#E53E3E' }}>*</span></label>
+                  <input
+                    type="text"
+                    value={versionNotes}
+                    onChange={e => setVersionNotes(e.target.value)}
+                    placeholder="e.g. Updated 2026 benefits section"
+                  />
+                </div>
+                <button
+                  className="btn-ghost sm"
+                  onClick={() => { setReplaceFile(false); setFile(null); setVersionNotes(''); }}
+                  type="button"
+                  style={{ marginTop: 8 }}
+                >
+                  Cancel replacement
+                </button>
+              </>
+            )}
           </div>
         )}
 
@@ -436,6 +527,112 @@ function UploadDocumentModal({ doc, buckets, employees, companies, onClose, onSa
   );
 }
 
+interface VersionHistoryProps {
+  document: Document;
+  onClose: () => void;
+}
+
+function VersionHistoryModal({ document: doc, onClose }: VersionHistoryProps) {
+  const [versions, setVersions] = useState<DocumentVersion[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase
+        .from('document_versions')
+        .select('*')
+        .eq('document_id', doc.id)
+        .order('version_number', { ascending: false });
+      setVersions(data ?? []);
+      setLoading(false);
+    }
+    load();
+  }, [doc.id]);
+
+  async function downloadVersion(filePath: string | null) {
+    if (!filePath) return;
+    const { data } = await supabase.storage.from('employee-documents').createSignedUrl(filePath, 60);
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+  }
+
+  return (
+    <Modal
+      title={`Version History — ${doc.name}`}
+      onClose={onClose}
+      footer={<button className="btn-primary" onClick={onClose}>Close</button>}
+    >
+      {loading ? (
+        <p style={{ fontSize: 13, color: '#6B6860' }}>Loading versions…</p>
+      ) : (
+        <>
+          {/* Current version */}
+          <div style={{ padding: 12, background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 8, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontWeight: 700, fontSize: 14 }}>v{doc.version_number ?? 1}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#1B3F6E', color: '#fff' }}>CURRENT</span>
+              </div>
+              <button
+                className="btn-ghost sm"
+                onClick={() => downloadVersion(doc.file_path)}
+                style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+              >
+                <Download size={11} /> Download
+              </button>
+            </div>
+            <div style={{ fontSize: 12, color: '#6B6860' }}>
+              {doc.file_path ? doc.file_path.split('/').pop() : 'No file'}
+              {doc.size_label && ` · ${doc.size_label}`}
+            </div>
+            <div style={{ fontSize: 11, color: '#9B9890', marginTop: 4 }}>
+              Published {fmtDate(doc.published_at ?? doc.created_at)}
+            </div>
+          </div>
+
+          {/* Prior versions */}
+          {versions.length === 0 ? (
+            <p style={{ fontSize: 13, color: '#9B9890', textAlign: 'center', padding: '12px 0' }}>
+              No prior versions. This is the original upload.
+            </p>
+          ) : (
+            <>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#6B6860', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>
+                Prior Versions
+              </div>
+              {versions.map(v => (
+                <div key={v.id} style={{ padding: '10px 12px', borderBottom: '1px solid #F2F1ED' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontWeight: 600, fontSize: 13 }}>v{v.version_number}</span>
+                    <button
+                      className="btn-ghost sm"
+                      onClick={() => downloadVersion(v.file_path)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <Download size={11} /> Download
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#6B6860' }}>
+                    {v.file_path ? v.file_path.split('/').pop() : 'No file'}
+                    {v.file_size_bytes && ` · ${fmtSize(v.file_size_bytes)}`}
+                  </div>
+                  {v.notes && (
+                    <div style={{ fontSize: 12, color: '#1A1916', marginTop: 6, padding: '6px 8px', background: '#F2F1ED', borderRadius: 4, fontStyle: 'italic' }}>
+                      "{v.notes}"
+                    </div>
+                  )}
+                  <div style={{ fontSize: 11, color: '#9B9890', marginTop: 4 }}>
+                    Uploaded {fmtDate(v.created_at)}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </>
+      )}
+    </Modal>
+  );
+}
+
 interface AcksProps {
   document: Document;
   employees: Employee[];
@@ -444,7 +641,6 @@ interface AcksProps {
 }
 
 function AcknowledgmentsModal({ document, employees, acks, onClose }: AcksProps) {
-  // Determine who should have acknowledged based on targeting
   const targetEmps = employees.filter(e => {
     if (e.archived || e.is_test_account) return false;
     if (document.target_type === 'all') return true;
