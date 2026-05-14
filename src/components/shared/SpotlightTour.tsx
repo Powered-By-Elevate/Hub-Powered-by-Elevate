@@ -58,7 +58,7 @@ export function SpotlightTour({
     
     requestAnimationFrame(() => {
       const r = el.getBoundingClientRect();
-      // Validate rect — skip if element has no dimensions (hidden, display:none, etc.)
+      console.log('[Tour] target:', step.targetId, 'rect:', { x: r.x, y: r.y, w: r.width, h: r.height });
       if (r.width === 0 && r.height === 0) {
         setRect(null);
         return;
