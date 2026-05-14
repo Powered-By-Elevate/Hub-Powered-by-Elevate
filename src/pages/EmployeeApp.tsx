@@ -575,14 +575,14 @@ export function EmployeeApp() {
         )}
         {tab === 'mgr-applicants' && isManager && (
           <HRApplicants
-            employees={team}
+          employees={teamScope}
             onViewApplicant={viewTeamMember}
             readOnly
           />
         )}
         {tab === 'mgr-checkins' && isManager && (
           <HRCheckins
-            employees={team}
+          employees={teamScope}
             checkins={teamQuarterlyCheckins}
             reviews={teamAnnualReviews}
             lifecycleCheckins={teamLifecycleCheckins}
