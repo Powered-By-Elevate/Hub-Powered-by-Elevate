@@ -76,7 +76,8 @@ export function EmployeeApp() {
   const [tourLoaded, setTourLoaded] = useState(false);
 
   // Manager-specific state
-  const [team, setTeam] = useState<Employee[]>([]);
+  const [team, setTeam] = useState<Employee[]>([]); // excludes self
+  const [teamScope, setTeamScope] = useState<Employee[]>([]); // includes self, for name lookups
   const [teamTasks, setTeamTasks] = useState<Record<string, OnboardingTask[]>>({});
   const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<string | null>(null);
   const [modal, setModal] = useState<{ type: string; eid?: string } | null>(null);
@@ -181,16 +182,16 @@ export function EmployeeApp() {
       query = query.eq('company_id', viewer.company_id);
     } else {
       // direct_reports
-      if (!viewer.employee_id) { setTeam([]); return; }
+      if (!viewer.employee_id) { setTeam([]); setTeamScope([]); return; }
       query = query.or(
         `manager_user_id.eq.${viewer.user_id},manager_id.eq.${viewer.employee_id},hiring_manager_id.eq.${viewer.employee_id}`
       );
     }
 
     const { data } = await query.order('created_at', { ascending: false });
-    // Exclude self from team views
-    const filtered = (data ?? []).filter(e => e.id !== viewer.employee_id);
-    setTeam(visibleEmployees(viewer, filtered));
+    const visible = visibleEmployees(viewer, data ?? []);
+    setTeamScope(visible);
+    setTeam(visible.filter(e => e.id !== viewer.employee_id));
   }, [viewer]);
   const loadTeamCheckinData = useCallback(async () => {
     if (!viewer || viewer.role !== 'manager') return;
@@ -453,27 +454,27 @@ export function EmployeeApp() {
           )}
           {tab === 'mgr-applicants' && isManager && (
           <HRApplicants
-            employees={team}
-            onViewApplicant={viewTeamMember}
-            readOnly
-          />
+          employees={teamScope}
+          onViewApplicant={viewTeamMember}
+          readOnly
+        />
         )}
         {tab === 'mgr-checkins' && isManager && (
           <HRCheckins
-            employees={team}
-            checkins={teamQuarterlyCheckins}
-            reviews={teamAnnualReviews}
-            lifecycleCheckins={teamLifecycleCheckins}
-            readOnly
-          />
+          employees={teamScope}
+          checkins={teamQuarterlyCheckins}
+          reviews={teamAnnualReviews}
+          lifecycleCheckins={teamLifecycleCheckins}
+          readOnly
+        />
         )}
         {tab === 'mgr-career' && isManager && (
           <CareerDevelopment
-            employees={team}
-            pathways={myPathways}
-            onViewEmployee={viewTeamMember}
-            readOnly
-          />
+          employees={teamScope}
+          pathways={myPathways}
+          onViewEmployee={viewTeamMember}
+          readOnly
+        />
         )}
         </MobileLayout>
         {showAddTask && (
@@ -590,11 +591,11 @@ export function EmployeeApp() {
         )}
         {tab === 'mgr-career' && isManager && (
           <CareerDevelopment
-            employees={team}
-            pathways={myPathways}
-            onViewEmployee={viewTeamMember}
-            readOnly
-          />
+          employees={teamScope}
+          pathways={myPathways}
+          onViewEmployee={viewTeamMember}
+          readOnly
+        />
         )}
       </div>
 
