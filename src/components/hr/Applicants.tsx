@@ -129,7 +129,7 @@ export function HRApplicants({ employees, onAddApplicant, onEditApplicant, onCon
                 {filtered.map(a => {
                   const phase = phaseForStage(a.applicant_stage);
                   const phaseStyle = phase ? PHASE_COLORS[phase] : null;
-                  const canConvert = a.applicant_stage === 'Offer Letter Accepted';
+                  const canConvert = phase === 'Verification' || a.applicant_stage === 'Offer Letter Accepted';
                   return (
                     <tr key={a.id} className="tr-click" onClick={() => onViewApplicant(a.id)}>
                       <td>
