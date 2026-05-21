@@ -9,12 +9,17 @@ interface Props {
   companies: Company[];
 }
 
-function mimeTypeToDocType(mime: string | null): 'pdf' | 'doc' | 'form' {
-  if (!mime) return 'doc';
+function mimeTypeToDocType(mime: string | null): 'pdf' | 'doc' | 'spreadsheet' | 'presentation' | 'image' | 'video' | 'archive' | 'form' | 'other' {
+  if (!mime) return 'other';
   if (mime === 'application/pdf') return 'pdf';
-  if (mime.includes('word') || mime.includes('document') || mime.includes('text')) return 'doc';
-  if (mime.includes('form') || mime.includes('spreadsheet') || mime.includes('excel') || mime.includes('csv')) return 'form';
-  return 'doc'; // fallback for unknown types
+  if (mime.startsWith('image/')) return 'image';
+  if (mime.startsWith('video/')) return 'video';
+  if (mime.includes('spreadsheet') || mime.includes('excel') || mime === 'text/csv') return 'spreadsheet';
+  if (mime.includes('presentation') || mime.includes('powerpoint')) return 'presentation';
+  if (mime.includes('zip') || mime.includes('rar') || mime.includes('tar') || mime.includes('7z') || mime.includes('compressed')) return 'archive';
+  if (mime.includes('word') || mime.includes('document') || mime.startsWith('text/') || mime === 'application/rtf') return 'doc';
+  if (mime.includes('form')) return 'form';
+  return 'other';
 }
 
 function fmtSize(bytes: number): string {
