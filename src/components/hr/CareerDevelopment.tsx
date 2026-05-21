@@ -114,7 +114,7 @@ export function CareerDevelopment({ employees, pathways, onViewEmployee, onRefre
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const activeEmps = employees.filter(e => !e.archived);
+  const activeEmps = employees.filter(e => !e.archived && (e.lifecycle_status === 'active' || e.lifecycle_status === 'onboarding'));
   const pathwayName = (id: string | null) => pathways.find(p => p.id === id)?.name ?? '\u2014';
 
   let filteredEmps = activeEmps;
