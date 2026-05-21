@@ -9,6 +9,14 @@ interface Props {
   companies: Company[];
 }
 
+function mimeTypeToDocType(mime: string | null): 'pdf' | 'doc' | 'form' {
+  if (!mime) return 'doc';
+  if (mime === 'application/pdf') return 'pdf';
+  if (mime.includes('word') || mime.includes('document') || mime.includes('text')) return 'doc';
+  if (mime.includes('form') || mime.includes('spreadsheet') || mime.includes('excel') || mime.includes('csv')) return 'form';
+  return 'doc'; // fallback for unknown types
+}
+
 function fmtSize(bytes: number): string {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -371,7 +379,7 @@ function UploadDocumentModal({ doc, buckets, employees, companies, onClose, onSa
       version_number: newVersionNumber,
       visible_to_employee: true,
       category: 'Other',
-      type: mimeType ?? 'application/octet-stream',
+      type: mimeTypeToDocType(mimeType),
     };
 
     setProgress(80);
