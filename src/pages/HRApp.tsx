@@ -40,6 +40,7 @@ import { SendInviteModal } from '../components/hr/modals/SendInvite';
 import { ApplyTemplateModal } from '../components/hr/modals/ApplyTemplate';
 import { CreateTemplateModal, EditTemplateModal, CloneTemplateModal, SaveAsTemplateModal } from '../components/hr/modals/TemplateEditor';
 import { AddCheckinModal } from '../components/hr/modals/AddCheckin';
+import { EditLifecycleCheckinModal } from '../components/hr/modals/EditLifecycleCheckin';
 import { AddReviewModal } from '../components/hr/modals/AddReview';
 import { AddNoteModal } from '../components/hr/modals/AddNote';
 import { EditEmployeeModal } from '../components/hr/modals/EditEmployee';
@@ -518,6 +519,19 @@ export function HRApp() {
             }}
           />
         )}
+        {modal?.type === 'edit-lifecycle-checkin' && modal.eid && (() => {
+          const lc = lifecycleCheckins.find(x => x.id === modal.eid);
+          if (!lc) return null;
+          const emp = employees.find(e => e.id === lc.employee_id);
+          return (
+            <EditLifecycleCheckinModal
+              checkin={lc}
+              employeeName={emp?.name ?? 'Unknown'}
+              onClose={() => setModal(null)}
+              onSaved={loadLifecycleCheckins}
+            />
+          );
+        })()}
         {modal?.type === 'add-review' && (
           <AddReviewModal
             employees={employees.filter(e => !e.archived)}
@@ -785,6 +799,19 @@ export function HRApp() {
             }}
           />
         )}
+        {modal?.type === 'edit-lifecycle-checkin' && modal.eid && (() => {
+          const lc = lifecycleCheckins.find(x => x.id === modal.eid);
+          if (!lc) return null;
+          const emp = employees.find(e => e.id === lc.employee_id);
+          return (
+            <EditLifecycleCheckinModal
+              checkin={lc}
+              employeeName={emp?.name ?? 'Unknown'}
+              onClose={() => setModal(null)}
+              onSaved={loadLifecycleCheckins}
+            />
+          );
+        })()}
         {modal?.type === 'add-review' && (
           <AddReviewModal
             employees={employees.filter(e => !e.archived)}

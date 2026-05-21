@@ -169,10 +169,24 @@ export function HRCheckins({ employees, checkins, reviews, lifecycleCheckins, on
                       </td>
                       <td style={{ fontSize: 12, color: '#6B6860' }}>{lc.scheduled_at}</td>
                       <td><span className={`badge ${checkinStatusClass(lc.status)}`}>{lc.status}</span></td>
-                      <td style={{ fontSize: 12, color: '#6B6860', maxWidth: 200 }}>{lc.notes ?? '—'}</td>
-                      <td onClick={ev => ev.stopPropagation()}>
-                        {lc.status !== 'completed' && (
-                          <button className="btn-ghost sm" onClick={() => markLifecycleComplete(lc.id)}>Mark Complete</button>
+                      <td
+                        style={{
+                          fontSize: 12,
+                          color: lc.notes ? '#6B6860' : '#9B9890',
+                          maxWidth: 200,
+                          cursor: !readOnly && onOpenModal ? 'pointer' : 'default',
+                        }}
+                        title={!readOnly && onOpenModal ? (lc.notes ? 'Click to edit notes' : 'Click to add notes') : undefined}
+                        onClick={!readOnly && onOpenModal ? () => onOpenModal('edit-lifecycle-checkin', lc.id) : undefined}
+                      >
+                        {lc.notes ?? '—'}
+                      </td>
+                      <td onClick={ev => ev.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
+                        {!readOnly && onOpenModal && (
+                          <button className="btn-ghost sm" onClick={() => onOpenModal('edit-lifecycle-checkin', lc.id)}>Edit</button>
+                        )}
+                        {!readOnly && lc.status !== 'completed' && (
+                          <button className="btn-ghost sm" style={{ marginLeft: 6 }} onClick={() => markLifecycleComplete(lc.id)}>Mark Complete</button>
                         )}
                       </td>
                     </tr>
