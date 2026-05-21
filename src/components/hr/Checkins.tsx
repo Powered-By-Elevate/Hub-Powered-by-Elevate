@@ -123,7 +123,9 @@ export function HRCheckins({ employees, checkins, reviews, lifecycleCheckins, on
                   <tr><td colSpan={6}>
                     <div className="empty-state"><div className="empty-icon">📅</div><p>No check-ins scheduled</p><div className="esub">Click "+ Schedule Check-in" to get started</div></div>
                   </td></tr>
-                ) : checkins.map(c => (
+                ) : checkins.map(c => {
+                  const canEdit = !readOnly && !!onOpenModal;
+                  return (
                   <tr key={c.id}>
                     <td>
                       <div className="emp-name">{empName(c.employee_id)}</div>
@@ -131,14 +133,29 @@ export function HRCheckins({ employees, checkins, reviews, lifecycleCheckins, on
                     <td style={{ fontWeight: 600, fontSize: 13 }}>{c.quarter} {c.year}</td>
                     <td style={{ fontSize: 12, color: '#6B6860' }}>{c.scheduled_at}</td>
                     <td><span className={`badge ${checkinStatusClass(c.status)}`}>{c.status}</span></td>
-                    <td style={{ fontSize: 12, color: '#6B6860', maxWidth: 200 }}>{c.notes ?? '—'}</td>
-                    <td onClick={ev => ev.stopPropagation()}>
-                    {!readOnly && c.status !== 'completed' && (
-                        <button className="btn-ghost sm" onClick={() => markCheckinComplete(c.id)}>Mark Complete</button>
+                    <td
+                      style={{
+                        fontSize: 12,
+                        color: c.notes ? '#6B6860' : '#9B9890',
+                        maxWidth: 200,
+                        cursor: canEdit ? 'pointer' : 'default',
+                      }}
+                      title={canEdit ? (c.notes ? 'Click to edit notes' : 'Click to add notes') : undefined}
+                      onClick={canEdit ? () => onOpenModal!('edit-quarterly-checkin', c.id) : undefined}
+                    >
+                      {c.notes ?? (canEdit ? <span style={{ color: '#1B3F6E', textDecoration: 'underline' }}>+ Add notes</span> : '—')}
+                    </td>
+                    <td onClick={ev => ev.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
+                      {canEdit && (
+                        <button className="btn-ghost sm" onClick={() => onOpenModal!('edit-quarterly-checkin', c.id)}>Edit</button>
+                      )}
+                      {!readOnly && c.status !== 'completed' && (
+                        <button className="btn-ghost sm" style={{ marginLeft: 6 }} onClick={() => markCheckinComplete(c.id)}>Mark Complete</button>
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -179,7 +196,7 @@ export function HRCheckins({ employees, checkins, reviews, lifecycleCheckins, on
                         title={!readOnly && onOpenModal ? (lc.notes ? 'Click to edit notes' : 'Click to add notes') : undefined}
                         onClick={!readOnly && onOpenModal ? () => onOpenModal('edit-lifecycle-checkin', lc.id) : undefined}
                       >
-                        {lc.notes ?? '—'}
+                        {lc.notes ?? (!readOnly && onOpenModal ? <span style={{ color: '#1B3F6E', textDecoration: 'underline' }}>+ Add notes</span> : '—')}
                       </td>
                       <td onClick={ev => ev.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                         {!readOnly && onOpenModal && (
@@ -208,22 +225,48 @@ export function HRCheckins({ employees, checkins, reviews, lifecycleCheckins, on
                   <tr><td colSpan={6}>
                     <div className="empty-state"><div className="empty-icon">📊</div><p>No reviews scheduled</p><div className="esub">Click "+ Annual Review" to get started</div></div>
                   </td></tr>
-                ) : reviews.map(r => (
+                ) : reviews.map(r => {
+                  const canEdit = !readOnly && !!onOpenModal;
+                  return (
                   <tr key={r.id}>
                     <td>
                       <div className="emp-name">{empName(r.employee_id)}</div>
                     </td>
                     <td style={{ fontWeight: 600, fontSize: 13 }}>{r.review_year}</td>
-                    <td style={{ fontSize: 12, color: '#6B6860' }}>{r.scheduled_at ?? '—'}</td>
+                    <td
+                      style={{
+                        fontSize: 12,
+                        color: r.scheduled_at ? '#6B6860' : '#9B9890',
+                        cursor: canEdit ? 'pointer' : 'default',
+                      }}
+                      title={canEdit ? (r.scheduled_at ? 'Click to edit' : 'Click to add date') : undefined}
+                      onClick={canEdit ? () => onOpenModal!('edit-annual-review', r.id) : undefined}
+                    >
+                      {r.scheduled_at ?? (canEdit ? <span style={{ color: '#1B3F6E', textDecoration: 'underline' }}>+ Add date</span> : '—')}
+                    </td>
                     <td><span className={`badge ${reviewStatusClass(r.status)}`}>{r.status}</span></td>
-                    <td style={{ fontSize: 13 }}>{r.rating ? `${r.rating}/5` : '—'}</td>
-                    <td onClick={ev => ev.stopPropagation()}>
-                      {r.status !== 'completed' && (
-                        <button className="btn-ghost sm" onClick={() => markReviewComplete(r.id)}>Mark Complete</button>
+                    <td
+                      style={{
+                        fontSize: 13,
+                        color: r.rating ? undefined : '#9B9890',
+                        cursor: canEdit ? 'pointer' : 'default',
+                      }}
+                      title={canEdit ? (r.rating ? 'Click to edit rating' : 'Click to add rating') : undefined}
+                      onClick={canEdit ? () => onOpenModal!('edit-annual-review', r.id) : undefined}
+                    >
+                      {r.rating ? `${r.rating}/5` : (canEdit ? <span style={{ color: '#1B3F6E', textDecoration: 'underline' }}>+ Add rating</span> : '—')}
+                    </td>
+                    <td onClick={ev => ev.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
+                      {canEdit && (
+                        <button className="btn-ghost sm" onClick={() => onOpenModal!('edit-annual-review', r.id)}>Edit</button>
+                      )}
+                      {!readOnly && r.status !== 'completed' && (
+                        <button className="btn-ghost sm" style={{ marginLeft: 6 }} onClick={() => markReviewComplete(r.id)}>Mark Complete</button>
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           )}

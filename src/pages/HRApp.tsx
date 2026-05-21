@@ -41,7 +41,9 @@ import { ApplyTemplateModal } from '../components/hr/modals/ApplyTemplate';
 import { CreateTemplateModal, EditTemplateModal, CloneTemplateModal, SaveAsTemplateModal } from '../components/hr/modals/TemplateEditor';
 import { AddCheckinModal } from '../components/hr/modals/AddCheckin';
 import { EditLifecycleCheckinModal } from '../components/hr/modals/EditLifecycleCheckin';
+import { EditQuarterlyCheckinModal } from '../components/hr/modals/EditQuarterlyCheckin';
 import { AddReviewModal } from '../components/hr/modals/AddReview';
+import { EditAnnualReviewModal } from '../components/hr/modals/EditAnnualReview';
 import { AddNoteModal } from '../components/hr/modals/AddNote';
 import { EditEmployeeModal } from '../components/hr/modals/EditEmployee';
 import { AddApplicantModal } from '../components/hr/modals/AddApplicant';
@@ -532,6 +534,32 @@ export function HRApp() {
             />
           );
         })()}
+        {modal?.type === 'edit-quarterly-checkin' && modal.eid && (() => {
+          const qc = quarterlyCheckins.find(x => x.id === modal.eid);
+          if (!qc) return null;
+          const emp = employees.find(e => e.id === qc.employee_id);
+          return (
+            <EditQuarterlyCheckinModal
+              checkin={qc}
+              employeeName={emp?.name ?? 'Unknown'}
+              onClose={() => setModal(null)}
+              onSaved={loadQuarterlyCheckins}
+            />
+          );
+        })()}
+        {modal?.type === 'edit-annual-review' && modal.eid && (() => {
+          const ar = annualReviews.find(x => x.id === modal.eid);
+          if (!ar) return null;
+          const emp = employees.find(e => e.id === ar.employee_id);
+          return (
+            <EditAnnualReviewModal
+              review={ar}
+              employeeName={emp?.name ?? 'Unknown'}
+              onClose={() => setModal(null)}
+              onSaved={loadAnnualReviews}
+            />
+          );
+        })()}
         {modal?.type === 'add-review' && (
           <AddReviewModal
             employees={employees.filter(e => !e.archived)}
@@ -809,6 +837,32 @@ export function HRApp() {
               employeeName={emp?.name ?? 'Unknown'}
               onClose={() => setModal(null)}
               onSaved={loadLifecycleCheckins}
+            />
+          );
+        })()}
+        {modal?.type === 'edit-quarterly-checkin' && modal.eid && (() => {
+          const qc = quarterlyCheckins.find(x => x.id === modal.eid);
+          if (!qc) return null;
+          const emp = employees.find(e => e.id === qc.employee_id);
+          return (
+            <EditQuarterlyCheckinModal
+              checkin={qc}
+              employeeName={emp?.name ?? 'Unknown'}
+              onClose={() => setModal(null)}
+              onSaved={loadQuarterlyCheckins}
+            />
+          );
+        })()}
+        {modal?.type === 'edit-annual-review' && modal.eid && (() => {
+          const ar = annualReviews.find(x => x.id === modal.eid);
+          if (!ar) return null;
+          const emp = employees.find(e => e.id === ar.employee_id);
+          return (
+            <EditAnnualReviewModal
+              review={ar}
+              employeeName={emp?.name ?? 'Unknown'}
+              onClose={() => setModal(null)}
+              onSaved={loadAnnualReviews}
             />
           );
         })()}
