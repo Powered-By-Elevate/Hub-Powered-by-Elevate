@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Employee, OnboardingTask, Schedule, HRAnnouncement } from '../../lib/database.types';
+import { formatScheduleTime } from '../shared/utils';
 
 interface MobileDashboardProps {
   employee: Employee;
@@ -175,7 +176,7 @@ export function MobileDashboard({ employee, tasks, schedules, announcement, onTo
         {todaySchedule.length > 0 ? todaySchedule.map((s, i) => (
           <div key={s.id} className="m-sched-row">
             <div className="m-sched-dot" style={{ background: dotColors[i % dotColors.length] }} />
-            <div className="m-sched-time">{s.time_label ?? ''}</div>
+            <div className="m-sched-time">{formatScheduleTime(s)}</div>
             <div>
               <div className="m-sched-title">{s.title}</div>
               {s.location && <div className="m-sched-loc">{s.location}</div>}

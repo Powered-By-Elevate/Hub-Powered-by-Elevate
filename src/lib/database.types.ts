@@ -277,6 +277,7 @@ export interface Schedule {
   employee_id: string | null;
   title: string;
   time_label: string | null;
+  start_time: string | null;
   location: string | null;
   color: string | null;
   schedule_date: string | null;

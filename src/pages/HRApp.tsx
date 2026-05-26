@@ -216,7 +216,11 @@ export function HRApp() {
     setLifecycleCheckins(data ?? []);
   }, []);
   const loadSchedules = useCallback(async () => {
-    const { data } = await supabase.from('schedules').select('*').order('time_label');
+    const { data } = await supabase
+      .from('schedules')
+      .select('*')
+      .order('schedule_date', { ascending: true, nullsFirst: false })
+      .order('start_time', { ascending: true, nullsFirst: false });
     setSchedules(data ?? []);
   }, []);
   const loadActivity = useCallback(async () => {
@@ -247,7 +251,12 @@ export function HRApp() {
     loadQuarterlyCheckins();
     loadAnnualReviews();
     loadLifecycleCheckins();
-    supabase.from('schedules').select('*').order('time_label').then(({ data }) => setSchedules(data ?? []));
+    supabase
+      .from('schedules')
+      .select('*')
+      .order('schedule_date', { ascending: true, nullsFirst: false })
+      .order('start_time', { ascending: true, nullsFirst: false })
+      .then(({ data }) => setSchedules(data ?? []));
   }, [loadEmployees, loadTemplates, loadDepartments, loadCompanies, loadPathways, loadActivity, loadQuarterlyCheckins, loadAnnualReviews, loadLifecycleCheckins]);
 
   // Real-time subscriptions
