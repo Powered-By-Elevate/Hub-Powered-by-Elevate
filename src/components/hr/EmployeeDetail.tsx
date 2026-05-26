@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Employee, OnboardingTask, Document, Schedule, EmployeeNote, Company, Pathway, Review, DevelopmentPlan, Certification, Checkin } from '../../lib/database.types';
-import { ini, pfColor, formatScheduleTime, scheduleSortKey, formatDateLong, formatTime12h } from '../shared/utils';
+import { ini, pfColor, formatScheduleTime, scheduleSortKey, formatDateLong, formatTime12h, documentAppliesToEmployee } from '../shared/utils';
 import { StatusBadge } from '../shared/StatusBadge';
 import { CheckItem } from '../shared/CheckItem';
 import { TaskCard } from '../shared/TaskCard';
@@ -79,7 +79,7 @@ export function EmployeeDetail({
   const [detailTab, setDetailTab] = useState<DetailTab>('overview');
   const obTasks = tasks.filter(t => t.task_phase === 'onboarding');
   const done = obTasks.filter(t => t.status === 'complete').length;
-  const empDocs = documents.filter(d => d.employee_id === e.id);
+  const empDocs = documents.filter(d => documentAppliesToEmployee(d, e));
 
   const [editingTask, setEditingTask] = useState<OnboardingTask | null>(null);
   const [editTaskForm, setEditTaskForm] = useState({ title: '', due_date: '', category: 'Document', notes: '', required: false });
