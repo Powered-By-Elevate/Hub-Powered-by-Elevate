@@ -133,3 +133,29 @@ export function formatDateLong(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00');
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
+
+// Does this document apply to this employee, given the bucket targeting rules?
+// Mirrors the targeting logic used in hr/Documents.tsx AcknowledgmentsModal.
+// Legacy docs with no target_type but an employee_id are treated as individual.
+// Legacy docs with no target_type and no employee_id are treated as 'all'.
+export function documentAppliesToEmployee(
+  doc: {
+    target_type?: 'all' | 'company' | 'department' | 'individual' | null;
+    target_company_id?: string | null;
+    target_department?: string | null;
+    employee_id?: string | null;
+    published_status?: 'draft' | 'published' | 'archived' | null;
+  },
+  employee: { id: string; company_id?: string | null; department?: string | null }
+): boolean {
+  if (doc.published_status === 'archived') return false;
+  switch (doc.target_type) {
+    case 'all': return true;
+    case 'company': return employee.company_id === doc.target_company_id;
+    case 'department': return employee.department === doc.target_department;
+    case 'individual': return employee.id === doc.employee_id;
+    default:
+      if (doc.employee_id) return doc.employee_id === employee.id;
+      return true;
+  }
+}
