@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Employee, Schedule, QuarterlyCheckin, AnnualReview } from '../../lib/database.types';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { formatScheduleTime, scheduleSortKey } from '../shared/utils';
 
 interface Props {
   employee: Employee;
@@ -54,7 +55,9 @@ export function EmpSchedule({ employee, schedules, checkins, reviews }: Props) {
   const datedItems = schedules.filter(s => !!s.schedule_date);
 
   function itemsForDay(dateStr: string): Schedule[] {
-    return datedItems.filter(s => s.schedule_date === dateStr);
+    return datedItems
+      .filter(s => s.schedule_date === dateStr)
+      .sort((a, b) => scheduleSortKey(a).localeCompare(scheduleSortKey(b)));
   }
 
   const upcomingCheckins = checkins
@@ -132,7 +135,7 @@ export function EmpSchedule({ employee, schedules, checkins, reviews }: Props) {
                         borderLeft: `3px solid ${ev.color ?? '#1B3F6E'}`,
                       }}>
                         <div style={{ fontWeight: 600, color: '#1A1916', lineHeight: 1.3 }}>{ev.title}</div>
-                        {ev.time_label && <div style={{ color: '#9B9890', marginTop: 1 }}>{ev.time_label}</div>}
+                        {(() => { const t = formatScheduleTime(ev); return t ? <div style={{ color: '#9B9890', marginTop: 1 }}>{t}</div> : null; })()}
                       </div>
                     ))}
                   </div>
@@ -171,7 +174,7 @@ export function EmpSchedule({ employee, schedules, checkins, reviews }: Props) {
               ) : mobileDayItems.map(ev => (
                 <div key={ev.id} className="sched-item">
                   <div className="sched-dot" style={{ background: ev.color ?? '#1B3F6E' }} />
-                  <div className="sched-time">{ev.time_label ?? '—'}</div>
+                  <div className="sched-time">{formatScheduleTime(ev) || '—'}</div>
                   <div>
                     <div className="sched-title">{ev.title}</div>
                     {ev.location && <div className="sched-sub">{ev.location}</div>}
@@ -192,13 +195,15 @@ export function EmpSchedule({ employee, schedules, checkins, reviews }: Props) {
               <div className="empty-state" style={{ padding: '1rem 0' }}>
                 <p style={{ fontSize: 13, color: '#9B9890' }}>No Day 1 schedule set yet.</p>
               </div>
-            ) : day1Items.map(s => (
-              <div key={s.id} className="sched-item">
-                <div className="sched-dot" style={{ background: s.color ?? '#1B3F6E' }} />
-                <div className="sched-time">{s.time_label}</div>
-                <div><div className="sched-title">{s.title}</div><div className="sched-sub">{s.location}</div></div>
-              </div>
-            ))}
+            ) : [...day1Items]
+                  .sort((a, b) => scheduleSortKey(a).localeCompare(scheduleSortKey(b)))
+                  .map(s => (
+                    <div key={s.id} className="sched-item">
+                      <div className="sched-dot" style={{ background: s.color ?? '#1B3F6E' }} />
+                      <div className="sched-time">{formatScheduleTime(s) || '—'}</div>
+                      <div><div className="sched-title">{s.title}</div><div className="sched-sub">{s.location}</div></div>
+                    </div>
+                  ))}
           </div>
         </div>
         )}

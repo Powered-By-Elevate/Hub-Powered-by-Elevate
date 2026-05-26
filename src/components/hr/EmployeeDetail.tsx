@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Employee, OnboardingTask, Document, Schedule, EmployeeNote, Company, Pathway, Review, DevelopmentPlan, Certification, Checkin } from '../../lib/database.types';
-import { ini, pfColor } from '../shared/utils';
+import { ini, pfColor, formatScheduleTime, scheduleSortKey, formatDateLong, formatTime12h } from '../shared/utils';
 import { StatusBadge } from '../shared/StatusBadge';
 import { CheckItem } from '../shared/CheckItem';
 import { TaskCard } from '../shared/TaskCard';
@@ -131,39 +131,46 @@ export function EmployeeDetail({
   const [scheduleModal, setScheduleModal] = useState<'add' | 'edit' | null>(null);
   const [showApplyTemplate, setShowApplyTemplate] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
-  const [schedForm, setSchedForm] = useState({ title: '', time_label: '', location: '', color: '#1B3F6E' });
+  const [schedForm, setSchedForm] = useState({ title: '', start_time: '', schedule_date: '', location: '', color: '#1B3F6E' });
   const [schedSaving, setSchedSaving] = useState(false);
+
+  function todayStr(): string { return new Date().toISOString().split('T')[0]; }
 
   function openAddSchedule() {
     setEditingSchedule(null);
-    setSchedForm({ title: '', time_label: '', location: '', color: '#1B3F6E' });
+    setSchedForm({ title: '', start_time: '09:00', schedule_date: todayStr(), location: '', color: '#1B3F6E' });
     setScheduleModal('add');
   }
 
   function openEditSchedule(s: Schedule) {
     setEditingSchedule(s);
-    setSchedForm({ title: s.title, time_label: s.time_label || '', location: s.location || '', color: s.color || '#1B3F6E' });
+    setSchedForm({
+      title: s.title,
+      start_time: s.start_time ? s.start_time.slice(0, 5) : '',
+      schedule_date: s.schedule_date ?? '',
+      location: s.location || '',
+      color: s.color || '#1B3F6E',
+    });
     setScheduleModal('edit');
   }
 
   async function saveSchedule() {
     if (!schedForm.title.trim()) return;
     setSchedSaving(true);
+    const startTime = schedForm.start_time || null;
+    const timeLabel = startTime ? formatTime12h(startTime) : null;
+    const payload = {
+      title: schedForm.title.trim(),
+      start_time: startTime,
+      time_label: timeLabel,
+      schedule_date: schedForm.schedule_date || null,
+      location: schedForm.location.trim() || null,
+      color: schedForm.color,
+    };
     if (scheduleModal === 'edit' && editingSchedule) {
-      await supabase.from('schedules').update({
-        title: schedForm.title.trim(),
-        time_label: schedForm.time_label.trim() || null,
-        location: schedForm.location.trim() || null,
-        color: schedForm.color,
-      }).eq('id', editingSchedule.id);
+      await supabase.from('schedules').update(payload).eq('id', editingSchedule.id);
     } else {
-      await supabase.from('schedules').insert({
-        employee_id: e.id,
-        title: schedForm.title.trim(),
-        time_label: schedForm.time_label.trim() || null,
-        location: schedForm.location.trim() || null,
-        color: schedForm.color,
-      });
+      await supabase.from('schedules').insert({ employee_id: e.id, ...payload });
     }
     setSchedSaving(false);
     setScheduleModal(null);
@@ -388,24 +395,44 @@ export function EmployeeDetail({
                 <div style={{ padding: '0 1.25rem 1rem' }}>
                   {schedules.length === 0
                     ? <div className="empty-state"><p>No schedule yet</p><div className="esub">Add events to build the onboarding day schedule.</div></div>
-                    : schedules.map(s => (
-                      <div key={s.id} className="sched-item" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div className="sched-dot" style={{ background: s.color ?? '#1B3F6E' }} />
-                        <div className="sched-time">{s.time_label}</div>
-                        <div style={{ flex: 1 }}>
-                          <div className="sched-title">{s.title}</div>
-                          <div className="sched-sub">{s.location}</div>
+                    : (() => {
+                      const sorted = [...schedules].sort((a, b) => scheduleSortKey(a).localeCompare(scheduleSortKey(b)));
+                      const groups: { date: string | null; items: Schedule[] }[] = [];
+                      for (const s of sorted) {
+                        const key = s.schedule_date ?? null;
+                        const last = groups[groups.length - 1];
+                        if (last && last.date === key) last.items.push(s);
+                        else groups.push({ date: key, items: [s] });
+                      }
+                      return groups.map(g => (
+                        <div key={g.date ?? 'no-date'} style={{ marginTop: 6 }}>
+                          <div style={{
+                            fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase',
+                            color: '#6B6860', padding: '10px 0 6px', borderBottom: '1px solid #F2F1ED', marginBottom: 4,
+                          }}>
+                            {g.date ? formatDateLong(g.date) : 'No date set'}
+                          </div>
+                          {g.items.map(s => (
+                            <div key={s.id} className="sched-item" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                              <div className="sched-dot" style={{ background: s.color ?? '#1B3F6E' }} />
+                              <div className="sched-time">{formatScheduleTime(s) || '—'}</div>
+                              <div style={{ flex: 1 }}>
+                                <div className="sched-title">{s.title}</div>
+                                <div className="sched-sub">{s.location}</div>
+                              </div>
+                              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                                <button onClick={() => openEditSchedule(s)} title="Edit event" style={{ padding: 5, borderRadius: 6, border: '1px solid #E5E3DC', background: '#F8F7F4', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <Pencil size={12} color="#6B6860" />
+                                </button>
+                                <button onClick={() => deleteScheduleEvent(s.id)} title="Delete event" style={{ padding: 5, borderRadius: 6, border: '1px solid #FECACA', background: '#FEF2F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <Trash2 size={12} color="#DC2626" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                          <button onClick={() => openEditSchedule(s)} title="Edit event" style={{ padding: 5, borderRadius: 6, border: '1px solid #E5E3DC', background: '#F8F7F4', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Pencil size={12} color="#6B6860" />
-                          </button>
-                          <button onClick={() => deleteScheduleEvent(s.id)} title="Delete event" style={{ padding: 5, borderRadius: 6, border: '1px solid #FECACA', background: '#FEF2F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Trash2 size={12} color="#DC2626" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      ));
+                    })()}
                 </div>
               </div>
             )}
@@ -515,8 +542,12 @@ export function EmployeeDetail({
               <input type="text" value={schedForm.title} onChange={ev => setSchedForm(f => ({ ...f, title: ev.target.value }))} placeholder="IT Setup and Equipment" />
             </div>
             <div className="field">
+              <label>Date</label>
+              <input type="date" value={schedForm.schedule_date} onChange={ev => setSchedForm(f => ({ ...f, schedule_date: ev.target.value }))} />
+            </div>
+            <div className="field">
               <label>Time</label>
-              <input type="text" value={schedForm.time_label} onChange={ev => setSchedForm(f => ({ ...f, time_label: ev.target.value }))} placeholder="10:00 AM" />
+              <input type="time" value={schedForm.start_time} onChange={ev => setSchedForm(f => ({ ...f, start_time: ev.target.value }))} />
             </div>
             <div className="field">
               <label>Location</label>

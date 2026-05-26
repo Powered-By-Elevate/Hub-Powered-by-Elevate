@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Employee, Schedule } from '../../lib/database.types';
-import { ini } from '../shared/utils';
+import { ini, formatScheduleTime } from '../shared/utils';
 import { Mail, MessageSquare, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 
 interface Props {
@@ -318,7 +318,7 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: ev.color ?? '#1B3F6E', flexShrink: 0, marginTop: 4 }} />
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 500 }}>{ev.title}</div>
-                          {ev.time_label && <div style={{ fontSize: 11, color: '#9B9890' }}>{ev.time_label}{ev.location ? ` · ${ev.location}` : ''}</div>}
+                          {(() => { const t = formatScheduleTime(ev); return (t || ev.location) ? <div style={{ fontSize: 11, color: '#9B9890' }}>{t}{t && ev.location ? ' · ' : ''}{ev.location ?? ''}</div> : null; })()}
                         </div>
                       </div>
                     ))

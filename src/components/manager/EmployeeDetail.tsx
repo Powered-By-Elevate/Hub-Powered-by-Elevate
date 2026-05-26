@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Employee, OnboardingTask, Document, Schedule, DevelopmentPlan, Certification, Checkin, Pathway } from '../../lib/database.types';
 import { supabase } from '../../lib/supabase';
-import { ini, pfColor } from '../shared/utils';
+import { ini, pfColor, formatScheduleTime, scheduleSortKey, formatDateLong } from '../shared/utils';
 import { StatusBadge } from '../shared/StatusBadge';
 import { CheckItem } from '../shared/CheckItem';
 import { DocRow } from '../shared/DocRow';
@@ -233,13 +233,33 @@ export function ManagerEmployeeDetail({
                 <div style={{ padding: '0 1.25rem' }}>
                   {schedules.length === 0
                     ? <div className="empty-state"><div className="empty-icon">📅</div><p>No schedule</p></div>
-                    : schedules.map(s => (
-                      <div key={s.id} className="sched-item">
-                        <div className="sched-dot" style={{ background: s.color ?? '#1B3F6E' }} />
-                        <div className="sched-time">{s.time_label}</div>
-                        <div><div className="sched-title">{s.title}</div><div className="sched-sub">{s.location}</div></div>
-                      </div>
-                    ))
+                    : (() => {
+                      const sorted = [...schedules].sort((a, b) => scheduleSortKey(a).localeCompare(scheduleSortKey(b)));
+                      const groups: { date: string | null; items: Schedule[] }[] = [];
+                      for (const s of sorted) {
+                        const key = s.schedule_date ?? null;
+                        const last = groups[groups.length - 1];
+                        if (last && last.date === key) last.items.push(s);
+                        else groups.push({ date: key, items: [s] });
+                      }
+                      return groups.map(g => (
+                        <div key={g.date ?? 'no-date'} style={{ marginTop: 6 }}>
+                          <div style={{
+                            fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase',
+                            color: '#6B6860', padding: '10px 0 6px', borderBottom: '1px solid #F2F1ED', marginBottom: 4,
+                          }}>
+                            {g.date ? formatDateLong(g.date) : 'No date set'}
+                          </div>
+                          {g.items.map(s => (
+                            <div key={s.id} className="sched-item">
+                              <div className="sched-dot" style={{ background: s.color ?? '#1B3F6E' }} />
+                              <div className="sched-time">{formatScheduleTime(s) || '—'}</div>
+                              <div><div className="sched-title">{s.title}</div><div className="sched-sub">{s.location}</div></div>
+                            </div>
+                          ))}
+                        </div>
+                      ));
+                    })()
                   }
                 </div>
               </div>

@@ -102,3 +102,34 @@ export function timeAgo(dateStr: string): string {
   const days = Math.floor(hrs / 24);
   return `${days}d ago`;
 }
+
+// Formats a Postgres TIME value ("HH:MM" or "HH:MM:SS") into "9:00 AM" style.
+export function formatTime12h(t: string | null | undefined): string {
+  if (!t) return '';
+  const [hStr, mStr] = t.split(':');
+  const h = parseInt(hStr, 10);
+  const m = mStr ?? '00';
+  if (Number.isNaN(h)) return '';
+  const meridian = h >= 12 ? 'PM' : 'AM';
+  const displayH = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${displayH}:${m} ${meridian}`;
+}
+
+// Best display string for a schedule row: prefer parsed start_time, fall back to legacy time_label.
+export function formatScheduleTime(s: { start_time?: string | null; time_label?: string | null }): string {
+  if (s.start_time) return formatTime12h(s.start_time);
+  return s.time_label ?? '';
+}
+
+// Stable sort key for schedule rows: undated rows last, then by start_time, then by label as tiebreaker.
+export function scheduleSortKey(s: { schedule_date?: string | null; start_time?: string | null; time_label?: string | null }): string {
+  const date = s.schedule_date ?? '9999-99-99';
+  const time = s.start_time ?? '99:99';
+  return `${date}|${time}|${s.time_label ?? ''}`;
+}
+
+// Pretty header like "Wed, May 6" from a YYYY-MM-DD string. Avoids timezone shift.
+export function formatDateLong(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}

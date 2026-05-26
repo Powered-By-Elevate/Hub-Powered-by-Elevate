@@ -3,6 +3,7 @@ import { Employee, OnboardingTask, Schedule, HRAnnouncement } from '../../lib/da
 import { CheckItem } from '../shared/CheckItem';
 import type { EmpTab } from '../../pages/EmployeeApp';
 import { NotificationBell } from '../shared/NotificationBell';
+import { formatScheduleTime } from '../shared/utils';
 
 interface Props {
   employee: Employee;
@@ -182,7 +183,7 @@ export function EmpOverview({ employee, tasks, schedules, announcements, pct, on
                 {schedules.slice(0, 3).map(s => (
                   <div key={s.id} className="sched-item">
                     <div className="sched-dot" style={{ background: s.color ?? '#1B3F6E' }} />
-                    <div className="sched-time">{s.time_label}</div>
+                    <div className="sched-time">{formatScheduleTime(s) || '—'}</div>
                     <div><div className="sched-title">{s.title}</div><div className="sched-sub">{s.location}</div></div>
                   </div>
                 ))}

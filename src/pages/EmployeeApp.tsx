@@ -106,7 +106,7 @@ export function EmployeeApp() {
     const [empRes, taskRes, schedRes, contactRes, checkinRes, reviewRes, devPlanRes, certRes, pathwayRes, announcementRes, qCheckinRes, aReviewRes, lCheckinRes] = await Promise.all([
       supabase.from('employees').select('*').eq('id', empId).single(),
       supabase.from('onboarding_tasks').select('*').eq('employee_id', empId).order('created_at'),
-      supabase.from('schedules').select('*').or('employee_id.is.null,employee_id.eq.' + empId).order('schedule_date').order('time_label'),
+      supabase.from('schedules').select('*').or('employee_id.is.null,employee_id.eq.' + empId).order('schedule_date', { ascending: true, nullsFirst: false }).order('start_time', { ascending: true, nullsFirst: false }),
       supabase.from('contacts').select('*').order('is_primary', { ascending: false }),
       supabase.from('checkins').select('*').eq('employee_id', empId).order('checkin_date', { ascending: false }),
       supabase.from('reviews').select('*').eq('employee_id', empId).order('review_date', { ascending: false }),
