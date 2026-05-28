@@ -2,13 +2,16 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import type { UserProfile } from '../lib/database.types';
+import { loginWithMicrosoft, logoutMicrosoft, msalConfigured } from '../lib/msal';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: UserProfile | null;
   loading: boolean;
+  msSsoAvailable: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signInWithMicrosoft: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -103,12 +106,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null };
   }
 
+  async function signInWithMicrosoft(): Promise<{ error: string | null }> {
+    if (!msalConfigured) return { error: 'Microsoft sign-in is not configured for this environment.' };
+    try {
+      const result = await loginWithMicrosoft();
+      if (!result.idToken) return { error: 'Microsoft did not return an ID token.' };
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'azure',
+        token: result.idToken,
+      });
+      if (error) return { error: error.message };
+      return { error: null };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Microsoft sign-in failed.';
+      // BrowserAuthError "user_cancelled" / popup closed shouldn't read as an error.
+      if (/user.?cancel|popup.*closed/i.test(message)) return { error: null };
+      return { error: message };
+    }
+  }
+
   async function signOut() {
+    // Best-effort: sign out of MSAL too so users actually leave the M365 session.
+    // Failures (e.g. popup blocked) shouldn't prevent the Supabase signout.
+    try { await logoutMicrosoft(); } catch { /* ignore */ }
     await supabase.auth.signOut();
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{
+      user, session, profile, loading,
+      msSsoAvailable: msalConfigured,
+      signIn, signInWithMicrosoft, signOut, refreshProfile,
+    }}>
       {children}
     </AuthContext.Provider>
   );

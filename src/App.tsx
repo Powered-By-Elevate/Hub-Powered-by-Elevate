@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { MsalProvider } from '@azure/msal-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ViewerProvider } from './contexts/ViewerContext';
 import { LoginPage } from './pages/Login';
@@ -6,6 +7,9 @@ import { SetupPage } from './pages/Setup';
 import { HRApp } from './pages/HRApp';
 import { EmployeeApp } from './pages/EmployeeApp';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
+import { msalInstance, ensureMsalInitialized, msalConfigured } from './lib/msal';
+
+if (msalConfigured) { ensureMsalInitialized(); }
 
 function AppRouter() {
   const { user, profile, loading } = useAuth();
@@ -45,11 +49,13 @@ function AppRouter() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <ViewerProvider>
-          <AppRouter />
-        </ViewerProvider>
-      </AuthProvider>
+      <MsalProvider instance={msalInstance}>
+        <AuthProvider>
+          <ViewerProvider>
+            <AppRouter />
+          </ViewerProvider>
+        </AuthProvider>
+      </MsalProvider>
     </ErrorBoundary>
   );
 }
