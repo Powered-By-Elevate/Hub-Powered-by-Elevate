@@ -22,7 +22,7 @@ export const msalInstance = new PublicClientApplication({
   auth: {
     clientId: clientId ?? '',
     authority: tenantId ? `https://login.microsoftonline.com/${tenantId}` : undefined,
-    redirectUri: typeof window !== 'undefined' ? window.location.origin + '/' : '/',
+    redirectUri: typeof window !== 'undefined' ? window.location.origin : '/',
   },
   cache: {
     cacheLocation: 'localStorage',
