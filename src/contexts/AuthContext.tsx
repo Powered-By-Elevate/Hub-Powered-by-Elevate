@@ -109,18 +109,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signInWithMicrosoft(): Promise<{ error: string | null }> {
     if (!msalConfigured) return { error: 'Microsoft sign-in is not configured for this environment.' };
     try {
-      const result = await loginWithMicrosoft();
-      if (!result.idToken) return { error: 'Microsoft did not return an ID token.' };
-      const { error } = await supabase.auth.signInWithIdToken({
-        provider: 'azure',
-        token: result.idToken,
-      });
-      if (error) return { error: error.message };
+      // Full-page redirect to Microsoft. Control returns when Microsoft
+      // sends the browser back to our redirectUri, at which point main.tsx
+      // processes the response and exchanges the ID token for a Supabase
+      // session. We never resolve normally — the page navigates away.
+      await loginWithMicrosoft();
       return { error: null };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Microsoft sign-in failed.';
-      // BrowserAuthError "user_cancelled" / popup closed shouldn't read as an error.
-      if (/user.?cancel|popup.*closed/i.test(message)) return { error: null };
       return { error: message };
     }
   }
