@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { AnnualReview, ReviewStatus } from '../../../lib/database.types';
 import { Modal } from '../../shared/Modal';
+import { useAuth } from '../../../contexts/AuthContext';
+import { createOnlineMeeting } from '../../../lib/graph';
 
 interface Props {
   review: AnnualReview;
@@ -14,13 +16,30 @@ const STATUSES: ReviewStatus[] = ['pending', 'in-progress', 'completed', 'overdu
 const RATINGS = [1, 2, 3, 4, 5];
 
 export function EditAnnualReviewModal({ review, employeeName, onClose, onSaved }: Props) {
+  const { session } = useAuth();
+  const msTokenAvailable = !!session?.provider_token;
   const [status, setStatus] = useState<ReviewStatus>(review.status);
   const [scheduledAt, setScheduledAt] = useState(review.scheduled_at ?? '');
   const [rating, setRating] = useState<number | ''>(review.rating ?? '');
   const [summary, setSummary] = useState(review.summary ?? '');
   const [goals, setGoals] = useState(review.goals_next_year ?? '');
+  const [teamsJoinUrl, setTeamsJoinUrl] = useState<string | null>(review.teams_join_url ?? null);
+  const [creatingMeeting, setCreatingMeeting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  async function addTeamsMeeting() {
+    if (!session?.provider_token || !scheduledAt) return;
+    setCreatingMeeting(true);
+    const url = await createOnlineMeeting(session.provider_token, {
+      subject: `${review.review_year} Annual Review — ${employeeName}`,
+      startDateTime: `${scheduledAt}T10:00:00`,
+      endDateTime: `${scheduledAt}T11:00:00`,
+    });
+    setCreatingMeeting(false);
+    if (!url) { setError('Failed to create Teams meeting.'); return; }
+    setTeamsJoinUrl(url);
+  }
 
   async function save() {
     setSaving(true);
@@ -33,6 +52,7 @@ export function EditAnnualReviewModal({ review, employeeName, onClose, onSaved }
       rating: rating === '' ? null : Number(rating),
       summary: summary.trim() === '' ? null : summary.trim(),
       goals_next_year: goals.trim() === '' ? null : goals.trim(),
+      teams_join_url: teamsJoinUrl,
     };
     if (completing) patch.completed_at = new Date().toISOString().split('T')[0];
     if (uncompleting) patch.completed_at = null;
@@ -89,6 +109,27 @@ export function EditAnnualReviewModal({ review, employeeName, onClose, onSaved }
           rows={4}
           style={{ resize: 'vertical' }}
         />
+      </div>
+      <div className="field">
+        <label>Microsoft Teams</label>
+        {teamsJoinUrl ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+            <a href={teamsJoinUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#1B3F6E', textDecoration: 'underline', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              Join meeting
+            </a>
+            <button type="button" onClick={() => setTeamsJoinUrl(null)} className="btn-ghost sm" style={{ color: '#DC2626' }}>Remove</button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="btn-ghost sm"
+            onClick={addTeamsMeeting}
+            disabled={!msTokenAvailable || !scheduledAt || creatingMeeting}
+            title={!msTokenAvailable ? 'Sign in with Microsoft to enable' : !scheduledAt ? 'Set a scheduled date first' : ''}
+          >
+            {creatingMeeting ? 'Creating…' : '+ Create Teams meeting'}
+          </button>
+        )}
       </div>
     </Modal>
   );

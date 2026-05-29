@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { Employee } from '../../../lib/database.types';
 import { Modal } from '../../shared/Modal';
+import { useAuth } from '../../../contexts/AuthContext';
+import { createOnlineMeeting } from '../../../lib/graph';
 
 interface Props {
   employees: Employee[];
@@ -15,17 +17,29 @@ const currentYear = new Date().getFullYear();
 const YEARS = [currentYear - 1, currentYear, currentYear + 1];
 
 export function AddCheckinModal({ employees, defaultEmpId, onClose, onCreated }: Props) {
+  const { session } = useAuth();
+  const msTokenAvailable = !!session?.provider_token;
   const [empId, setEmpId] = useState(defaultEmpId ?? employees[0]?.id ?? '');
   const [quarter, setQuarter] = useState('Q1');
   const [year, setYear] = useState(currentYear);
   const [scheduledAt, setScheduledAt] = useState('');
   const [notes, setNotes] = useState('');
+  const [createTeams, setCreateTeams] = useState(msTokenAvailable);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   async function save() {
     if (!empId || !scheduledAt) { setError('Please select an employee and a date.'); return; }
     setSaving(true);
+    let teamsJoinUrl: string | null = null;
+    if (createTeams && session?.provider_token) {
+      const empName = employees.find(e => e.id === empId)?.name ?? 'Employee';
+      teamsJoinUrl = await createOnlineMeeting(session.provider_token, {
+        subject: `${quarter} ${year} Check-in — ${empName}`,
+        startDateTime: `${scheduledAt}T10:00:00`,
+        endDateTime: `${scheduledAt}T10:30:00`,
+      });
+    }
     const { error: err } = await supabase.from('quarterly_checkins').insert({
       employee_id: empId,
       quarter,
@@ -33,6 +47,7 @@ export function AddCheckinModal({ employees, defaultEmpId, onClose, onCreated }:
       scheduled_at: scheduledAt,
       notes: notes || null,
       status: 'pending',
+      teams_join_url: teamsJoinUrl,
     });
     setSaving(false);
     if (err) { setError(err.message); return; }
@@ -75,6 +90,18 @@ export function AddCheckinModal({ employees, defaultEmpId, onClose, onCreated }:
       <div className="field">
         <label>Notes (optional)</label>
         <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Agenda or talking points…" rows={3} style={{ resize: 'vertical' }} />
+      </div>
+      <div className="field" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+        <input
+          type="checkbox"
+          id="add-checkin-teams"
+          checked={createTeams && msTokenAvailable}
+          disabled={!msTokenAvailable}
+          onChange={e => setCreateTeams(e.target.checked)}
+        />
+        <label htmlFor="add-checkin-teams" style={{ fontSize: 13, color: msTokenAvailable ? '#1A1916' : '#9B9890', cursor: msTokenAvailable ? 'pointer' : 'not-allowed' }}>
+          Create Microsoft Teams meeting{!msTokenAvailable && ' (sign in with Microsoft to enable)'}
+        </label>
       </div>
     </Modal>
   );

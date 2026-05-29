@@ -309,6 +309,7 @@ export interface QuarterlyCheckin {
   rating: string | null;
   is_overridden: boolean;
   conducted_by: string | null;
+  teams_join_url: string | null;
   created_at: string;
 }
 
@@ -347,6 +348,7 @@ export interface LifecycleCheckin {
   conducted_by: string | null;
   rating: string | null;
   is_overridden: boolean;
+  teams_join_url: string | null;
   created_at: string;
 }
 
@@ -363,6 +365,7 @@ export interface AnnualReview {
   summary: string | null;
   goals_next_year: string | null;
   conducted_by: string | null;
+  teams_join_url: string | null;
   created_at: string;
 }
 
