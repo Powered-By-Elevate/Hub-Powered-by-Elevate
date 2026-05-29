@@ -189,6 +189,39 @@ export interface MsTenantUser {
   managerName: string | null;
 }
 
+// Fetches a single tenant user by their email / UPN, including their manager.
+// Used for the "Refresh from M365" button on the per-employee page when HR
+// wants to pull fresh data for one person without running a full directory
+// sync. Returns null on 404 or any failure.
+export async function getTenantUserByEmail(token: string, email: string): Promise<MsTenantUser | null> {
+  try {
+    const path =
+      `/users/${encodeURIComponent(email)}` +
+      `?$select=id,displayName,mail,userPrincipalName,jobTitle,department,mobilePhone,businessPhones,accountEnabled` +
+      `&$expand=manager($select=id,displayName,mail,userPrincipalName)`;
+    const res = await graphFetch(token, path);
+    if (!res.ok) return null;
+    const u = await res.json();
+    const manager = u.manager ?? null;
+    return {
+      id: u.id,
+      displayName: u.displayName ?? null,
+      mail: u.mail ?? null,
+      userPrincipalName: u.userPrincipalName ?? null,
+      jobTitle: u.jobTitle ?? null,
+      department: u.department ?? null,
+      mobilePhone: u.mobilePhone ?? null,
+      businessPhone: (u.businessPhones && u.businessPhones[0]) ?? null,
+      accountEnabled: u.accountEnabled !== false,
+      managerEmail: (manager?.mail ?? manager?.userPrincipalName ?? null)?.toLowerCase() ?? null,
+      managerName: manager?.displayName ?? null,
+    };
+  } catch (err) {
+    console.error('Graph /users/{email} error:', err);
+    return null;
+  }
+}
+
 // Lists all users in the signed-in user's Microsoft tenant including each
 // user's manager (single email per user). Paginates transparently via
 // @odata.nextLink. Requires User.Read.All scope.

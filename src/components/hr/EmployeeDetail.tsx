@@ -9,6 +9,8 @@ import { Upload, FileText, Download, Eye, Trash2, Pencil, X, Check, Plus } from 
 import { Modal } from '../shared/Modal';
 import { applyScheduleTemplate } from '../../lib/scheduleTemplates';
 import { ScheduleTemplateWithEvents } from '../../lib/database.types';
+import { useAuth } from '../../contexts/AuthContext';
+import { getTenantUserByEmail } from '../../lib/graph';
 
 type DetailTab = 'overview' | 'tasks' | 'documents' | 'schedule' | 'checkins' | 'reviews' | 'development' | 'certifications' | 'notes';
 
@@ -80,6 +82,45 @@ export function EmployeeDetail({
   const obTasks = tasks.filter(t => t.task_phase === 'onboarding');
   const done = obTasks.filter(t => t.status === 'complete').length;
   const empDocs = documents.filter(d => documentAppliesToEmployee(d, e));
+  const { session } = useAuth();
+  const msTokenAvailable = !!session?.provider_token;
+  const [refreshingFromMs, setRefreshingFromMs] = useState(false);
+  const [refreshMsg, setRefreshMsg] = useState<string>('');
+
+  async function refreshFromMicrosoft() {
+    if (!session?.provider_token || !e.email) return;
+    setRefreshingFromMs(true);
+    setRefreshMsg('');
+    const fresh = await getTenantUserByEmail(session.provider_token, e.email);
+    if (!fresh) {
+      setRefreshingFromMs(false);
+      setRefreshMsg('No matching M365 user found, or access denied.');
+      return;
+    }
+    const patch: Record<string, unknown> = {};
+    if (fresh.displayName && fresh.displayName !== e.name) patch.name = fresh.displayName;
+    if (fresh.jobTitle && fresh.jobTitle !== e.role) patch.role = fresh.jobTitle;
+    if (fresh.department && fresh.department !== e.department) patch.department = fresh.department;
+    const newPhone = fresh.mobilePhone ?? fresh.businessPhone ?? null;
+    if (newPhone && newPhone !== e.phone) patch.phone = newPhone;
+    // Try to resolve manager via existing employees by email
+    if (fresh.managerEmail) {
+      // Note: we don't have the full employees list in this scope; rely on
+      // the caller to refresh after; for now just store manager name as a
+      // hint if the resolved email-to-id can't be made here.
+      if (fresh.managerName && fresh.managerName !== e.manager) patch.manager = fresh.managerName;
+    }
+    if (Object.keys(patch).length === 0) {
+      setRefreshingFromMs(false);
+      setRefreshMsg('Already up to date with M365.');
+      return;
+    }
+    const { error: err } = await supabase.from('employees').update(patch).eq('id', e.id);
+    setRefreshingFromMs(false);
+    if (err) { setRefreshMsg(`Refresh failed: ${err.message}`); return; }
+    setRefreshMsg(`Updated ${Object.keys(patch).length} field${Object.keys(patch).length === 1 ? '' : 's'} from M365.`);
+    onDataChanged(e.id);
+  }
 
   const [editingTask, setEditingTask] = useState<OnboardingTask | null>(null);
   const [editTaskForm, setEditTaskForm] = useState({ title: '', due_date: '', category: 'Document', notes: '', required: false });
@@ -300,6 +341,18 @@ export function EmployeeDetail({
                 <button className="btn-ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => onOpenModal('add-note', e.id)}>Add HR Note</button>
                 <button className="btn-ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => onOpenModal('send-email', e.id)}>Send Email</button>
                 <button className="btn-ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => onOpenModal('send-invite', e.id)}>Send Setup Link</button>
+                <button
+                  className="btn-ghost sm"
+                  style={{ justifyContent: 'flex-start' }}
+                  onClick={refreshFromMicrosoft}
+                  disabled={!msTokenAvailable || refreshingFromMs || !e.email}
+                  title={!msTokenAvailable ? 'Sign in with Microsoft to enable' : !e.email ? 'Employee needs an email' : ''}
+                >
+                  {refreshingFromMs ? 'Refreshing…' : 'Refresh from M365'}
+                </button>
+                {refreshMsg && (
+                  <div style={{ fontSize: 11, color: refreshMsg.includes('failed') || refreshMsg.includes('No matching') ? '#DC2626' : '#2D9A60', padding: '2px 4px' }}>{refreshMsg}</div>
+                )}
                 <button className="btn-ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => onOpenModal('add-checkin-new', e.id)}>Add Check-in</button>
                 <button className="btn-ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => onOpenModal('save-as-template', e.id)}>Save as Template</button>
                 {e.archived ? (
