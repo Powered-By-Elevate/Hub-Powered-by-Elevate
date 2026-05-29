@@ -28,8 +28,12 @@ const mobileNavItems: { id: HRTab; icon: string; label: string }[] = [
 ];
 
 export function HRSidebar({ tab, onTab }: Props) {
-  const { signOut, profile } = useAuth();
+  const { signOut, profile, msProfile, msPhotoUrl } = useAuth();
   const [showAvatarDrop, setShowAvatarDrop] = useState(false);
+
+  const displayName = msProfile?.displayName ?? profile?.email?.split('@')[0] ?? 'HR Admin';
+  const titleLine = msProfile?.jobTitle ?? 'HR Administrator';
+  const initials = displayName.trim().split(' ').map(s => s[0]?.toUpperCase() ?? '').slice(0, 2).join('') || 'HR';
 
   return (
     <>
@@ -39,12 +43,20 @@ export function HRSidebar({ tab, onTab }: Props) {
           <AppLogo variant="dark" />
         </div>
         <div className="sidebar-user">
-          <div className="avatar av-light av-32">HR</div>
+          {msPhotoUrl ? (
+            <img
+              src={msPhotoUrl}
+              alt={displayName}
+              style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', display: 'block' }}
+            />
+          ) : (
+            <div className="avatar av-light av-32">{initials}</div>
+          )}
           <div>
             <div style={{ fontWeight: 600, fontSize: 13, color: '#fff', lineHeight: 1.2 }}>
-              {profile?.email?.split('@')[0] ?? 'HR Admin'}
+              {displayName}
             </div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>HR Administrator</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>{titleLine}</div>
           </div>
         </div>
         <div className="sidebar-nav">
@@ -75,17 +87,17 @@ export function HRSidebar({ tab, onTab }: Props) {
           {tab === 'dashboard' ? 'Dashboard' : tab === 'employees' || tab === 'detail' ? 'Employees' : tab === 'templates' ? 'Templates' : tab === 'checkins' ? 'Check-ins' : tab === 'settings' ? 'Settings' : 'HR'}
         </div>
         <div style={{ position: 'relative' }}>
-          <button className="mobile-header-avatar" onClick={() => setShowAvatarDrop(v => !v)}>
-            HR
+          <button className="mobile-header-avatar" onClick={() => setShowAvatarDrop(v => !v)} style={msPhotoUrl ? { backgroundImage: `url(${msPhotoUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', color: 'transparent' } : undefined}>
+            {msPhotoUrl ? '' : initials}
           </button>
           {showAvatarDrop && (
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowAvatarDrop(false)} />
               <div className="avatar-dropdown">
                 <div style={{ padding: '10px 14px 4px', fontSize: 12, color: '#9B9890', fontWeight: 600 }}>
-                  {profile?.email?.split('@')[0] ?? 'HR Admin'}
+                  {displayName}
                 </div>
-                <div style={{ padding: '2px 14px 10px', fontSize: 11, color: '#9B9890' }}>HR Administrator</div>
+                <div style={{ padding: '2px 14px 10px', fontSize: 11, color: '#9B9890' }}>{titleLine}</div>
                 <hr />
                 <button onClick={() => { setShowAvatarDrop(false); signOut(); }}>↩ Sign out</button>
               </div>

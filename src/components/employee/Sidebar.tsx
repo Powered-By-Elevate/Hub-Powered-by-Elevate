@@ -39,12 +39,15 @@ const MORE_ONBOARDING: { id: EmpTab; icon: string; label: string }[] = [
 ];
 
 export function EmpSidebar({ employee, tab, onTab }: Props) {
-  const { signOut } = useAuth();
+  const { signOut, msPhotoUrl, msProfile } = useAuth();
   const viewer = useViewer();
   const [showMore, setShowMore] = useState(false);
   const [showAvatarDrop, setShowAvatarDrop] = useState(false);
   const isActive = employee.lifecycle_status === 'active';
   const isManager = viewer?.role === 'manager';
+  // Prefer the employee record's name (canonical), fall back to MS display name.
+  const sidebarName = employee.name || msProfile?.displayName || 'Employee';
+  const sidebarTitle = isManager ? 'Manager' : isActive ? employee.role : 'New Hire';
 
   const onboardingNav: { id: EmpTab; icon: string; label: string }[] = [
     { id: 'overview', icon: '▦', label: 'My Overview' },
@@ -108,12 +111,14 @@ export function EmpSidebar({ employee, tab, onTab }: Props) {
           <AppLogo variant="dark" />
         </div>
         <div className="sidebar-user">
-          <div className="avatar av-light av-32">{ini(employee.name)}</div>
+          {msPhotoUrl ? (
+            <img src={msPhotoUrl} alt={sidebarName} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+          ) : (
+            <div className="avatar av-light av-32">{ini(employee.name)}</div>
+          )}
           <div>
-            <div style={{ fontWeight: 600, fontSize: 13, color: '#fff', lineHeight: 1.2 }}>{employee.name}</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>
-              {isManager ? 'Manager' : isActive ? employee.role : 'New Hire'}
-            </div>
+            <div style={{ fontWeight: 600, fontSize: 13, color: '#fff', lineHeight: 1.2 }}>{sidebarName}</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>{sidebarTitle}</div>
           </div>
         </div>
         <div className="sidebar-nav">
@@ -192,15 +197,15 @@ export function EmpSidebar({ employee, tab, onTab }: Props) {
           {tab === 'overview' ? (isActive ? 'Dashboard' : 'My Onboarding') : tab === 'tasks' ? 'My Tasks' : tab === 'schedule' ? 'Schedule' : tab === 'documents' ? 'Documents' : tab === 'team' ? 'My Team' : tab === 'contacts' ? 'Contacts' : tab === 'checkins' ? 'Check-ins' : tab === 'my-goals' ? 'My Goals' : tab === 'my-certifications' ? 'My Certifications' : tab === 'my-checkins' ? 'My Check-ins' : tab === 'my-reviews' ? 'My Reviews' : tab.startsWith('mgr-') ? 'Manager' : 'More'}
         </div>
         <div style={{ position: 'relative' }}>
-          <button className="mobile-header-avatar" onClick={() => setShowAvatarDrop(v => !v)}>
-            {ini(employee.name)}
+          <button className="mobile-header-avatar" onClick={() => setShowAvatarDrop(v => !v)} style={msPhotoUrl ? { backgroundImage: `url(${msPhotoUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', color: 'transparent' } : undefined}>
+            {msPhotoUrl ? '' : ini(employee.name)}
           </button>
           {showAvatarDrop && (
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowAvatarDrop(false)} />
               <div className="avatar-dropdown">
-                <div style={{ padding: '10px 14px 4px', fontSize: 12, color: '#9B9890', fontWeight: 600 }}>{employee.name}</div>
-                <div style={{ padding: '2px 14px 10px', fontSize: 11, color: '#9B9890' }}>{isManager ? 'Manager' : isActive ? employee.role : 'New Hire'}</div>
+                <div style={{ padding: '10px 14px 4px', fontSize: 12, color: '#9B9890', fontWeight: 600 }}>{sidebarName}</div>
+                <div style={{ padding: '2px 14px 10px', fontSize: 11, color: '#9B9890' }}>{sidebarTitle}</div>
                 <hr />
                 <button onClick={() => { setShowAvatarDrop(false); signOut(); }}>↩ Sign out</button>
               </div>
