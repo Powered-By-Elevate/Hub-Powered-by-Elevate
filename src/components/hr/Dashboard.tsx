@@ -1,6 +1,7 @@
 import { Employee, ActivityLog, QuarterlyCheckin, AnnualReview, LifecycleCheckin } from '../../lib/database.types';
-import { ini, pfColor } from '../shared/utils';
+import { pfColor } from '../shared/utils';
 import { StatusBadge } from '../shared/StatusBadge';
+import { EmployeeAvatar } from '../shared/EmployeeAvatar';
 import type { HRTab } from '../../pages/HRApp';
 import { UpcomingDates } from './UpcomingDates';
 import { NotificationBell } from '../shared/NotificationBell';
@@ -85,7 +86,7 @@ export function HRDashboard({ employees, activity, checkins, reviews, lifecycleC
                       cursor: 'pointer',
                     }}
                   >
-                    <div className="avatar av-navy av-32" style={{ flexShrink: 0 }}>{ini(e.name)}</div>
+                    <EmployeeAvatar email={e.email} name={e.name} size={32} className="av-navy" style={{ flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 13, color: '#1A1916' }}>{e.name}</div>
                       <div style={{ fontSize: 11, color: '#9B9890' }}>{e.role}</div>
@@ -127,7 +128,7 @@ export function HRDashboard({ employees, activity, checkins, reviews, lifecycleC
                       cursor: 'pointer',
                     }}
                   >
-                    <div className="avatar av-navy av-32" style={{ flexShrink: 0 }}>{ini(e.name)}</div>
+                    <EmployeeAvatar email={e.email} name={e.name} size={32} className="av-navy" style={{ flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 13, color: '#1A1916' }}>{e.name}</div>
                       <div style={{ fontSize: 11, color: '#9B9890' }}>{e.role}{e.start_date ? ` · Started ${e.start_date}` : ''}</div>
@@ -166,7 +167,7 @@ export function HRDashboard({ employees, activity, checkins, reviews, lifecycleC
                         cursor: 'pointer',
                       }}
                     >
-                      <div className="avatar av-navy av-32" style={{ flexShrink: 0 }}>{ini(a.name)}</div>
+                      <EmployeeAvatar email={a.email} name={a.name} size={32} className="av-navy" style={{ flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 600, fontSize: 13, color: '#1A1916' }}>{a.name}</div>
                         <div style={{ fontSize: 11, color: '#9B9890' }}>{a.position_applied_for ?? a.role ?? 'Applicant'}</div>

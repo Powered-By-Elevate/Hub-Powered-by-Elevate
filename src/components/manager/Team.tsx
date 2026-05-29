@@ -1,6 +1,7 @@
 import { Employee } from '../../lib/database.types';
-import { ini, pfColor } from '../shared/utils';
+import { pfColor } from '../shared/utils';
 import { StatusBadge } from '../shared/StatusBadge';
+import { EmployeeAvatar } from '../shared/EmployeeAvatar';
 
 interface Props {
   team: Employee[];
@@ -37,7 +38,7 @@ export function ManagerTeam({ team, onViewEmployee, onOpenModal }: Props) {
                   <tr key={e.id} className="tr-click" onClick={() => onViewEmployee(e.id)}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div className="avatar av-navy av-32">{ini(e.name)}</div>
+                        <EmployeeAvatar email={e.email} name={e.name} size={32} className="av-navy" />
                         <div>
                           <div className="emp-name">{e.name}</div>
                           <div className="emp-email">{e.email}</div>
