@@ -10,6 +10,52 @@ import { getMyMsProfile, getMyMsPhotoUrl, type MsProfile } from '../lib/graph';
 // client.
 const msSsoAvailable = !!(import.meta.env.VITE_AZURE_TENANT_ID && import.meta.env.VITE_AZURE_CLIENT_ID);
 
+// Persisted Microsoft access token storage.
+//
+// Supabase by design does NOT persist OAuth provider tokens to localStorage on
+// session refresh — they're stripped from the stored session for security.
+// That means after any page refresh, `session.provider_token` comes back null
+// and every Graph-dependent feature (photos, Teams meeting creation, directory
+// sync, mail send, etc.) silently breaks until the user signs out and back in.
+//
+// We persist provider_token + provider_refresh_token ourselves on initial
+// receipt, and re-hydrate them onto the session object the rest of the app
+// reads. The token still expires after ~1 hour on Microsoft's side, but it
+// survives refreshes within that hour, which covers the typical HR session.
+const MS_TOKEN_KEY = 'hub:ms-provider-token';
+const MS_REFRESH_TOKEN_KEY = 'hub:ms-provider-refresh-token';
+
+function persistMsTokens(session: Session | null): void {
+  if (session?.provider_token) {
+    try { localStorage.setItem(MS_TOKEN_KEY, session.provider_token); } catch { /* quota / private mode */ }
+  }
+  if (session?.provider_refresh_token) {
+    try { localStorage.setItem(MS_REFRESH_TOKEN_KEY, session.provider_refresh_token); } catch { /* ignore */ }
+  }
+}
+
+function clearMsTokens(): void {
+  try {
+    localStorage.removeItem(MS_TOKEN_KEY);
+    localStorage.removeItem(MS_REFRESH_TOKEN_KEY);
+  } catch { /* ignore */ }
+}
+
+// Returns the session with provider_token / provider_refresh_token hydrated
+// from localStorage if Supabase dropped them on a refresh.
+function hydrateMsTokens(session: Session | null): Session | null {
+  if (!session) return session;
+  if (session.provider_token) return session; // already populated, nothing to do
+  let token: string | null = null;
+  let refresh: string | null = null;
+  try {
+    token = localStorage.getItem(MS_TOKEN_KEY);
+    refresh = localStorage.getItem(MS_REFRESH_TOKEN_KEY);
+  } catch { /* ignore */ }
+  if (!token) return session;
+  return { ...session, provider_token: token, provider_refresh_token: refresh ?? session.provider_refresh_token };
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -85,8 +131,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     (async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session: rawSession } } = await supabase.auth.getSession();
         if (!mounted) return;
+        const session = hydrateMsTokens(rawSession);
 
         setSession(session);
         setUser(session?.user ?? null);
@@ -111,8 +158,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, rawSession) => {
       if (!mounted) return;
+      // Stash fresh provider tokens on every sign-in so they survive future
+      // page refreshes; hydrate from storage when Supabase hands us a session
+      // without them (e.g. silent refresh).
+      if (event === 'SIGNED_OUT') {
+        clearMsTokens();
+      } else if (rawSession) {
+        persistMsTokens(rawSession);
+      }
+      const session = hydrateMsTokens(rawSession);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -168,6 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
+    clearMsTokens();
     await supabase.auth.signOut();
   }
 
