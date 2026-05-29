@@ -55,7 +55,11 @@ export function M365SyncSection({ employees, companies, onImported }: Props) {
           user: u,
           email,
           existingMatch,
-          selected: !existingMatch && !!email, // default-check new users only
+          // Default to UNCHECKED. The tenant also contains shared mailboxes
+          // (Accounts Payable, ACE II…), vendor, and external accounts that
+          // aren't real employees. HR opts in per row (or "Select all new"),
+          // so a stray Import click can't dump hundreds of junk records.
+          selected: false,
         };
       })
       .sort((a, b) => (a.user.displayName ?? '').localeCompare(b.user.displayName ?? ''));
@@ -197,7 +201,7 @@ export function M365SyncSection({ employees, companies, onImported }: Props) {
 
       <div style={{ padding: '0 1.25rem 1rem' }}>
         <p style={{ fontSize: 13, color: '#6B6860', margin: '6px 0 14px' }}>
-          Pull employees directly from the True North Microsoft 365 tenant. Matched by email — already-imported employees are skipped. New employees default to the company below; you can change company / role / department on each profile after import.
+          Pull employees directly from the True North Microsoft 365 tenant. Matched by email — already-imported employees are skipped. <strong>Check the people you want to import</strong> — nothing is selected by default, since the tenant also includes shared mailboxes and vendor accounts. New employees use the company below; you can change company / role / department on each profile after import.
         </p>
 
         {!msTokenAvailable && (
