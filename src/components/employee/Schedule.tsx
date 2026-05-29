@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Employee, Schedule, QuarterlyCheckin, AnnualReview } from '../../lib/database.types';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { formatScheduleTime, scheduleSortKey } from '../shared/utils';
+import { formatScheduleTime, scheduleSortKey, formatTime12h } from '../shared/utils';
+import { useAuth } from '../../contexts/AuthContext';
+import { getMyCalendarEvents, type MsCalendarEvent } from '../../lib/graph';
 
 interface Props {
   employee: Employee;
@@ -41,12 +43,40 @@ function checkinStatusColor(status: string) {
 }
 
 export function EmpSchedule({ employee, schedules, checkins, reviews }: Props) {
+  const { session } = useAuth();
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date()));
   const [mobileDay, setMobileDay] = useState<string>(() => fmtDate(new Date()));
+  const [outlookEvents, setOutlookEvents] = useState<MsCalendarEvent[]>([]);
 
   const today = fmtDate(new Date());
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const weekLabel = `${fmtShort(weekDays[0])} — ${fmtShort(weekDays[6])}, ${weekDays[0].getFullYear()}`;
+
+  // Pull Outlook events for the visible week whenever it changes (and we
+  // have a Microsoft access token from SSO). Falls back silently if the
+  // token is missing or expired.
+  useEffect(() => {
+    const token = session?.provider_token;
+    if (!token) { setOutlookEvents([]); return; }
+    const from = new Date(weekDays[0]); from.setHours(0, 0, 0, 0);
+    const to = new Date(weekDays[6]); to.setHours(23, 59, 59, 999);
+    let cancelled = false;
+    getMyCalendarEvents(token, from.toISOString(), to.toISOString())
+      .then(evs => { if (!cancelled) setOutlookEvents(evs); });
+    return () => { cancelled = true; };
+  }, [session?.provider_token, weekStart]);
+
+  function outlookForDay(dateStr: string): MsCalendarEvent[] {
+    return outlookEvents
+      .filter(ev => ev.date === dateStr)
+      .sort((a, b) => a.start.localeCompare(b.start));
+  }
+
+  function fmtOutlookTime(ev: MsCalendarEvent): string {
+    if (ev.isAllDay) return 'All day';
+    const d = new Date(ev.start.endsWith('Z') ? ev.start : ev.start + 'Z');
+    return formatTime12h(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
+  }
 
   // Day 1 schedule items (no date attached)
   const day1Items = schedules.filter(s => !s.schedule_date);
@@ -126,18 +156,34 @@ export function EmpSchedule({ employee, schedules, checkins, reviews }: Props) {
                     )}
                   </div>
                   <div style={{ padding: '6px 8px' }}>
-                    {items.length === 0 ? (
+                    {items.length === 0 && outlookForDay(ds).length === 0 ? (
                       <div style={{ fontSize: 11, color: '#C5C3BB', fontStyle: 'italic', padding: '4px 0' }}>No events</div>
-                    ) : items.map(ev => (
-                      <div key={ev.id} style={{
-                        fontSize: 11, padding: '4px 6px', borderRadius: 5, marginBottom: 4,
-                        background: ev.color ? ev.color + '22' : '#E8EFF8',
-                        borderLeft: `3px solid ${ev.color ?? '#1B3F6E'}`,
-                      }}>
-                        <div style={{ fontWeight: 600, color: '#1A1916', lineHeight: 1.3 }}>{ev.title}</div>
-                        {(() => { const t = formatScheduleTime(ev); return t ? <div style={{ color: '#9B9890', marginTop: 1 }}>{t}</div> : null; })()}
-                      </div>
-                    ))}
+                    ) : (
+                      <>
+                        {items.map(ev => (
+                          <div key={ev.id} style={{
+                            fontSize: 11, padding: '4px 6px', borderRadius: 5, marginBottom: 4,
+                            background: ev.color ? ev.color + '22' : '#E8EFF8',
+                            borderLeft: `3px solid ${ev.color ?? '#1B3F6E'}`,
+                          }}>
+                            <div style={{ fontWeight: 600, color: '#1A1916', lineHeight: 1.3 }}>{ev.title}</div>
+                            {(() => { const t = formatScheduleTime(ev); return t ? <div style={{ color: '#9B9890', marginTop: 1 }}>{t}</div> : null; })()}
+                          </div>
+                        ))}
+                        {outlookForDay(ds).map(ev => (
+                          <div key={ev.id} style={{
+                            fontSize: 11, padding: '4px 6px', borderRadius: 5, marginBottom: 4,
+                            background: '#FDF6E3', borderLeft: '3px solid #B45309',
+                          }} title={ev.location ? `Outlook · ${ev.location}` : 'Outlook'}>
+                            <div style={{ fontWeight: 600, color: '#1A1916', lineHeight: 1.3, display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <span aria-hidden="true" style={{ fontSize: 9, padding: '1px 4px', borderRadius: 3, background: '#B45309', color: '#fff', fontWeight: 700, letterSpacing: 0.3 }}>O</span>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.subject}</span>
+                            </div>
+                            <div style={{ color: '#9B9890', marginTop: 1 }}>{fmtOutlookTime(ev)}</div>
+                          </div>
+                        ))}
+                      </>
+                    )}
                   </div>
                 </div>
               );
@@ -169,18 +215,35 @@ export function EmpSchedule({ employee, schedules, checkins, reviews }: Props) {
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
                 {DAY_FULL[weekDays.findIndex(d => fmtDate(d) === mobileDay)] ?? ''}, {fmtShort(new Date(mobileDay + 'T12:00:00'))}
               </div>
-              {mobileDayItems.length === 0 ? (
+              {mobileDayItems.length === 0 && outlookForDay(mobileDay).length === 0 ? (
                 <div style={{ fontSize: 13, color: '#9B9890', fontStyle: 'italic' }}>No events scheduled</div>
-              ) : mobileDayItems.map(ev => (
-                <div key={ev.id} className="sched-item">
-                  <div className="sched-dot" style={{ background: ev.color ?? '#1B3F6E' }} />
-                  <div className="sched-time">{formatScheduleTime(ev) || '—'}</div>
-                  <div>
-                    <div className="sched-title">{ev.title}</div>
-                    {ev.location && <div className="sched-sub">{ev.location}</div>}
-                  </div>
-                </div>
-              ))}
+              ) : (
+                <>
+                  {mobileDayItems.map(ev => (
+                    <div key={ev.id} className="sched-item">
+                      <div className="sched-dot" style={{ background: ev.color ?? '#1B3F6E' }} />
+                      <div className="sched-time">{formatScheduleTime(ev) || '—'}</div>
+                      <div>
+                        <div className="sched-title">{ev.title}</div>
+                        {ev.location && <div className="sched-sub">{ev.location}</div>}
+                      </div>
+                    </div>
+                  ))}
+                  {outlookForDay(mobileDay).map(ev => (
+                    <div key={ev.id} className="sched-item">
+                      <div className="sched-dot" style={{ background: '#B45309' }} />
+                      <div className="sched-time">{fmtOutlookTime(ev)}</div>
+                      <div>
+                        <div className="sched-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span aria-hidden="true" style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: '#B45309', color: '#fff', fontWeight: 700, letterSpacing: 0.4 }}>OUTLOOK</span>
+                          {ev.subject}
+                        </div>
+                        {ev.location && <div className="sched-sub">{ev.location}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           </div>
         </div>

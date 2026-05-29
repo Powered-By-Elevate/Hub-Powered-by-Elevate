@@ -144,11 +144,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // browser to Microsoft, handle the callback at its own URL, then redirect
     // back to redirectTo with the Supabase session in the URL hash that
     // supabase-js auto-detects on load.
+    // Request the full Graph scope set up front so we only prompt the user
+    // for consent once. Covers everything the Hub uses today (profile + photo)
+    // plus the features in active development (calendar pull, Teams meeting
+    // creation for check-ins, mail send for notifications, directory sync).
+    const scopes = [
+      'openid', 'profile', 'email',
+      'User.Read',
+      'User.Read.All',           // directory sync
+      'Calendars.ReadWrite',     // pull + create calendar events
+      'OnlineMeetings.ReadWrite',// auto-create Teams meetings for check-ins
+      'Mail.Send',               // outbound HR notifications
+    ].join(' ');
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'azure',
       options: {
         redirectTo: window.location.origin,
-        scopes: 'openid profile email User.Read',
+        scopes,
       },
     });
     if (error) return { error: error.message };
