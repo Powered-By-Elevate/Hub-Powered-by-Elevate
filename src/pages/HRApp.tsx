@@ -30,6 +30,7 @@ import { HRTemplates } from '../components/hr/Templates';
 import { HRCheckins } from '../components/hr/Checkins';
 import { HRSettings } from '../components/hr/Settings';
 import { HRApplicants } from '../components/hr/Applicants';
+import { HRSchedule } from '../components/hr/Schedule';
 import { HRDocuments } from '../components/hr/Documents';
 import { SpotlightTour } from '../components/shared/SpotlightTour';
 import { hrTour, hrIntro, hrOutro } from '../lib/tours';
@@ -54,7 +55,7 @@ import { ToastContainer, ToastItem } from '../components/shared/Toast';
 import { GlobalSearch } from '../components/shared/GlobalSearch';
 import { NotificationBell } from '../components/shared/NotificationBell';
 
-export type HRTab = 'dashboard' | 'employees' | 'applicants' | 'documents' | 'templates' | 'checkins' | 'career' | 'settings' | 'detail';
+export type HRTab = 'dashboard' | 'employees' | 'applicants' | 'documents' | 'templates' | 'checkins' | 'career' | 'schedule' | 'settings' | 'detail';
 
 async function logActivity(employeeId: string | null, action: string) {
   await supabase.from('activity_log').insert({ employee_id: employeeId, action, created_at: new Date().toISOString() });
@@ -489,6 +490,15 @@ export function HRApp() {
           {tab === 'templates' && (
             <HRTemplates templates={templates} onOpenModal={(type, eid) => setModal({ type, eid })} />
           )}
+          {tab === 'schedule' && (
+            <HRSchedule
+              employees={employees}
+              checkins={quarterlyCheckins}
+              reviews={annualReviews}
+              lifecycleCheckins={lifecycleCheckins}
+              onViewEmployee={viewEmployee}
+            />
+          )}
           {tab === 'checkins' && (
             <HRCheckins
               employees={employees.filter(e => !e.archived)}
@@ -669,6 +679,15 @@ export function HRApp() {
               pathways={pathways}
               onViewEmployee={viewEmployee}
               onRefresh={loadEmployees}
+            />
+          )}
+          {tab === 'schedule' && (
+            <HRSchedule
+              employees={employees}
+              checkins={quarterlyCheckins}
+              reviews={annualReviews}
+              lifecycleCheckins={lifecycleCheckins}
+              onViewEmployee={viewEmployee}
             />
           )}
           {tab === 'settings' && (

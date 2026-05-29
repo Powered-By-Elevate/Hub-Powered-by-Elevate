@@ -5,6 +5,7 @@ import type { HRTab } from '../../pages/HRApp';
 
 const navItems: { id: HRTab; icon: string; label: string }[] = [
   { id: 'dashboard', icon: '▦', label: 'Dashboard' },
+  { id: 'schedule', icon: '🗓', label: 'My Schedule' },
   { id: 'applicants', icon: '📨', label: 'Applicants' },
   { id: 'employees', icon: '👥', label: 'All Employees' },
   { id: 'templates', icon: '📋', label: 'Templates' },
@@ -21,8 +22,8 @@ interface Props {
 
 const mobileNavItems: { id: HRTab; icon: string; label: string }[] = [
   { id: 'dashboard', icon: '⊞', label: 'Dashboard' },
+  { id: 'schedule', icon: '🗓', label: 'Schedule' },
   { id: 'employees', icon: '👥', label: 'Employees' },
-  { id: 'career', icon: '🎯', label: 'Career' },
   { id: 'checkins', icon: '📅', label: 'Check-ins' },
   { id: 'settings', icon: '⚙', label: 'Settings' },
 ];
