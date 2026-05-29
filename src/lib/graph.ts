@@ -152,16 +152,25 @@ export interface MsTenantUser {
   mobilePhone: string | null;
   businessPhone: string | null;
   accountEnabled: boolean;
+  /** Manager email pulled via $expand=manager. Null if the user has no manager set in Entra. */
+  managerEmail: string | null;
+  /** Manager display name from Entra, for nicer UI copy. */
+  managerName: string | null;
 }
 
-// Lists all users in the signed-in user's Microsoft tenant. Paginates
-// transparently via @odata.nextLink. Requires User.Read.All scope.
+// Lists all users in the signed-in user's Microsoft tenant including each
+// user's manager (single email per user). Paginates transparently via
+// @odata.nextLink. Requires User.Read.All scope.
 export async function listTenantUsers(token: string): Promise<MsTenantUser[]> {
   const out: MsTenantUser[] = [];
+  // $expand=manager returns a nested manager object for each user. We can't
+  // use $select on the outer entity AND $expand=manager without restricting
+  // the manager projection too, so we restrict via the nested form.
   let url: string | null =
     `${GRAPH_BASE}/users` +
     `?$select=id,displayName,mail,userPrincipalName,jobTitle,department,mobilePhone,businessPhones,accountEnabled` +
-    `&$top=999`;
+    `&$expand=manager($select=id,displayName,mail,userPrincipalName)` +
+    `&$top=500`;
   try {
     while (url) {
       const res = await fetch(url, {
@@ -173,6 +182,7 @@ export async function listTenantUsers(token: string): Promise<MsTenantUser[]> {
       }
       const data = await res.json();
       for (const u of data.value ?? []) {
+        const manager = u.manager ?? null;
         out.push({
           id: u.id,
           displayName: u.displayName ?? null,
@@ -183,6 +193,8 @@ export async function listTenantUsers(token: string): Promise<MsTenantUser[]> {
           mobilePhone: u.mobilePhone ?? null,
           businessPhone: (u.businessPhones && u.businessPhones[0]) ?? null,
           accountEnabled: u.accountEnabled !== false,
+          managerEmail: (manager?.mail ?? manager?.userPrincipalName ?? null)?.toLowerCase() ?? null,
+          managerName: manager?.displayName ?? null,
         });
       }
       url = data['@odata.nextLink'] ?? null;

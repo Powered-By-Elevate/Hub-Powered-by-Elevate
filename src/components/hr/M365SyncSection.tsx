@@ -88,19 +88,56 @@ export function M365SyncSection({ employees, companies, onImported }: Props) {
       lifecycle_status: 'active',
       is_test_account: false,
     }));
-    const { data, error } = await supabase.from('employees').insert(inserts).select();
-    setImporting(false);
+    const { data: inserted, error } = await supabase.from('employees').insert(inserts).select();
     if (error) {
+      setImporting(false);
       setErrorMsg(`Import failed: ${error.message}`);
       return;
     }
-    setResultMsg(`Imported ${data?.length ?? toImport.length} employee${data?.length === 1 ? '' : 's'} from Microsoft 365.`);
-    // Refresh the row list to reflect newly imported ones
+    const insertedRows = (inserted ?? []) as Employee[];
+
+    // Phase 2: link manager_id for any Hub employee whose Entra record names
+    // a manager that's also in the Hub. Covers both:
+    //  - newly-imported employees getting a manager
+    //  - existing Hub employees whose manager was just imported in this batch
+    //    (or whose manager was already in Hub and never linked)
+    // Look up every Entra row that has a managerEmail, find both ends in
+    // employees (including the just-inserted rows), and UPSERT manager_id.
+    const allEmps: Employee[] = [...employees, ...insertedRows];
+    const empByEmail = new Map(allEmps.map(e => [e.email.toLowerCase(), e]));
+    const managerUpdates: { id: string; manager_id: string; manager: string | null }[] = [];
+    for (const r of rows) {
+      const managerEmail = r.user.managerEmail;
+      if (!managerEmail || !r.email) continue;
+      const userRow = empByEmail.get(r.email);
+      const managerRow = empByEmail.get(managerEmail);
+      if (!userRow || !managerRow) continue;
+      // Only update if the link is missing or different.
+      if (userRow.manager_id === managerRow.id) continue;
+      managerUpdates.push({ id: userRow.id, manager_id: managerRow.id, manager: managerRow.name });
+    }
+
+    let linked = 0;
+    if (managerUpdates.length > 0) {
+      // Issue updates in parallel. Each is keyed by id so they don't collide.
+      const results = await Promise.all(
+        managerUpdates.map(u =>
+          supabase.from('employees').update({ manager_id: u.manager_id, manager: u.manager }).eq('id', u.id),
+        ),
+      );
+      linked = results.filter(r => !r.error).length;
+    }
+
+    setImporting(false);
+    const importedMsg = `Imported ${insertedRows.length} employee${insertedRows.length === 1 ? '' : 's'} from Microsoft 365.`;
+    const linkedMsg = managerUpdates.length > 0
+      ? ` Linked ${linked} manager relationship${linked === 1 ? '' : 's'}.`
+      : '';
+    setResultMsg(importedMsg + linkedMsg);
+
     setRows(rs => rs ? rs.map(r => {
-      if (r.selected && !r.existingMatch && r.email) {
-        const inserted = data?.find(d => d.email.toLowerCase() === r.email);
-        if (inserted) return { ...r, existingMatch: inserted as Employee, selected: false };
-      }
+      const justImported = insertedRows.find(e => e.email.toLowerCase() === r.email);
+      if (justImported && !r.existingMatch) return { ...r, existingMatch: justImported, selected: false };
       return r;
     }) : rs);
     onImported();
@@ -171,6 +208,7 @@ export function M365SyncSection({ employees, companies, onImported }: Props) {
                     <th>Email</th>
                     <th>Title</th>
                     <th>Department</th>
+                    <th>Manager</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -193,6 +231,7 @@ export function M365SyncSection({ employees, companies, onImported }: Props) {
                         <td style={{ fontSize: 12, color: '#6B6860' }}>{r.email || <em>no email</em>}</td>
                         <td style={{ fontSize: 12, color: '#6B6860' }}>{r.user.jobTitle ?? '—'}</td>
                         <td style={{ fontSize: 12, color: '#6B6860' }}>{r.user.department ?? '—'}</td>
+                        <td style={{ fontSize: 12, color: '#6B6860' }}>{r.user.managerName ?? '—'}</td>
                         <td>
                           {r.existingMatch ? (
                             <span className="badge b-muted">In Hub</span>
