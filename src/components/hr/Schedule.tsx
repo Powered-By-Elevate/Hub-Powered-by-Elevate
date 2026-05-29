@@ -74,15 +74,22 @@ export function HRSchedule({ employees, checkins, reviews, lifecycleCheckins, on
 
   const weekCheckins = [
     ...checkins.filter(c => c.status !== 'completed' && inWeek(c.scheduled_at)).map(c => ({
-      id: c.id, employee_id: c.employee_id, date: c.scheduled_at, label: `${c.quarter} ${c.year} Check-in`, kind: 'quarterly' as const,
+      id: c.id, employee_id: c.employee_id, date: c.scheduled_at, time: c.scheduled_time ?? null, joinUrl: c.teams_join_url ?? null,
+      label: `${c.quarter} ${c.year} Check-in`, kind: 'quarterly' as const,
     })),
     ...lifecycleCheckins.filter(l => l.status !== 'completed' && l.status !== 'skipped' && inWeek(l.scheduled_at)).map(l => ({
-      id: l.id, employee_id: l.employee_id, date: l.scheduled_at, label: `Day ${l.milestone_day} Check-in`, kind: 'lifecycle' as const,
+      id: l.id, employee_id: l.employee_id, date: l.scheduled_at, time: l.scheduled_time ?? null, joinUrl: l.teams_join_url ?? null,
+      label: `Day ${l.milestone_day} Check-in`, kind: 'lifecycle' as const,
     })),
     ...reviews.filter(r => r.status !== 'completed' && r.scheduled_at && inWeek(r.scheduled_at)).map(r => ({
-      id: r.id, employee_id: r.employee_id, date: r.scheduled_at!, label: `${r.review_year} Annual Review`, kind: 'review' as const,
+      id: r.id, employee_id: r.employee_id, date: r.scheduled_at!, time: r.scheduled_time ?? null, joinUrl: r.teams_join_url ?? null,
+      label: `${r.review_year} Annual Review`, kind: 'review' as const,
     })),
-  ].sort((a, b) => a.date.localeCompare(b.date));
+  ].sort((a, b) => {
+    const dateCmp = a.date.localeCompare(b.date);
+    if (dateCmp !== 0) return dateCmp;
+    return (a.time ?? '99:99').localeCompare(b.time ?? '99:99');
+  });
 
   const upcomingStarts = employees
     .filter(e => !e.archived && e.start_date && e.start_date >= today)
@@ -143,19 +150,34 @@ export function HRSchedule({ employees, checkins, reviews, lifecycleCheckins, on
                     ) : (
                       <>
                         {dayCheckins.map(c => (
-                          <button
+                          <div
                             key={c.id}
-                            onClick={() => onViewEmployee(c.employee_id)}
                             style={{
-                              all: 'unset', cursor: 'pointer', display: 'block', width: '100%',
                               fontSize: 11, padding: '4px 6px', borderRadius: 5, marginBottom: 4,
                               background: '#E8EFF8', borderLeft: '3px solid #1B3F6E',
                             }}
-                            title="Click to open employee detail"
                           >
-                            <div style={{ fontWeight: 600, color: '#1A1916', lineHeight: 1.3 }}>{c.label}</div>
-                            <div style={{ color: '#9B9890', marginTop: 1 }}>{empName(c.employee_id)}</div>
-                          </button>
+                            <button
+                              onClick={() => onViewEmployee(c.employee_id)}
+                              style={{ all: 'unset', cursor: 'pointer', display: 'block', width: '100%' }}
+                              title="Click to open employee detail"
+                            >
+                              <div style={{ fontWeight: 600, color: '#1A1916', lineHeight: 1.3 }}>{c.label}</div>
+                              <div style={{ color: '#9B9890', marginTop: 1 }}>
+                                {empName(c.employee_id)}{c.time ? ` · ${formatTime12h(c.time.slice(0, 5))}` : ''}
+                              </div>
+                            </button>
+                            {c.joinUrl && (
+                              <a
+                                href={c.joinUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ display: 'inline-block', marginTop: 4, fontSize: 10, color: '#1B3F6E', textDecoration: 'underline' }}
+                              >
+                                Join Teams
+                              </a>
+                            )}
+                          </div>
                         ))}
                         {outlook.map(ev => (
                           <div key={ev.id} style={{
