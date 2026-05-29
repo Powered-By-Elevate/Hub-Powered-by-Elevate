@@ -1,9 +1,15 @@
 // MSAL configuration for Microsoft 365 SSO + Microsoft Graph access.
 //
 // The Hub uses a "dual-auth" strategy during rollout: Supabase email/password
-// continues to work, and "Sign in with Microsoft" hands off to MSAL → Entra ID,
-// then exchanges the returned ID token for a Supabase session via
-// supabase.auth.signInWithIdToken({ provider: 'azure', ... }).
+// continues to work, and "Sign in with Microsoft" hands off to MSAL → Entra ID
+// using a full-page redirect flow, then exchanges the returned ID token for a
+// Supabase session via supabase.auth.signInWithIdToken({ provider: 'azure' }).
+//
+// We use loginRedirect (not loginPopup) because popup flows are brittle
+// (popup blockers, nested-popup errors, message-channel issues). Redirect is
+// the simpler, more reliable path: full-window navigation to Microsoft, then
+// back to our redirectUri with the response in the URL hash, processed by
+// handleRedirectPromise() on app boot.
 //
 // The Azure provider must be enabled in the Supabase dashboard (Auth → Providers)
 // with the same client ID / tenant ID below for that exchange to succeed.
@@ -11,7 +17,7 @@
 // Tenant + client IDs come from env so prod and dev can diverge if needed.
 // They're not secrets — they live in the browser bundle by design (SPA + PKCE).
 
-import { PublicClientApplication, AuthenticationResult } from '@azure/msal-browser';
+import { PublicClientApplication } from '@azure/msal-browser';
 
 const tenantId = import.meta.env.VITE_AZURE_TENANT_ID as string | undefined;
 const clientId = import.meta.env.VITE_AZURE_CLIENT_ID as string | undefined;
@@ -50,23 +56,26 @@ export const GRAPH_SCOPES = {
   meetings: ['OnlineMeetings.ReadWrite'],
 };
 
-export async function loginWithMicrosoft(): Promise<AuthenticationResult> {
+// Kick off the Microsoft sign-in. This navigates the whole window to
+// Microsoft; control returns when Microsoft redirects back to our redirectUri.
+// The redirect response is processed by handleRedirectPromise() in main.tsx
+// at the next app boot.
+export async function loginWithMicrosoft(): Promise<void> {
   if (!msalConfigured) throw new Error('Microsoft sign-in is not configured.');
   await ensureMsalInitialized();
-  const result = await msalInstance.loginPopup({
+  await msalInstance.loginRedirect({
     scopes: LOGIN_SCOPES,
     prompt: 'select_account',
   });
-  if (result.account) msalInstance.setActiveAccount(result.account);
-  return result;
 }
 
 export async function logoutMicrosoft(): Promise<void> {
   await ensureMsalInitialized();
   const account = msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
-  if (account) {
-    try { await msalInstance.logoutPopup({ account }); } catch { /* user closed popup */ }
-  }
+  if (!account) return;
+  // Use logoutPopup so we don't leave the page (avoids interrupting the
+  // Supabase signOut that runs right after this).
+  try { await msalInstance.logoutPopup({ account }); } catch { /* ignore popup blockers */ }
 }
 
 // Acquire a Graph access token for the given scopes. Tries silent first

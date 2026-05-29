@@ -3,17 +3,29 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { ensureMsalInitialized, msalInstance, msalConfigured } from './lib/msal';
+import { supabase } from './lib/supabase';
 
 async function boot() {
-  // MSAL must finish initializing and process any redirect response BEFORE
-  // React renders. Otherwise a popup window briefly renders the LoginPage,
-  // which can lead to nested popup errors if the user clicks again.
+  // If we're returning from a Microsoft loginRedirect, MSAL needs to process
+  // the response in the URL hash BEFORE React renders. We then immediately
+  // exchange the resulting ID token for a Supabase session so AuthContext's
+  // onAuthStateChange picks it up on first render.
   if (msalConfigured) {
     try {
       await ensureMsalInitialized();
-      await msalInstance.handleRedirectPromise();
+      const response = await msalInstance.handleRedirectPromise();
+      if (response?.account) {
+        msalInstance.setActiveAccount(response.account);
+      }
+      if (response?.idToken) {
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: 'azure',
+          token: response.idToken,
+        });
+        if (error) console.error('Supabase signInWithIdToken failed:', error);
+      }
     } catch (err) {
-      // Don't block the app if MSAL bootstrapping fails; users can still use
+      // Don't block the app if MSAL bootstrapping fails — users can still use
       // email/password sign-in.
       console.error('MSAL bootstrap failed:', err);
     }
