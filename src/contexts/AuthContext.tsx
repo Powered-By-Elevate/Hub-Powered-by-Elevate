@@ -2,7 +2,12 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import type { UserProfile } from '../lib/database.types';
-import { loginWithMicrosoft, logoutMicrosoft, msalConfigured } from '../lib/msal';
+
+// Microsoft SSO availability flag — true when the Azure tenant + client IDs
+// are configured for the build. The actual sign-in handshake runs entirely
+// inside Supabase Auth via the OAuth code flow, so we don't need MSAL on the
+// client.
+const msSsoAvailable = !!(import.meta.env.VITE_AZURE_TENANT_ID && import.meta.env.VITE_AZURE_CLIENT_ID);
 
 interface AuthContextType {
   user: User | null;
@@ -107,31 +112,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signInWithMicrosoft(): Promise<{ error: string | null }> {
-    if (!msalConfigured) return { error: 'Microsoft sign-in is not configured for this environment.' };
-    try {
-      // Full-page redirect to Microsoft. Control returns when Microsoft
-      // sends the browser back to our redirectUri, at which point main.tsx
-      // processes the response and exchanges the ID token for a Supabase
-      // session. We never resolve normally — the page navigates away.
-      await loginWithMicrosoft();
-      return { error: null };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Microsoft sign-in failed.';
-      return { error: message };
-    }
+    if (!msSsoAvailable) return { error: 'Microsoft sign-in is not configured for this environment.' };
+    // Hand the entire OAuth handshake to Supabase. It will redirect the
+    // browser to Microsoft, handle the callback at its own URL, then redirect
+    // back to redirectTo with the Supabase session in the URL hash that
+    // supabase-js auto-detects on load.
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'azure',
+      options: {
+        redirectTo: window.location.origin,
+        scopes: 'openid profile email User.Read',
+      },
+    });
+    if (error) return { error: error.message };
+    return { error: null };
   }
 
   async function signOut() {
-    // Best-effort: sign out of MSAL too so users actually leave the M365 session.
-    // Failures (e.g. popup blocked) shouldn't prevent the Supabase signout.
-    try { await logoutMicrosoft(); } catch { /* ignore */ }
     await supabase.auth.signOut();
   }
 
   return (
     <AuthContext.Provider value={{
       user, session, profile, loading,
-      msSsoAvailable: msalConfigured,
+      msSsoAvailable,
       signIn, signInWithMicrosoft, signOut, refreshProfile,
     }}>
       {children}
