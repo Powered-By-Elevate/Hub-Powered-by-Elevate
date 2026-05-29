@@ -3,18 +3,19 @@ import { supabase } from '../../../lib/supabase';
 import { LifecycleCheckin } from '../../../lib/database.types';
 import { Modal } from '../../shared/Modal';
 import { useAuth } from '../../../contexts/AuthContext';
-import { createOnlineMeeting } from '../../../lib/graph';
+import { createEventWithTeamsMeeting } from '../../../lib/graph';
 
 interface Props {
   checkin: LifecycleCheckin;
   employeeName: string;
+  employeeEmail: string | null;
   onClose: () => void;
   onSaved: () => void;
 }
 
 const STATUSES: LifecycleCheckin['status'][] = ['pending', 'completed', 'overdue', 'skipped'];
 
-export function EditLifecycleCheckinModal({ checkin, employeeName, onClose, onSaved }: Props) {
+export function EditLifecycleCheckinModal({ checkin, employeeName, employeeEmail, onClose, onSaved }: Props) {
   const { session } = useAuth();
   const msTokenAvailable = !!session?.provider_token;
   const [notes, setNotes] = useState(checkin.notes ?? '');
@@ -27,10 +28,12 @@ export function EditLifecycleCheckinModal({ checkin, employeeName, onClose, onSa
   async function addTeamsMeeting() {
     if (!session?.provider_token) return;
     setCreatingMeeting(true);
-    const url = await createOnlineMeeting(session.provider_token, {
+    const url = await createEventWithTeamsMeeting(session.provider_token, {
       subject: `Day ${checkin.milestone_day} Check-in — ${employeeName}`,
       startDateTime: `${checkin.scheduled_at}T10:00:00`,
       endDateTime: `${checkin.scheduled_at}T10:30:00`,
+      attendees: employeeEmail ? [{ email: employeeEmail, name: employeeName }] : [],
+      body: `30-60-90 check-in scheduled in the Hub for ${employeeName}.`,
     });
     setCreatingMeeting(false);
     if (!url) { setError('Failed to create Teams meeting.'); return; }

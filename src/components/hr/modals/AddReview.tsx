@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { Employee } from '../../../lib/database.types';
 import { Modal } from '../../shared/Modal';
 import { useAuth } from '../../../contexts/AuthContext';
-import { createOnlineMeeting } from '../../../lib/graph';
+import { createEventWithTeamsMeeting } from '../../../lib/graph';
 
 interface Props {
   employees: Employee[];
@@ -32,11 +32,14 @@ export function AddReviewModal({ employees, defaultEmpId, onClose, onCreated }: 
     setSaving(true);
     let teamsJoinUrl: string | null = null;
     if (createTeams && scheduledAt && session?.provider_token) {
-      const empName = employees.find(e => e.id === empId)?.name ?? 'Employee';
-      teamsJoinUrl = await createOnlineMeeting(session.provider_token, {
+      const emp = employees.find(e => e.id === empId);
+      const empName = emp?.name ?? 'Employee';
+      teamsJoinUrl = await createEventWithTeamsMeeting(session.provider_token, {
         subject: `${reviewYear} Annual Review — ${empName}`,
         startDateTime: `${scheduledAt}T10:00:00`,
         endDateTime: `${scheduledAt}T11:00:00`,
+        attendees: emp?.email ? [{ email: emp.email, name: empName }] : [],
+        body: `Annual review scheduled in the Hub for ${empName}.`,
       });
     }
     const { error: err } = await supabase.from('annual_reviews').insert({

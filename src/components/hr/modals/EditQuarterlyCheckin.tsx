@@ -3,18 +3,19 @@ import { supabase } from '../../../lib/supabase';
 import { QuarterlyCheckin, CheckinStatus } from '../../../lib/database.types';
 import { Modal } from '../../shared/Modal';
 import { useAuth } from '../../../contexts/AuthContext';
-import { createOnlineMeeting } from '../../../lib/graph';
+import { createEventWithTeamsMeeting } from '../../../lib/graph';
 
 interface Props {
   checkin: QuarterlyCheckin;
   employeeName: string;
+  employeeEmail: string | null;
   onClose: () => void;
   onSaved: () => void;
 }
 
 const STATUSES: CheckinStatus[] = ['pending', 'completed', 'overdue'];
 
-export function EditQuarterlyCheckinModal({ checkin, employeeName, onClose, onSaved }: Props) {
+export function EditQuarterlyCheckinModal({ checkin, employeeName, employeeEmail, onClose, onSaved }: Props) {
   const { session } = useAuth();
   const msTokenAvailable = !!session?.provider_token;
   const [notes, setNotes] = useState(checkin.notes ?? '');
@@ -27,10 +28,12 @@ export function EditQuarterlyCheckinModal({ checkin, employeeName, onClose, onSa
   async function addTeamsMeeting() {
     if (!session?.provider_token) return;
     setCreatingMeeting(true);
-    const url = await createOnlineMeeting(session.provider_token, {
+    const url = await createEventWithTeamsMeeting(session.provider_token, {
       subject: `${checkin.quarter} ${checkin.year} Check-in — ${employeeName}`,
       startDateTime: `${checkin.scheduled_at}T10:00:00`,
       endDateTime: `${checkin.scheduled_at}T10:30:00`,
+      attendees: employeeEmail ? [{ email: employeeEmail, name: employeeName }] : [],
+      body: `Quarterly check-in scheduled in the Hub for ${employeeName}.`,
     });
     setCreatingMeeting(false);
     if (!url) { setError('Failed to create Teams meeting.'); return; }
