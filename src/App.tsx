@@ -7,9 +7,19 @@ import { SetupPage } from './pages/Setup';
 import { HRApp } from './pages/HRApp';
 import { EmployeeApp } from './pages/EmployeeApp';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
-import { msalInstance, ensureMsalInitialized, msalConfigured } from './lib/msal';
+import { msalInstance } from './lib/msal';
 
-if (msalConfigured) { ensureMsalInitialized(); }
+// Detect when this page is running inside an MSAL popup window so we render
+// nothing (let MSAL's internal popup handler complete the handoff and close
+// the window). If we render the LoginPage here, the user sees a duplicate
+// login screen inside the popup and clicking the MS button again throws
+// block_nested_popups.
+function isInMsalPopup(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (!window.opener || window.opener === window) return false;
+  const hash = window.location.hash || '';
+  return /[#&](code|error|state|access_token|id_token)=/.test(hash);
+}
 
 function AppRouter() {
   const { user, profile, loading } = useAuth();
@@ -19,6 +29,9 @@ function AppRouter() {
     const token = params.get('setup');
     if (token) setSetupToken(token);
   }, []);
+  if (isInMsalPopup()) {
+    return <div className="loading-screen"><div className="loading-spinner" /></div>;
+  }
   if (loading) return <div className="loading-screen"><div className="loading-spinner" /></div>;
   if (setupToken) return (
     <SetupPage
