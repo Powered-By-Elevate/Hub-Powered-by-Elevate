@@ -320,7 +320,12 @@ export async function createEventWithTeamsMeeting(
     subject: string;
     startDateTime: string;
     endDateTime: string;
-    /** Local IANA timezone string for start/end. Defaults to UTC. */
+    /**
+     * IANA timezone the wall-clock start/end times are expressed in (e.g.
+     * "America/Chicago"). Defaults to the browser's local timezone so a
+     * check-in HR types as 11:00 AM lands at 11:00 AM on the invite — NOT
+     * 11:00 UTC, which would show as 6:00 AM Central.
+     */
     timeZone?: string;
     attendees?: { email: string; name?: string }[];
     /** Plain-text body shown in the calendar event description. */
@@ -328,7 +333,14 @@ export async function createEventWithTeamsMeeting(
   },
 ): Promise<string | null> {
   try {
-    const tz = args.timeZone ?? 'UTC';
+    // Interpret the supplied wall-clock times in the browser's local timezone
+    // by default. Microsoft Graph accepts IANA names (e.g. "America/Chicago")
+    // in the event body, and localizes the invite for every recipient. Falling
+    // back to 'UTC' here was the cause of meetings landing ~5–6 hours early.
+    const localTz = typeof Intl !== 'undefined'
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : undefined;
+    const tz = args.timeZone ?? localTz ?? 'UTC';
     const attendees = (args.attendees ?? []).map(a => ({
       type: 'required',
       emailAddress: { address: a.email, ...(a.name ? { name: a.name } : {}) },
