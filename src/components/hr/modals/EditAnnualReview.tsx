@@ -3,11 +3,12 @@ import { supabase } from '../../../lib/supabase';
 import { AnnualReview, ReviewStatus } from '../../../lib/database.types';
 import { Modal } from '../../shared/Modal';
 import { useAuth } from '../../../contexts/AuthContext';
-import { createOnlineMeeting } from '../../../lib/graph';
+import { createEventWithTeamsMeeting } from '../../../lib/graph';
 
 interface Props {
   review: AnnualReview;
   employeeName: string;
+  employeeEmail: string | null;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -15,7 +16,7 @@ interface Props {
 const STATUSES: ReviewStatus[] = ['pending', 'in-progress', 'completed', 'overdue'];
 const RATINGS = [1, 2, 3, 4, 5];
 
-export function EditAnnualReviewModal({ review, employeeName, onClose, onSaved }: Props) {
+export function EditAnnualReviewModal({ review, employeeName, employeeEmail, onClose, onSaved }: Props) {
   const { session } = useAuth();
   const msTokenAvailable = !!session?.provider_token;
   const [status, setStatus] = useState<ReviewStatus>(review.status);
@@ -31,10 +32,12 @@ export function EditAnnualReviewModal({ review, employeeName, onClose, onSaved }
   async function addTeamsMeeting() {
     if (!session?.provider_token || !scheduledAt) return;
     setCreatingMeeting(true);
-    const url = await createOnlineMeeting(session.provider_token, {
+    const url = await createEventWithTeamsMeeting(session.provider_token, {
       subject: `${review.review_year} Annual Review — ${employeeName}`,
       startDateTime: `${scheduledAt}T10:00:00`,
       endDateTime: `${scheduledAt}T11:00:00`,
+      attendees: employeeEmail ? [{ email: employeeEmail, name: employeeName }] : [],
+      body: `Annual review scheduled in the Hub for ${employeeName}.`,
     });
     setCreatingMeeting(false);
     if (!url) { setError('Failed to create Teams meeting.'); return; }

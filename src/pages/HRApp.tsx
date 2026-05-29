@@ -549,6 +549,7 @@ export function HRApp() {
             <EditLifecycleCheckinModal
               checkin={lc}
               employeeName={emp?.name ?? 'Unknown'}
+              employeeEmail={emp?.email ?? null}
               onClose={() => setModal(null)}
               onSaved={loadLifecycleCheckins}
             />
@@ -562,6 +563,7 @@ export function HRApp() {
             <EditQuarterlyCheckinModal
               checkin={qc}
               employeeName={emp?.name ?? 'Unknown'}
+              employeeEmail={emp?.email ?? null}
               onClose={() => setModal(null)}
               onSaved={loadQuarterlyCheckins}
             />
@@ -575,6 +577,7 @@ export function HRApp() {
             <EditAnnualReviewModal
               review={ar}
               employeeName={emp?.name ?? 'Unknown'}
+              employeeEmail={emp?.email ?? null}
               onClose={() => setModal(null)}
               onSaved={loadAnnualReviews}
             />
@@ -878,6 +881,7 @@ export function HRApp() {
             <EditLifecycleCheckinModal
               checkin={lc}
               employeeName={emp?.name ?? 'Unknown'}
+              employeeEmail={emp?.email ?? null}
               onClose={() => setModal(null)}
               onSaved={loadLifecycleCheckins}
             />
@@ -891,6 +895,7 @@ export function HRApp() {
             <EditQuarterlyCheckinModal
               checkin={qc}
               employeeName={emp?.name ?? 'Unknown'}
+              employeeEmail={emp?.email ?? null}
               onClose={() => setModal(null)}
               onSaved={loadQuarterlyCheckins}
             />
@@ -904,6 +909,7 @@ export function HRApp() {
             <EditAnnualReviewModal
               review={ar}
               employeeName={emp?.name ?? 'Unknown'}
+              employeeEmail={emp?.email ?? null}
               onClose={() => setModal(null)}
               onSaved={loadAnnualReviews}
             />

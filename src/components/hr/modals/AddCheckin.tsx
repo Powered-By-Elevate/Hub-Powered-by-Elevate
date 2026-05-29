@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { Employee } from '../../../lib/database.types';
 import { Modal } from '../../shared/Modal';
 import { useAuth } from '../../../contexts/AuthContext';
-import { createOnlineMeeting } from '../../../lib/graph';
+import { createEventWithTeamsMeeting } from '../../../lib/graph';
 
 interface Props {
   employees: Employee[];
@@ -33,11 +33,14 @@ export function AddCheckinModal({ employees, defaultEmpId, onClose, onCreated }:
     setSaving(true);
     let teamsJoinUrl: string | null = null;
     if (createTeams && session?.provider_token) {
-      const empName = employees.find(e => e.id === empId)?.name ?? 'Employee';
-      teamsJoinUrl = await createOnlineMeeting(session.provider_token, {
+      const emp = employees.find(e => e.id === empId);
+      const empName = emp?.name ?? 'Employee';
+      teamsJoinUrl = await createEventWithTeamsMeeting(session.provider_token, {
         subject: `${quarter} ${year} Check-in — ${empName}`,
         startDateTime: `${scheduledAt}T10:00:00`,
         endDateTime: `${scheduledAt}T10:30:00`,
+        attendees: emp?.email ? [{ email: emp.email, name: empName }] : [],
+        body: `Quarterly check-in scheduled in the Hub for ${empName}.`,
       });
     }
     const { error: err } = await supabase.from('quarterly_checkins').insert({
