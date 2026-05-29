@@ -301,6 +301,7 @@ export interface QuarterlyCheckin {
   id: string;
   employee_id: string;
   scheduled_at: string;
+  scheduled_time: string | null;
   completed_at: string | null;
   status: CheckinStatus;
   quarter: string;
@@ -342,6 +343,7 @@ export interface LifecycleCheckin {
   employee_id: string;
   milestone_day: 30 | 60 | 90;
   scheduled_at: string;
+  scheduled_time: string | null;
   completed_at: string | null;
   status: 'pending' | 'completed' | 'overdue' | 'skipped';
   notes: string | null;
@@ -357,6 +359,7 @@ export interface AnnualReview {
   employee_id: string;
   review_year: number;
   scheduled_at: string | null;
+  scheduled_time: string | null;
   completed_at: string | null;
   status: ReviewStatus;
   rating: number | null;

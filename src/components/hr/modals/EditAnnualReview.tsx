@@ -21,6 +21,7 @@ export function EditAnnualReviewModal({ review, employeeName, employeeEmail, onC
   const msTokenAvailable = !!session?.provider_token;
   const [status, setStatus] = useState<ReviewStatus>(review.status);
   const [scheduledAt, setScheduledAt] = useState(review.scheduled_at ?? '');
+  const [scheduledTime, setScheduledTime] = useState((review.scheduled_time ?? '10:00').slice(0, 5));
   const [rating, setRating] = useState<number | ''>(review.rating ?? '');
   const [summary, setSummary] = useState(review.summary ?? '');
   const [goals, setGoals] = useState(review.goals_next_year ?? '');
@@ -32,10 +33,13 @@ export function EditAnnualReviewModal({ review, employeeName, employeeEmail, onC
   async function addTeamsMeeting() {
     if (!session?.provider_token || !scheduledAt) return;
     setCreatingMeeting(true);
+    const [hh, mm] = (scheduledTime || '10:00').split(':').map(n => parseInt(n, 10));
+    const endHh = String(hh + 1).padStart(2, '0');
+    const endMm = String(mm).padStart(2, '0');
     const url = await createEventWithTeamsMeeting(session.provider_token, {
       subject: `${review.review_year} Annual Review — ${employeeName}`,
-      startDateTime: `${scheduledAt}T10:00:00`,
-      endDateTime: `${scheduledAt}T11:00:00`,
+      startDateTime: `${scheduledAt}T${scheduledTime || '10:00'}:00`,
+      endDateTime: `${scheduledAt}T${endHh}:${endMm}:00`,
       attendees: employeeEmail ? [{ email: employeeEmail, name: employeeName }] : [],
       body: `Annual review scheduled in the Hub for ${employeeName}.`,
     });
@@ -52,6 +56,7 @@ export function EditAnnualReviewModal({ review, employeeName, employeeEmail, onC
     const patch: Record<string, unknown> = {
       status,
       scheduled_at: scheduledAt || null,
+      scheduled_time: scheduledTime || null,
       rating: rating === '' ? null : Number(rating),
       summary: summary.trim() === '' ? null : summary.trim(),
       goals_next_year: goals.trim() === '' ? null : goals.trim(),
@@ -85,6 +90,10 @@ export function EditAnnualReviewModal({ review, employeeName, employeeEmail, onC
           <label>Scheduled Date</label>
           <input type="date" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} />
         </div>
+      </div>
+      <div className="field">
+        <label>Time</label>
+        <input type="time" value={scheduledTime} onChange={e => setScheduledTime(e.target.value)} />
       </div>
       <div className="field">
         <label>Rating</label>

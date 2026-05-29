@@ -21,6 +21,7 @@ export function AddReviewModal({ employees, defaultEmpId, onClose, onCreated }: 
   const [empId, setEmpId] = useState(defaultEmpId ?? employees[0]?.id ?? '');
   const [reviewYear, setReviewYear] = useState(currentYear);
   const [scheduledAt, setScheduledAt] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('10:00');
   const [summary, setSummary] = useState('');
   const [goals, setGoals] = useState('');
   const [createTeams, setCreateTeams] = useState(msTokenAvailable);
@@ -30,14 +31,18 @@ export function AddReviewModal({ employees, defaultEmpId, onClose, onCreated }: 
   async function save() {
     if (!empId) { setError('Please select an employee.'); return; }
     setSaving(true);
+    const startTime = scheduledTime || '10:00';
+    const [hh, mm] = startTime.split(':').map(n => parseInt(n, 10));
+    const endHh = String(hh + 1).padStart(2, '0');
+    const endMm = String(mm).padStart(2, '0');
     let teamsJoinUrl: string | null = null;
     if (createTeams && scheduledAt && session?.provider_token) {
       const emp = employees.find(e => e.id === empId);
       const empName = emp?.name ?? 'Employee';
       teamsJoinUrl = await createEventWithTeamsMeeting(session.provider_token, {
         subject: `${reviewYear} Annual Review — ${empName}`,
-        startDateTime: `${scheduledAt}T10:00:00`,
-        endDateTime: `${scheduledAt}T11:00:00`,
+        startDateTime: `${scheduledAt}T${startTime}:00`,
+        endDateTime: `${scheduledAt}T${endHh}:${endMm}:00`,
         attendees: emp?.email ? [{ email: emp.email, name: empName }] : [],
         body: `Annual review scheduled in the Hub for ${empName}.`,
       });
@@ -46,6 +51,7 @@ export function AddReviewModal({ employees, defaultEmpId, onClose, onCreated }: 
       employee_id: empId,
       review_year: reviewYear,
       scheduled_at: scheduledAt || null,
+      scheduled_time: scheduledTime || null,
       summary: summary || null,
       goals_next_year: goals || null,
       status: 'pending',
@@ -77,9 +83,15 @@ export function AddReviewModal({ employees, defaultEmpId, onClose, onCreated }: 
           {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
       </div>
-      <div className="field">
-        <label>Scheduled Date (optional)</label>
-        <input type="date" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="field">
+          <label>Scheduled Date (optional)</label>
+          <input type="date" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} />
+        </div>
+        <div className="field">
+          <label>Time</label>
+          <input type="time" value={scheduledTime} onChange={e => setScheduledTime(e.target.value)} />
+        </div>
       </div>
       <div className="field">
         <label>Summary / Notes (optional)</label>
