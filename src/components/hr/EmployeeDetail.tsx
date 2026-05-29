@@ -353,7 +353,7 @@ export function EmployeeDetail({
                 {refreshMsg && (
                   <div style={{ fontSize: 11, color: refreshMsg.includes('failed') || refreshMsg.includes('No matching') ? '#DC2626' : '#2D9A60', padding: '2px 4px' }}>{refreshMsg}</div>
                 )}
-                <button className="btn-ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => onOpenModal('add-checkin-new', e.id)}>Add Check-in</button>
+                <button className="btn-ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => onOpenModal('add-checkin', e.id)}>Add Check-in</button>
                 <button className="btn-ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => onOpenModal('save-as-template', e.id)}>Save as Template</button>
                 {e.archived ? (
                   <button className="btn-ghost sm" style={{ justifyContent: 'flex-start', borderColor: '#2D9A60', color: '#2D9A60' }} onClick={() => onRestore(e.id)}>Restore to Active</button>
