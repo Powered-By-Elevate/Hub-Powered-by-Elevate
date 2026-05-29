@@ -18,9 +18,14 @@ async function boot() {
         msalInstance.setActiveAccount(response.account);
       }
       if (response?.idToken) {
+        // Microsoft's id_token contains the nonce MSAL sent in the auth
+        // request. Supabase requires us to forward that nonce so it can
+        // verify the token wasn't replayed.
+        const nonce = (response.idTokenClaims as { nonce?: string } | undefined)?.nonce;
         const { error } = await supabase.auth.signInWithIdToken({
           provider: 'azure',
           token: response.idToken,
+          nonce,
         });
         if (error) console.error('Supabase signInWithIdToken failed:', error);
       }
