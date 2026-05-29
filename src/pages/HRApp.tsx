@@ -46,6 +46,7 @@ import { EditQuarterlyCheckinModal } from '../components/hr/modals/EditQuarterly
 import { AddReviewModal } from '../components/hr/modals/AddReview';
 import { EditAnnualReviewModal } from '../components/hr/modals/EditAnnualReview';
 import { SendEmailModal } from '../components/hr/modals/SendEmail';
+import { SendBulkEmailModal } from '../components/hr/modals/SendBulkEmail';
 import { AddNoteModal } from '../components/hr/modals/AddNote';
 import { EditEmployeeModal } from '../components/hr/modals/EditEmployee';
 import { AddApplicantModal } from '../components/hr/modals/AddApplicant';
@@ -612,6 +613,17 @@ export function HRApp() {
             />
           );
         })()}
+        {modal?.type === 'send-bulk-email' && (
+          <SendBulkEmailModal
+            employees={employees}
+            companies={companies}
+            onClose={() => setModal(null)}
+            onSent={async (count) => {
+              await logActivity(null, `HR sent announcement email to ${count} recipient${count === 1 ? '' : 's'}`);
+              await loadActivity();
+            }}
+          />
+        )}
         {editEmpId && (() => {
           const emp = employees.find(e => e.id === editEmpId);
           return emp ? (
@@ -958,6 +970,17 @@ export function HRApp() {
             />
           );
         })()}
+        {modal?.type === 'send-bulk-email' && (
+          <SendBulkEmailModal
+            employees={employees}
+            companies={companies}
+            onClose={() => setModal(null)}
+            onSent={async (count) => {
+              await logActivity(null, `HR sent announcement email to ${count} recipient${count === 1 ? '' : 's'}`);
+              await loadActivity();
+            }}
+          />
+        )}
         {editEmpId && (() => {
           const emp = employees.find(e => e.id === editEmpId);
           return emp ? (
