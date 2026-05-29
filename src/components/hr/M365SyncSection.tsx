@@ -30,6 +30,9 @@ export function M365SyncSection({ employees, companies, onImported }: Props) {
   const [lastFetchedAt, setLastFetchedAt] = useState<Date | null>(null);
   const [resultMsg, setResultMsg] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
+  /** When true, the import button also refreshes job title / department /
+   * phone / manager on already-imported employees from Entra. */
+  const [refreshExisting, setRefreshExisting] = useState<boolean>(true);
 
   async function fetchDirectory() {
     if (!session?.provider_token) { setErrorMsg('No Microsoft session — sign out and back in with "Sign in with Microsoft" first.'); return; }
@@ -71,30 +74,63 @@ export function M365SyncSection({ employees, companies, onImported }: Props) {
   async function importSelected() {
     if (!rows) return;
     const toImport = rows.filter(r => r.selected && !r.existingMatch && r.email);
-    if (toImport.length === 0) return;
+    if (toImport.length === 0 && !refreshExisting) return;
     setImporting(true);
     setErrorMsg('');
     setResultMsg('');
-    const inserts = toImport.map(r => ({
-      name: r.user.displayName ?? r.email,
-      email: r.email,
-      role: r.user.jobTitle ?? 'Employee',
-      department: r.user.department ?? null,
-      phone: r.user.mobilePhone ?? r.user.businessPhone ?? null,
-      company_id: defaultCompanyId || null,
-      status: 'not-started',
-      progress: 0,
-      archived: false,
-      lifecycle_status: 'active',
-      is_test_account: false,
-    }));
-    const { data: inserted, error } = await supabase.from('employees').insert(inserts).select();
-    if (error) {
-      setImporting(false);
-      setErrorMsg(`Import failed: ${error.message}`);
-      return;
+
+    let insertedRows: Employee[] = [];
+    if (toImport.length > 0) {
+      const inserts = toImport.map(r => ({
+        name: r.user.displayName ?? r.email,
+        email: r.email,
+        role: r.user.jobTitle ?? 'Employee',
+        department: r.user.department ?? null,
+        phone: r.user.mobilePhone ?? r.user.businessPhone ?? null,
+        company_id: defaultCompanyId || null,
+        status: 'not-started',
+        progress: 0,
+        archived: false,
+        lifecycle_status: 'active',
+        is_test_account: false,
+      }));
+      const { data: inserted, error } = await supabase.from('employees').insert(inserts).select();
+      if (error) {
+        setImporting(false);
+        setErrorMsg(`Import failed: ${error.message}`);
+        return;
+      }
+      insertedRows = (inserted ?? []) as Employee[];
     }
-    const insertedRows = (inserted ?? []) as Employee[];
+
+    // Optional refresh: pull fresh job title / department / phone for already-
+    // imported employees if HR opted into it. Skips rows where nothing changed.
+    let refreshedCount = 0;
+    if (refreshExisting) {
+      const refreshUpdates: { id: string; patch: Partial<Employee> }[] = [];
+      for (const r of rows) {
+        if (!r.existingMatch || !r.email) continue;
+        const existing = r.existingMatch;
+        const patch: Partial<Employee> = {};
+        const newRole = r.user.jobTitle ?? null;
+        if (newRole && newRole !== existing.role) patch.role = newRole;
+        const newDept = r.user.department ?? null;
+        if (newDept && newDept !== existing.department) patch.department = newDept;
+        const newPhone = r.user.mobilePhone ?? r.user.businessPhone ?? null;
+        if (newPhone && newPhone !== existing.phone) patch.phone = newPhone;
+        const newName = r.user.displayName ?? null;
+        if (newName && newName !== existing.name) patch.name = newName;
+        if (Object.keys(patch).length > 0) {
+          refreshUpdates.push({ id: existing.id, patch });
+        }
+      }
+      if (refreshUpdates.length > 0) {
+        const results = await Promise.all(
+          refreshUpdates.map(u => supabase.from('employees').update(u.patch).eq('id', u.id)),
+        );
+        refreshedCount = results.filter(r => !r.error).length;
+      }
+    }
 
     // Phase 2: link manager_id for any Hub employee whose Entra record names
     // a manager that's also in the Hub. Covers both:
@@ -129,11 +165,12 @@ export function M365SyncSection({ employees, companies, onImported }: Props) {
     }
 
     setImporting(false);
-    const importedMsg = `Imported ${insertedRows.length} employee${insertedRows.length === 1 ? '' : 's'} from Microsoft 365.`;
-    const linkedMsg = managerUpdates.length > 0
-      ? ` Linked ${linked} manager relationship${linked === 1 ? '' : 's'}.`
-      : '';
-    setResultMsg(importedMsg + linkedMsg);
+    const parts: string[] = [];
+    if (insertedRows.length > 0) parts.push(`Imported ${insertedRows.length} new employee${insertedRows.length === 1 ? '' : 's'}.`);
+    if (refreshedCount > 0) parts.push(`Refreshed ${refreshedCount} existing record${refreshedCount === 1 ? '' : 's'}.`);
+    if (linked > 0) parts.push(`Linked ${linked} manager relationship${linked === 1 ? '' : 's'}.`);
+    if (parts.length === 0) parts.push('No changes — everything in Hub is up to date with Microsoft 365.');
+    setResultMsg(parts.join(' '));
 
     setRows(rs => rs ? rs.map(r => {
       const justImported = insertedRows.find(e => e.email.toLowerCase() === r.email);
@@ -180,6 +217,10 @@ export function M365SyncSection({ employees, companies, onImported }: Props) {
           <button className="btn-primary" onClick={fetchDirectory} disabled={!msTokenAvailable || loading}>
             {loading ? 'Fetching…' : rows ? 'Refresh from Microsoft 365' : 'Fetch from Microsoft 365'}
           </button>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#6B6860', cursor: 'pointer' }}>
+            <input type="checkbox" checked={refreshExisting} onChange={e => setRefreshExisting(e.target.checked)} />
+            Also update existing employees with latest M365 data
+          </label>
         </div>
 
         {errorMsg && <div className="error-msg" style={{ marginBottom: 12 }}>{errorMsg}</div>}
