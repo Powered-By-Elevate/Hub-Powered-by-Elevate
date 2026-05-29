@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Employee } from '../../lib/database.types';
-import { ini } from '../shared/utils';
+import { EmployeeAvatar } from '../shared/EmployeeAvatar';
 import { Pencil, Plus, Search } from 'lucide-react';
 import {
   APPLICANT_PHASES,
@@ -134,7 +134,7 @@ export function HRApplicants({ employees, onAddApplicant, onEditApplicant, onCon
                     <tr key={a.id} className="tr-click" onClick={() => onViewApplicant(a.id)}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div className="avatar av-navy av-32">{ini(a.name)}</div>
+                          <EmployeeAvatar email={a.email} name={a.name} size={32} className="av-navy" />
                           <div>
                             <div className="emp-name">{a.name}</div>
                             <div className="emp-email">{a.email}</div>

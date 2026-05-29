@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Employee, Schedule } from '../../lib/database.types';
-import { ini, formatScheduleTime } from '../shared/utils';
+import { formatScheduleTime } from '../shared/utils';
+import { EmployeeAvatar } from '../shared/EmployeeAvatar';
 import { Mail, MessageSquare, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 
 interface Props {
@@ -137,7 +138,7 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
           <div>
             <div id="emp-team-self" className="card mb2">
               <div className="card-body" style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div className="avatar av-navy av-48">{ini(me.name)}</div>
+                <EmployeeAvatar email={me.email} name={me.name} size={48} className="av-navy" />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{me.name} <span className="badge b-navy" style={{ marginLeft: 6 }}>You</span></div>
                   <div style={{ fontSize: 12, color: '#6B6860' }}>{me.role} · {me.department}</div>
@@ -170,7 +171,7 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
                 <div style={{ padding: '0 1.25rem' }}>
                   {teammates.map(t => (
                     <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #F2F1ED' }}>
-                      <div className="avatar av-navy av-36">{ini(t.name)}</div>
+                      <EmployeeAvatar email={t.email} name={t.name} size={36} className="av-navy" />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 600, fontSize: 13 }}>{t.name}</div>
                         <div style={{ fontSize: 11, color: '#9B9890' }}>
@@ -199,7 +200,7 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
           <div>
             <div className="card mb2">
               <div className="card-body" style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div className="avatar av-navy av-48">{ini(me.name)}</div>
+                <EmployeeAvatar email={me.email} name={me.name} size={48} className="av-navy" />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{me.name} <span className="badge b-navy" style={{ marginLeft: 6 }}>You</span></div>
                   <div style={{ fontSize: 12, color: '#6B6860' }}>{me.role} · {me.department}</div>
@@ -233,7 +234,7 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
                   <div style={{ padding: '0 1.25rem' }}>
                     {members.map(t => (
                       <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #F2F1ED' }}>
-                        <div className="avatar av-navy av-36">{ini(t.name)}</div>
+                        <EmployeeAvatar email={t.email} name={t.name} size={36} className="av-navy" />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 600, fontSize: 13 }}>{t.name}</div>
                           <div style={{ fontSize: 11, color: '#9B9890' }}>{t.role}</div>
@@ -304,7 +305,7 @@ export function EmpTeam({ employee: me, teammates, allEmployees = [], schedules 
               {selectedDayMemberSchedules.map(({ member, events }) => (
                 <div key={member.id} style={{ paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #F2F1ED' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <div className="avatar av-navy av-32">{ini(member.name)}</div>
+                    <EmployeeAvatar email={member.email} name={member.name} size={32} className="av-navy" />
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 13 }}>{member.name} {member.id === me.id && <span style={{ color: '#9B9890', fontWeight: 400 }}>(You)</span>}</div>
                       <div style={{ fontSize: 11, color: '#9B9890' }}>{member.role}</div>
