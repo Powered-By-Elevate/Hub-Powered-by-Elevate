@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import type { UserProfile } from '../lib/database.types';
+import { getMyMsProfile, getMyMsPhotoUrl, type MsProfile } from '../lib/graph';
 
 // Microsoft SSO availability flag — true when the Azure tenant + client IDs
 // are configured for the build. The actual sign-in handshake runs entirely
@@ -13,6 +14,10 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: UserProfile | null;
+  /** Microsoft profile data fetched from Graph for the signed-in user (display name, job title, etc.). */
+  msProfile: MsProfile | null;
+  /** Object URL for the signed-in user's M365 profile photo, or null. */
+  msPhotoUrl: string | null;
   loading: boolean;
   msSsoAvailable: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
@@ -27,7 +32,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [msProfile, setMsProfile] = useState<MsProfile | null>(null);
+  const [msPhotoUrl, setMsPhotoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Fire-and-forget Graph fetch for display name + photo whenever the user
+  // signs in via Microsoft. Tokens come from session.provider_token; if it's
+  // missing (e.g. email/password sign-in) we silently skip.
+  async function syncMsProfile(token: string | null | undefined) {
+    if (!token) { setMsProfile(null); setMsPhotoUrl(null); return; }
+    const [prof, photo] = await Promise.all([
+      getMyMsProfile(token),
+      getMyMsPhotoUrl(token),
+    ]);
+    setMsProfile(prof);
+    setMsPhotoUrl(prev => {
+      if (prev && prev !== photo) URL.revokeObjectURL(prev);
+      return photo;
+    });
+  }
 
   async function loadProfile(userId: string) {
     try {
@@ -70,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (session?.user) {
           await loadProfile(session.user.id);
+          syncMsProfile(session.provider_token);
         }
       } catch (err) {
         console.error('Auth init failed:', err);
@@ -93,8 +117,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         (async () => { await loadProfile(session.user.id); })();
+        syncMsProfile(session.provider_token);
       } else {
         setProfile(null);
+        setMsProfile(null);
+        setMsPhotoUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
       }
     });
 
@@ -134,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user, session, profile, loading,
+      user, session, profile, msProfile, msPhotoUrl, loading,
       msSsoAvailable,
       signIn, signInWithMicrosoft, signOut, refreshProfile,
     }}>

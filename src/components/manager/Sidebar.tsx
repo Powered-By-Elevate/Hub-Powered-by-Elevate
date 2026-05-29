@@ -17,10 +17,13 @@ const navItems: { id: ManagerTab; icon: string; label: string }[] = [
 ];
 
 export function ManagerSidebar({ myEmployee, tab, onTab }: Props) {
-  const { signOut, profile } = useAuth();
+  const { signOut, profile, msProfile, msPhotoUrl } = useAuth();
   const [showAvatarDrop, setShowAvatarDrop] = useState(false);
-  const displayName = myEmployee?.name ?? profile?.email?.split('@')[0] ?? 'Manager';
-  const initials = myEmployee ? ini(myEmployee.name) : 'M';
+  const displayName = msProfile?.displayName ?? myEmployee?.name ?? profile?.email?.split('@')[0] ?? 'Manager';
+  const initials = msProfile?.displayName
+    ? msProfile.displayName.trim().split(' ').map(s => s[0]?.toUpperCase() ?? '').slice(0, 2).join('')
+    : myEmployee ? ini(myEmployee.name) : 'M';
+  const titleLine = msProfile?.jobTitle ?? 'Manager';
 
   return (
     <>
@@ -30,10 +33,14 @@ export function ManagerSidebar({ myEmployee, tab, onTab }: Props) {
           <AppLogo variant="dark" />
         </div>
         <div className="sidebar-user">
-          <div className="avatar av-light av-32">{initials}</div>
+          {msPhotoUrl ? (
+            <img src={msPhotoUrl} alt={displayName} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+          ) : (
+            <div className="avatar av-light av-32">{initials}</div>
+          )}
           <div>
             <div style={{ fontWeight: 600, fontSize: 13, color: '#fff', lineHeight: 1.2 }}>{displayName}</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>Manager</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>{titleLine}</div>
           </div>
         </div>
         <div className="sidebar-nav">
@@ -60,15 +67,15 @@ export function ManagerSidebar({ myEmployee, tab, onTab }: Props) {
           <img src="/GetImage.png" alt="Hub powered by Elevate" style={{ height: 28, width: 'auto', background: '#fff', borderRadius: 6, padding: '3px 6px' }} />
         </div>
         <div style={{ position: 'relative' }}>
-          <button className="mobile-header-avatar" onClick={() => setShowAvatarDrop(v => !v)}>
-            {initials}
+          <button className="mobile-header-avatar" onClick={() => setShowAvatarDrop(v => !v)} style={msPhotoUrl ? { backgroundImage: `url(${msPhotoUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', color: 'transparent' } : undefined}>
+            {msPhotoUrl ? '' : initials}
           </button>
           {showAvatarDrop && (
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowAvatarDrop(false)} />
               <div className="avatar-dropdown">
                 <div style={{ padding: '10px 14px 4px', fontSize: 12, color: '#9B9890', fontWeight: 600 }}>{displayName}</div>
-                <div style={{ padding: '2px 14px 10px', fontSize: 11, color: '#9B9890' }}>Manager</div>
+                <div style={{ padding: '2px 14px 10px', fontSize: 11, color: '#9B9890' }}>{titleLine}</div>
                 <hr />
                 <button onClick={() => { setShowAvatarDrop(false); signOut(); }}>↩ Sign out</button>
               </div>
