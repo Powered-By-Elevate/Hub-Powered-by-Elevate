@@ -142,6 +142,57 @@ export async function getMyCalendarEvents(
   }
 }
 
+export interface MsTenantUser {
+  id: string;
+  displayName: string | null;
+  mail: string | null;
+  userPrincipalName: string | null;
+  jobTitle: string | null;
+  department: string | null;
+  mobilePhone: string | null;
+  businessPhone: string | null;
+  accountEnabled: boolean;
+}
+
+// Lists all users in the signed-in user's Microsoft tenant. Paginates
+// transparently via @odata.nextLink. Requires User.Read.All scope.
+export async function listTenantUsers(token: string): Promise<MsTenantUser[]> {
+  const out: MsTenantUser[] = [];
+  let url: string | null =
+    `${GRAPH_BASE}/users` +
+    `?$select=id,displayName,mail,userPrincipalName,jobTitle,department,mobilePhone,businessPhones,accountEnabled` +
+    `&$top=999`;
+  try {
+    while (url) {
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        console.error('Graph /users failed:', res.status, await res.text());
+        return out;
+      }
+      const data = await res.json();
+      for (const u of data.value ?? []) {
+        out.push({
+          id: u.id,
+          displayName: u.displayName ?? null,
+          mail: u.mail ?? null,
+          userPrincipalName: u.userPrincipalName ?? null,
+          jobTitle: u.jobTitle ?? null,
+          department: u.department ?? null,
+          mobilePhone: u.mobilePhone ?? null,
+          businessPhone: (u.businessPhones && u.businessPhones[0]) ?? null,
+          accountEnabled: u.accountEnabled !== false,
+        });
+      }
+      url = data['@odata.nextLink'] ?? null;
+    }
+  } catch (err) {
+    console.error('Graph /users error:', err);
+  }
+  return out;
+}
+
 // Creates a Microsoft Teams meeting for the signed-in user. Used to attach a
 // Teams link to a Hub check-in / review at scheduling time. Returns the join
 // URL string, or null if the call fails.
