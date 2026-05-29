@@ -20,6 +20,7 @@ export function EditQuarterlyCheckinModal({ checkin, employeeName, employeeEmail
   const msTokenAvailable = !!session?.provider_token;
   const [notes, setNotes] = useState(checkin.notes ?? '');
   const [status, setStatus] = useState<CheckinStatus>(checkin.status);
+  const [scheduledTime, setScheduledTime] = useState((checkin.scheduled_time ?? '10:00').slice(0, 5));
   const [teamsJoinUrl, setTeamsJoinUrl] = useState<string | null>(checkin.teams_join_url ?? null);
   const [creatingMeeting, setCreatingMeeting] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -28,10 +29,13 @@ export function EditQuarterlyCheckinModal({ checkin, employeeName, employeeEmail
   async function addTeamsMeeting() {
     if (!session?.provider_token) return;
     setCreatingMeeting(true);
+    const [hh, mm] = (scheduledTime || '10:00').split(':').map(n => parseInt(n, 10));
+    const endHh = String(hh + (mm + 30 >= 60 ? 1 : 0)).padStart(2, '0');
+    const endMm = String((mm + 30) % 60).padStart(2, '0');
     const url = await createEventWithTeamsMeeting(session.provider_token, {
       subject: `${checkin.quarter} ${checkin.year} Check-in — ${employeeName}`,
-      startDateTime: `${checkin.scheduled_at}T10:00:00`,
-      endDateTime: `${checkin.scheduled_at}T10:30:00`,
+      startDateTime: `${checkin.scheduled_at}T${scheduledTime || '10:00'}:00`,
+      endDateTime: `${checkin.scheduled_at}T${endHh}:${endMm}:00`,
       attendees: employeeEmail ? [{ email: employeeEmail, name: employeeName }] : [],
       body: `Quarterly check-in scheduled in the Hub for ${employeeName}.`,
     });
@@ -48,6 +52,7 @@ export function EditQuarterlyCheckinModal({ checkin, employeeName, employeeEmail
     const patch: Record<string, unknown> = {
       notes: notes.trim() === '' ? null : notes.trim(),
       status,
+      scheduled_time: scheduledTime || null,
       teams_join_url: teamsJoinUrl,
     };
     if (completing) patch.completed_at = new Date().toISOString().split('T')[0];
@@ -67,9 +72,15 @@ export function EditQuarterlyCheckinModal({ checkin, employeeName, employeeEmail
       </>
     }>
       {error && <div className="error-msg" style={{ marginBottom: 12 }}>{error}</div>}
-      <div className="field">
-        <label>Scheduled</label>
-        <div style={{ fontSize: 13, color: '#6B6860' }}>{checkin.scheduled_at}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="field">
+          <label>Scheduled Date</label>
+          <div style={{ fontSize: 13, color: '#6B6860' }}>{checkin.scheduled_at}</div>
+        </div>
+        <div className="field">
+          <label>Time</label>
+          <input type="time" value={scheduledTime} onChange={e => setScheduledTime(e.target.value)} />
+        </div>
       </div>
       <div className="field">
         <label>Status</label>

@@ -23,6 +23,7 @@ export function AddCheckinModal({ employees, defaultEmpId, onClose, onCreated }:
   const [quarter, setQuarter] = useState('Q1');
   const [year, setYear] = useState(currentYear);
   const [scheduledAt, setScheduledAt] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('10:00');
   const [notes, setNotes] = useState('');
   const [createTeams, setCreateTeams] = useState(msTokenAvailable);
   const [saving, setSaving] = useState(false);
@@ -31,14 +32,18 @@ export function AddCheckinModal({ employees, defaultEmpId, onClose, onCreated }:
   async function save() {
     if (!empId || !scheduledAt) { setError('Please select an employee and a date.'); return; }
     setSaving(true);
+    const startTime = scheduledTime || '10:00';
+    const [hh, mm] = startTime.split(':').map(n => parseInt(n, 10));
+    const endHh = String(hh + (mm + 30 >= 60 ? 1 : 0)).padStart(2, '0');
+    const endMm = String((mm + 30) % 60).padStart(2, '0');
     let teamsJoinUrl: string | null = null;
     if (createTeams && session?.provider_token) {
       const emp = employees.find(e => e.id === empId);
       const empName = emp?.name ?? 'Employee';
       teamsJoinUrl = await createEventWithTeamsMeeting(session.provider_token, {
         subject: `${quarter} ${year} Check-in — ${empName}`,
-        startDateTime: `${scheduledAt}T10:00:00`,
-        endDateTime: `${scheduledAt}T10:30:00`,
+        startDateTime: `${scheduledAt}T${startTime}:00`,
+        endDateTime: `${scheduledAt}T${endHh}:${endMm}:00`,
         attendees: emp?.email ? [{ email: emp.email, name: empName }] : [],
         body: `Quarterly check-in scheduled in the Hub for ${empName}.`,
       });
@@ -48,6 +53,7 @@ export function AddCheckinModal({ employees, defaultEmpId, onClose, onCreated }:
       quarter,
       year,
       scheduled_at: scheduledAt,
+      scheduled_time: scheduledTime || null,
       notes: notes || null,
       status: 'pending',
       teams_join_url: teamsJoinUrl,
@@ -86,9 +92,15 @@ export function AddCheckinModal({ employees, defaultEmpId, onClose, onCreated }:
           </select>
         </div>
       </div>
-      <div className="field">
-        <label>Scheduled Date</label>
-        <input type="date" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="field">
+          <label>Scheduled Date</label>
+          <input type="date" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} />
+        </div>
+        <div className="field">
+          <label>Time</label>
+          <input type="time" value={scheduledTime} onChange={e => setScheduledTime(e.target.value)} />
+        </div>
       </div>
       <div className="field">
         <label>Notes (optional)</label>
