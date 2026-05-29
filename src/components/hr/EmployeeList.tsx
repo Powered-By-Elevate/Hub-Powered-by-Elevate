@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Employee, Company } from '../../lib/database.types';
-import { ini, pfColor } from '../shared/utils';
+import { pfColor } from '../shared/utils';
 import { StatusBadge } from '../shared/StatusBadge';
+import { EmployeeAvatar } from '../shared/EmployeeAvatar';
 import { ChevronDown } from 'lucide-react';
 
 interface Props {
@@ -196,7 +197,7 @@ export function EmployeeList({ employees, companies, departments, onViewEmployee
                     <tr key={e.id} className="tr-click" onClick={() => onViewEmployee(e.id)}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div className="avatar av-navy av-32" style={listTab === 'archived' ? { opacity: 0.6 } : {}}>{ini(e.name)}</div>
+                          <EmployeeAvatar email={e.email} name={e.name} size={32} className="av-navy" style={listTab === 'archived' ? { opacity: 0.6 } : undefined} />
                           <div>
                             <div className="emp-name" style={listTab === 'archived' ? { color: '#6B6860' } : {}}>{e.name}</div>
                             <div className="emp-email">{e.email}</div>
@@ -253,7 +254,7 @@ export function EmployeeList({ employees, companies, departments, onViewEmployee
               <div className="emp-list-cards">
                 {list.map(e => (
                   <div key={e.id} className="emp-card" onClick={() => onViewEmployee(e.id)}>
-                    <div className="avatar av-navy av-38" style={listTab === 'archived' ? { opacity: 0.6 } : {}}>{ini(e.name)}</div>
+                    <EmployeeAvatar email={e.email} name={e.name} size={38} className="av-navy" style={listTab === 'archived' ? { opacity: 0.6 } : undefined} />
                     <div className="emp-card-info">
                       <div className="emp-card-name" style={listTab === 'archived' ? { color: '#6B6860' } : {}}>{e.name}</div>
                       <div className="emp-card-meta">{e.role} · {e.department}</div>
