@@ -141,3 +141,28 @@ export async function getMyCalendarEvents(
     return [];
   }
 }
+
+// Creates a Microsoft Teams meeting for the signed-in user. Used to attach a
+// Teams link to a Hub check-in / review at scheduling time. Returns the join
+// URL string, or null if the call fails.
+export async function createOnlineMeeting(
+  token: string,
+  args: { subject: string; startDateTime: string; endDateTime: string },
+): Promise<string | null> {
+  try {
+    const res = await graphFetch(token, '/me/onlineMeetings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(args),
+    });
+    if (!res.ok) {
+      console.error('Graph /me/onlineMeetings failed:', res.status, await res.text());
+      return null;
+    }
+    const data = await res.json();
+    return data.joinWebUrl ?? data.joinUrl ?? null;
+  } catch (err) {
+    console.error('Graph /me/onlineMeetings error:', err);
+    return null;
+  }
+}

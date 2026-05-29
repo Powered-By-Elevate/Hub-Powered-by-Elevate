@@ -149,6 +149,9 @@ export function HRCheckins({ employees, checkins, reviews, lifecycleCheckins, on
                       {canEdit && (
                         <button className="btn-ghost sm" onClick={() => onOpenModal!('edit-quarterly-checkin', c.id)}>Edit</button>
                       )}
+                      {c.teams_join_url && (
+                        <a href={c.teams_join_url} target="_blank" rel="noopener noreferrer" className="btn-ghost sm" style={{ marginLeft: 6, color: '#1B3F6E', textDecoration: 'none' }} title="Join Teams meeting">Join</a>
+                      )}
                       {!readOnly && c.status !== 'completed' && (
                         <button className="btn-ghost sm" style={{ marginLeft: 6 }} onClick={() => markCheckinComplete(c.id)}>Mark Complete</button>
                       )}
@@ -201,6 +204,9 @@ export function HRCheckins({ employees, checkins, reviews, lifecycleCheckins, on
                       <td onClick={ev => ev.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                         {!readOnly && onOpenModal && (
                           <button className="btn-ghost sm" onClick={() => onOpenModal('edit-lifecycle-checkin', lc.id)}>Edit</button>
+                        )}
+                        {lc.teams_join_url && (
+                          <a href={lc.teams_join_url} target="_blank" rel="noopener noreferrer" className="btn-ghost sm" style={{ marginLeft: 6, color: '#1B3F6E', textDecoration: 'none' }} title="Join Teams meeting">Join</a>
                         )}
                         {!readOnly && lc.status !== 'completed' && (
                           <button className="btn-ghost sm" style={{ marginLeft: 6 }} onClick={() => markLifecycleComplete(lc.id)}>Mark Complete</button>
@@ -259,6 +265,9 @@ export function HRCheckins({ employees, checkins, reviews, lifecycleCheckins, on
                     <td onClick={ev => ev.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                       {canEdit && (
                         <button className="btn-ghost sm" onClick={() => onOpenModal!('edit-annual-review', r.id)}>Edit</button>
+                      )}
+                      {r.teams_join_url && (
+                        <a href={r.teams_join_url} target="_blank" rel="noopener noreferrer" className="btn-ghost sm" style={{ marginLeft: 6, color: '#1B3F6E', textDecoration: 'none' }} title="Join Teams meeting">Join</a>
                       )}
                       {!readOnly && r.status !== 'completed' && (
                         <button className="btn-ghost sm" style={{ marginLeft: 6 }} onClick={() => markReviewComplete(r.id)}>Mark Complete</button>
