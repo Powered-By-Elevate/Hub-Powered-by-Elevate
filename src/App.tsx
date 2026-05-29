@@ -26,7 +26,25 @@ function AppRouter() {
     />
   );
   if (!user) return <LoginPage />;
-  if (!profile) return <div className="loading-screen"><div className="loading-spinner" /></div>;
+  if (!profile) return (
+    <div className="loading-screen" style={{ flexDirection: 'column', gap: 12, padding: 24, textAlign: 'center' }}>
+      <p style={{ color: '#6B6860', fontSize: 14 }}>
+        Signed in as <strong>{user.email ?? 'this account'}</strong>, but no Hub profile is linked to it yet.
+      </p>
+      <p style={{ color: '#9B9890', fontSize: 12 }}>
+        Please contact your HR administrator to finish setting up your account.
+      </p>
+      <button
+        onClick={() => { void (async () => { const { supabase } = await import('./lib/supabase'); await supabase.auth.signOut(); })(); }}
+        style={{
+          marginTop: 8, padding: '8px 18px', fontSize: 13, fontWeight: 600,
+          border: '1px solid #C5C3BB', borderRadius: 8, background: '#fff', cursor: 'pointer',
+        }}
+      >
+        Sign out
+      </button>
+    </div>
+  );
   if (profile.role === 'hr') return <ErrorBoundary><HRApp /></ErrorBoundary>;
   if (profile.role === 'manager' || profile.role === 'employee') {
     if (!profile.employee_id) {
