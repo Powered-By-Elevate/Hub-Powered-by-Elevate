@@ -48,6 +48,37 @@ export async function getMyMsProfile(token: string): Promise<MsProfile | null> {
   }
 }
 
+// Module-level cache so we don't re-fetch the same user's photo every time
+// the avatar mounts (lists, navigation, etc.). Keyed by lower-cased email.
+// Cached values: blob: URL string, null (no photo / failed), or in-flight
+// Promise<...> that callers can await without firing a duplicate request.
+const userPhotoCache = new Map<string, string | null | Promise<string | null>>();
+
+// Returns a blob: URL for the user with the given email's M365 profile photo,
+// or null if the user has no photo or access is denied. Requires User.Read.All
+// for arbitrary users. Falls back to userPrincipalName lookup which is what
+// most M365 tenants use for the email-style identifier.
+export async function getUserMsPhotoUrlByEmail(token: string, email: string): Promise<string | null> {
+  const key = email.toLowerCase();
+  const cached = userPhotoCache.get(key);
+  if (cached !== undefined) return cached instanceof Promise ? cached : cached;
+  const promise = (async (): Promise<string | null> => {
+    try {
+      const res = await graphFetch(token, `/users/${encodeURIComponent(email)}/photo/$value`);
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      if (blob.size === 0) return null;
+      return URL.createObjectURL(blob);
+    } catch {
+      return null;
+    }
+  })();
+  userPhotoCache.set(key, promise);
+  const result = await promise;
+  userPhotoCache.set(key, result);
+  return result;
+}
+
 // Returns an object URL (blob:) for the signed-in user's M365 profile photo,
 // or null if the user has no photo set or the request fails. Caller is
 // responsible for revoking the URL on cleanup if needed; the browser
