@@ -37,6 +37,7 @@ export function HRDashboard({ employees, activity, checkins, reviews, lifecycleC
           <p>Overview of all employee activity</p>
         </div>
         <div id="hr-dashboard-actions" className="topbar-actions">
+          <button className="btn-ghost" onClick={() => onOpenModal('send-bulk-email')}>Send Announcement</button>
           {userId && <NotificationBell userId={userId} onNavigate={(linkType) => {
             if (linkType === 'checkin' || linkType === 'review') onTab('checkins');
             else onTab('employees');
