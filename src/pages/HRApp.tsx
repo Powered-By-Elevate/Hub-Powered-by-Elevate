@@ -45,6 +45,7 @@ import { EditLifecycleCheckinModal } from '../components/hr/modals/EditLifecycle
 import { EditQuarterlyCheckinModal } from '../components/hr/modals/EditQuarterlyCheckin';
 import { AddReviewModal } from '../components/hr/modals/AddReview';
 import { EditAnnualReviewModal } from '../components/hr/modals/EditAnnualReview';
+import { SendEmailModal } from '../components/hr/modals/SendEmail';
 import { AddNoteModal } from '../components/hr/modals/AddNote';
 import { EditEmployeeModal } from '../components/hr/modals/EditEmployee';
 import { AddApplicantModal } from '../components/hr/modals/AddApplicant';
@@ -594,6 +595,20 @@ export function HRApp() {
             }}
           />
         )}
+        {modal?.type === 'send-email' && modal.eid && (() => {
+          const emp = employees.find(e => e.id === modal.eid);
+          if (!emp) return null;
+          return (
+            <SendEmailModal
+              employee={emp}
+              onClose={() => setModal(null)}
+              onSent={async () => {
+                await logActivity(emp.id, `HR sent email to ${emp.name}`);
+                await loadActivity();
+              }}
+            />
+          );
+        })()}
         {editEmpId && (() => {
           const emp = employees.find(e => e.id === editEmpId);
           return emp ? (
@@ -923,6 +938,20 @@ export function HRApp() {
             }}
           />
         )}
+        {modal?.type === 'send-email' && modal.eid && (() => {
+          const emp = employees.find(e => e.id === modal.eid);
+          if (!emp) return null;
+          return (
+            <SendEmailModal
+              employee={emp}
+              onClose={() => setModal(null)}
+              onSent={async () => {
+                await logActivity(emp.id, `HR sent email to ${emp.name}`);
+                await loadActivity();
+              }}
+            />
+          );
+        })()}
         {editEmpId && (() => {
           const emp = employees.find(e => e.id === editEmpId);
           return emp ? (

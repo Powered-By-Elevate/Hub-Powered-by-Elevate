@@ -206,6 +206,7 @@ export function EmployeeDetail({
         <div className="topbar-actions">
           <button className="btn-ghost" onClick={() => onOpenModal('add-task', e.id)}>+ Add Task</button>
           <button className="btn-ghost" onClick={() => onOpenModal('add-note', e.id)}>Add Note</button>
+          <button className="btn-ghost" onClick={() => onOpenModal('send-email', e.id)}>Send Email</button>
           <button className="btn-primary" onClick={() => onEditEmployee(e.id)}>Edit Profile</button>
         </div>
       </div>
@@ -297,6 +298,7 @@ export function EmployeeDetail({
               <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 7, padding: '.75rem 1.25rem' }}>
                 <button className="btn-ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => onEditEmployee(e.id)}>Edit Profile</button>
                 <button className="btn-ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => onOpenModal('add-note', e.id)}>Add HR Note</button>
+                <button className="btn-ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => onOpenModal('send-email', e.id)}>Send Email</button>
                 <button className="btn-ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => onOpenModal('send-invite', e.id)}>Send Setup Link</button>
                 <button className="btn-ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => onOpenModal('add-checkin-new', e.id)}>Add Check-in</button>
                 <button className="btn-ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => onOpenModal('save-as-template', e.id)}>Save as Template</button>

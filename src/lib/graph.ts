@@ -193,6 +193,43 @@ export async function listTenantUsers(token: string): Promise<MsTenantUser[]> {
   return out;
 }
 
+// Sends an email from the signed-in user's mailbox via Graph /me/sendMail.
+// Returns true on success. Caller is responsible for surfacing errors to the
+// user — we log to console here.
+export async function sendMail(
+  token: string,
+  args: { to: string | string[]; subject: string; body: string; isHtml?: boolean },
+): Promise<boolean> {
+  try {
+    const toAddresses = (Array.isArray(args.to) ? args.to : [args.to])
+      .filter(Boolean)
+      .map(addr => ({ emailAddress: { address: addr } }));
+    const res = await graphFetch(token, '/me/sendMail', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: {
+          subject: args.subject,
+          body: {
+            contentType: args.isHtml ? 'HTML' : 'Text',
+            content: args.body,
+          },
+          toRecipients: toAddresses,
+        },
+        saveToSentItems: true,
+      }),
+    });
+    if (!res.ok) {
+      console.error('Graph /me/sendMail failed:', res.status, await res.text());
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Graph /me/sendMail error:', err);
+    return false;
+  }
+}
+
 // Creates a Microsoft Teams meeting for the signed-in user. Used to attach a
 // Teams link to a Hub check-in / review at scheduling time. Returns the join
 // URL string, or null if the call fails.
