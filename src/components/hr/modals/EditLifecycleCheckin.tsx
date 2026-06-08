@@ -24,7 +24,27 @@ export function EditLifecycleCheckinModal({ checkin, employeeName, employeeEmail
   const [teamsJoinUrl, setTeamsJoinUrl] = useState<string | null>(checkin.teams_join_url ?? null);
   const [creatingMeeting, setCreatingMeeting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState('');
+
+  async function del() {
+    setDeleting(true);
+    setError('');
+    const { data, error: err } = await supabase
+      .from('lifecycle_checkins').delete().eq('id', checkin.id).select();
+    setDeleting(false);
+    if (err) { setError(err.message); setConfirmingDelete(false); return; }
+    // RLS can silently delete 0 rows if the user lacks permission — surface it
+    // rather than closing as if it worked.
+    if (!data || data.length === 0) {
+      setError("Couldn't delete this check-in — you may not have permission. Ask an admin to check delete access.");
+      setConfirmingDelete(false);
+      return;
+    }
+    onSaved();
+    onClose();
+  }
 
   async function addTeamsMeeting() {
     if (!session?.provider_token) return;
@@ -66,10 +86,25 @@ export function EditLifecycleCheckinModal({ checkin, employeeName, employeeEmail
 
   return (
     <Modal title={`Day ${checkin.milestone_day} Check-in — ${employeeName}`} onClose={onClose} footer={
-      <>
-        <button className="btn-ghost" onClick={onClose}>Cancel</button>
-        <button className="btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-      </>
+      confirmingDelete ? (
+        <>
+          <span style={{ marginRight: 'auto', alignSelf: 'center', fontSize: 13, fontWeight: 600, color: '#B91C1C' }}>
+            Delete this check-in permanently?
+          </span>
+          <button className="btn-ghost" onClick={() => setConfirmingDelete(false)} disabled={deleting}>Keep</button>
+          <button className="btn-primary" style={{ background: '#DC2626' }} onClick={del} disabled={deleting}>
+            {deleting ? 'Deleting…' : 'Yes, delete'}
+          </button>
+        </>
+      ) : (
+        <>
+          <button className="btn-ghost" style={{ marginRight: 'auto', color: '#DC2626' }} onClick={() => setConfirmingDelete(true)} disabled={saving}>
+            Delete
+          </button>
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+        </>
+      )
     }>
       {error && <div className="error-msg" style={{ marginBottom: 12 }}>{error}</div>}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
