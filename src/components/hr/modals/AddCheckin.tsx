@@ -37,16 +37,19 @@ export function AddCheckinModal({ employees, defaultEmpId, onClose, onCreated }:
     const endHh = String(hh + (mm + 30 >= 60 ? 1 : 0)).padStart(2, '0');
     const endMm = String((mm + 30) % 60).padStart(2, '0');
     let teamsJoinUrl: string | null = null;
+    let teamsEventId: string | null = null;
     if (createTeams && session?.provider_token) {
       const emp = employees.find(e => e.id === empId);
       const empName = emp?.name ?? 'Employee';
-      teamsJoinUrl = await createEventWithTeamsMeeting(session.provider_token, {
+      const meeting = await createEventWithTeamsMeeting(session.provider_token, {
         subject: `${quarter} ${year} Check-in — ${empName}`,
         startDateTime: `${scheduledAt}T${startTime}:00`,
         endDateTime: `${scheduledAt}T${endHh}:${endMm}:00`,
         attendees: emp?.email ? [{ email: emp.email, name: empName }] : [],
         body: `Quarterly check-in scheduled in the Hub for ${empName}.`,
       });
+      teamsJoinUrl = meeting?.joinUrl ?? null;
+      teamsEventId = meeting?.eventId ?? null;
     }
     const { error: err } = await supabase.from('quarterly_checkins').insert({
       employee_id: empId,
@@ -57,6 +60,7 @@ export function AddCheckinModal({ employees, defaultEmpId, onClose, onCreated }:
       notes: notes || null,
       status: 'pending',
       teams_join_url: teamsJoinUrl,
+      teams_event_id: teamsEventId,
     });
     setSaving(false);
     if (err) { setError(err.message); return; }

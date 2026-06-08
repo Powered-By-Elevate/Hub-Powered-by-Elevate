@@ -36,16 +36,19 @@ export function AddReviewModal({ employees, defaultEmpId, onClose, onCreated }: 
     const endHh = String(hh + 1).padStart(2, '0');
     const endMm = String(mm).padStart(2, '0');
     let teamsJoinUrl: string | null = null;
+    let teamsEventId: string | null = null;
     if (createTeams && scheduledAt && session?.provider_token) {
       const emp = employees.find(e => e.id === empId);
       const empName = emp?.name ?? 'Employee';
-      teamsJoinUrl = await createEventWithTeamsMeeting(session.provider_token, {
+      const meeting = await createEventWithTeamsMeeting(session.provider_token, {
         subject: `${reviewYear} Annual Review — ${empName}`,
         startDateTime: `${scheduledAt}T${startTime}:00`,
         endDateTime: `${scheduledAt}T${endHh}:${endMm}:00`,
         attendees: emp?.email ? [{ email: emp.email, name: empName }] : [],
         body: `Annual review scheduled in the Hub for ${empName}.`,
       });
+      teamsJoinUrl = meeting?.joinUrl ?? null;
+      teamsEventId = meeting?.eventId ?? null;
     }
     const { error: err } = await supabase.from('annual_reviews').insert({
       employee_id: empId,
@@ -56,6 +59,7 @@ export function AddReviewModal({ employees, defaultEmpId, onClose, onCreated }: 
       goals_next_year: goals || null,
       status: 'pending',
       teams_join_url: teamsJoinUrl,
+      teams_event_id: teamsEventId,
     });
     setSaving(false);
     if (err) { setError(err.message); return; }

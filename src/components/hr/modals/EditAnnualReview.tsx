@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { AnnualReview, ReviewStatus } from '../../../lib/database.types';
 import { Modal } from '../../shared/Modal';
 import { useAuth } from '../../../contexts/AuthContext';
-import { createEventWithTeamsMeeting } from '../../../lib/graph';
+import { createEventWithTeamsMeeting, deleteCalendarEvent } from '../../../lib/graph';
 
 interface Props {
   review: AnnualReview;
@@ -26,6 +26,7 @@ export function EditAnnualReviewModal({ review, employeeName, employeeEmail, onC
   const [summary, setSummary] = useState(review.summary ?? '');
   const [goals, setGoals] = useState(review.goals_next_year ?? '');
   const [teamsJoinUrl, setTeamsJoinUrl] = useState<string | null>(review.teams_join_url ?? null);
+  const [teamsEventId, setTeamsEventId] = useState<string | null>(review.teams_event_id ?? null);
   const [creatingMeeting, setCreatingMeeting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -35,6 +36,11 @@ export function EditAnnualReviewModal({ review, employeeName, employeeEmail, onC
   async function del() {
     setDeleting(true);
     setError('');
+    // Best-effort: cancel the Outlook/Teams meeting too (Microsoft notifies the
+    // attendees). Don't block the record delete if the calendar cancel fails.
+    if (teamsEventId && session?.provider_token) {
+      await deleteCalendarEvent(session.provider_token, teamsEventId);
+    }
     const { data, error: err } = await supabase
       .from('annual_reviews').delete().eq('id', review.id).select();
     setDeleting(false);
@@ -56,7 +62,7 @@ export function EditAnnualReviewModal({ review, employeeName, employeeEmail, onC
     const [hh, mm] = (scheduledTime || '10:00').split(':').map(n => parseInt(n, 10));
     const endHh = String(hh + 1).padStart(2, '0');
     const endMm = String(mm).padStart(2, '0');
-    const url = await createEventWithTeamsMeeting(session.provider_token, {
+    const meeting = await createEventWithTeamsMeeting(session.provider_token, {
       subject: `${review.review_year} Annual Review — ${employeeName}`,
       startDateTime: `${scheduledAt}T${scheduledTime || '10:00'}:00`,
       endDateTime: `${scheduledAt}T${endHh}:${endMm}:00`,
@@ -64,8 +70,9 @@ export function EditAnnualReviewModal({ review, employeeName, employeeEmail, onC
       body: `Annual review scheduled in the Hub for ${employeeName}.`,
     });
     setCreatingMeeting(false);
-    if (!url) { setError('Failed to create Teams meeting.'); return; }
-    setTeamsJoinUrl(url);
+    if (!meeting?.joinUrl) { setError('Failed to create Teams meeting.'); return; }
+    setTeamsJoinUrl(meeting.joinUrl);
+    setTeamsEventId(meeting.eventId);
   }
 
   async function save() {
@@ -81,6 +88,7 @@ export function EditAnnualReviewModal({ review, employeeName, employeeEmail, onC
       summary: summary.trim() === '' ? null : summary.trim(),
       goals_next_year: goals.trim() === '' ? null : goals.trim(),
       teams_join_url: teamsJoinUrl,
+      teams_event_id: teamsEventId,
     };
     if (completing) patch.completed_at = new Date().toISOString().split('T')[0];
     if (uncompleting) patch.completed_at = null;
@@ -164,7 +172,7 @@ export function EditAnnualReviewModal({ review, employeeName, employeeEmail, onC
             <a href={teamsJoinUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#1B3F6E', textDecoration: 'underline', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               Join meeting
             </a>
-            <button type="button" onClick={() => setTeamsJoinUrl(null)} className="btn-ghost sm" style={{ color: '#DC2626' }}>Remove</button>
+            <button type="button" onClick={() => { setTeamsJoinUrl(null); setTeamsEventId(null); }} className="btn-ghost sm" style={{ color: '#DC2626' }}>Remove</button>
           </div>
         ) : (
           <button

@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { LifecycleCheckin } from '../../../lib/database.types';
 import { Modal } from '../../shared/Modal';
 import { useAuth } from '../../../contexts/AuthContext';
-import { createEventWithTeamsMeeting } from '../../../lib/graph';
+import { createEventWithTeamsMeeting, deleteCalendarEvent } from '../../../lib/graph';
 
 interface Props {
   checkin: LifecycleCheckin;
@@ -22,6 +22,7 @@ export function EditLifecycleCheckinModal({ checkin, employeeName, employeeEmail
   const [status, setStatus] = useState<LifecycleCheckin['status']>(checkin.status);
   const [scheduledTime, setScheduledTime] = useState((checkin.scheduled_time ?? '10:00').slice(0, 5));
   const [teamsJoinUrl, setTeamsJoinUrl] = useState<string | null>(checkin.teams_join_url ?? null);
+  const [teamsEventId, setTeamsEventId] = useState<string | null>(checkin.teams_event_id ?? null);
   const [creatingMeeting, setCreatingMeeting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -31,6 +32,11 @@ export function EditLifecycleCheckinModal({ checkin, employeeName, employeeEmail
   async function del() {
     setDeleting(true);
     setError('');
+    // Best-effort: cancel the Outlook/Teams meeting too (Microsoft notifies the
+    // attendees). Don't block the record delete if the calendar cancel fails.
+    if (teamsEventId && session?.provider_token) {
+      await deleteCalendarEvent(session.provider_token, teamsEventId);
+    }
     const { data, error: err } = await supabase
       .from('lifecycle_checkins').delete().eq('id', checkin.id).select();
     setDeleting(false);
@@ -52,7 +58,7 @@ export function EditLifecycleCheckinModal({ checkin, employeeName, employeeEmail
     const [hh, mm] = (scheduledTime || '10:00').split(':').map(n => parseInt(n, 10));
     const endHh = String(hh + (mm + 30 >= 60 ? 1 : 0)).padStart(2, '0');
     const endMm = String((mm + 30) % 60).padStart(2, '0');
-    const url = await createEventWithTeamsMeeting(session.provider_token, {
+    const meeting = await createEventWithTeamsMeeting(session.provider_token, {
       subject: `Day ${checkin.milestone_day} Check-in — ${employeeName}`,
       startDateTime: `${checkin.scheduled_at}T${scheduledTime || '10:00'}:00`,
       endDateTime: `${checkin.scheduled_at}T${endHh}:${endMm}:00`,
@@ -60,8 +66,9 @@ export function EditLifecycleCheckinModal({ checkin, employeeName, employeeEmail
       body: `30-60-90 check-in scheduled in the Hub for ${employeeName}.`,
     });
     setCreatingMeeting(false);
-    if (!url) { setError('Failed to create Teams meeting.'); return; }
-    setTeamsJoinUrl(url);
+    if (!meeting?.joinUrl) { setError('Failed to create Teams meeting.'); return; }
+    setTeamsJoinUrl(meeting.joinUrl);
+    setTeamsEventId(meeting.eventId);
   }
 
   async function save() {
@@ -74,6 +81,7 @@ export function EditLifecycleCheckinModal({ checkin, employeeName, employeeEmail
       status,
       scheduled_time: scheduledTime || null,
       teams_join_url: teamsJoinUrl,
+      teams_event_id: teamsEventId,
     };
     if (completing) patch.completed_at = new Date().toISOString();
     if (uncompleting) patch.completed_at = null;
@@ -140,7 +148,7 @@ export function EditLifecycleCheckinModal({ checkin, employeeName, employeeEmail
             <a href={teamsJoinUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#1B3F6E', textDecoration: 'underline', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               Join meeting
             </a>
-            <button type="button" onClick={() => setTeamsJoinUrl(null)} className="btn-ghost sm" style={{ color: '#DC2626' }}>Remove</button>
+            <button type="button" onClick={() => { setTeamsJoinUrl(null); setTeamsEventId(null); }} className="btn-ghost sm" style={{ color: '#DC2626' }}>Remove</button>
           </div>
         ) : (
           <button
