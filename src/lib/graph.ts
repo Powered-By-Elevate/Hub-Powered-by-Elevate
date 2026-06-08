@@ -331,7 +331,7 @@ export async function createEventWithTeamsMeeting(
     /** Plain-text body shown in the calendar event description. */
     body?: string;
   },
-): Promise<string | null> {
+): Promise<{ joinUrl: string | null; eventId: string | null } | null> {
   try {
     // Interpret the supplied wall-clock times in the browser's local timezone
     // by default. Microsoft Graph accepts IANA names (e.g. "America/Chicago")
@@ -365,10 +365,31 @@ export async function createEventWithTeamsMeeting(
       return null;
     }
     const data = await res.json();
-    return data.onlineMeeting?.joinUrl ?? data.onlineMeetingUrl ?? null;
+    return {
+      joinUrl: data.onlineMeeting?.joinUrl ?? data.onlineMeetingUrl ?? null,
+      // Outlook event id — stored so we can cancel the invite later if the
+      // check-in/review is deleted from the Hub.
+      eventId: data.id ?? null,
+    };
   } catch (err) {
     console.error('Graph /me/events error:', err);
     return null;
+  }
+}
+
+// Cancels (deletes) a calendar event on the signed-in user's calendar by its
+// Outlook event id. Microsoft automatically sends cancellation notices to the
+// attendees. Returns true on success; treats 404 (already gone) as success so
+// callers can delete the Hub record without worrying about a stale id.
+export async function deleteCalendarEvent(token: string, eventId: string): Promise<boolean> {
+  try {
+    const res = await graphFetch(token, `/me/events/${encodeURIComponent(eventId)}`, { method: 'DELETE' });
+    if (res.ok || res.status === 404) return true;
+    console.error('Graph delete /me/events failed:', res.status, await res.text());
+    return false;
+  } catch (err) {
+    console.error('Graph delete /me/events error:', err);
+    return false;
   }
 }
 
