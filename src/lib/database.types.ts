@@ -105,6 +105,7 @@ export interface Employee {
   position_applied_for: string | null;
   resume_url: string | null;
   applicant_source: string | null;
+  applicant_notes: string | null;
   access_role: string | null;
   manager_id: string | null;
   pathway: string | null;

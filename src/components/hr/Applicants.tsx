@@ -122,6 +122,7 @@ export function HRApplicants({ employees, onAddApplicant, onEditApplicant, onCon
                   <th>Stage</th>
                   <th>Hiring Manager</th>
                   <th>Source</th>
+                  <th>Notes</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -152,6 +153,16 @@ export function HRApplicants({ employees, onAddApplicant, onEditApplicant, onCon
                       <td style={{ fontSize: 12, color: '#1A1916' }}>{a.applicant_stage ?? '—'}</td>
                       <td style={{ fontSize: 12, color: '#6B6860' }}>{hiringManagerName(a.hiring_manager_id)}</td>
                       <td style={{ fontSize: 12, color: '#6B6860' }}>{a.applicant_source ?? '—'}</td>
+                      <td style={{ maxWidth: 260 }}>
+                        {a.applicant_notes ? (
+                          <div
+                            title={a.applicant_notes}
+                            style={{ fontSize: 12, color: '#6B6860', whiteSpace: 'pre-wrap', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4 }}
+                          >
+                            {a.applicant_notes}
+                          </div>
+                        ) : <span style={{ color: '#C5C3BB', fontSize: 12 }}>—</span>}
+                      </td>
                       <td onClick={ev => ev.stopPropagation()}>
                         {readOnly ? (
                           <span style={{ fontSize: 11, color: '#9B9890', fontStyle: 'italic' }}>Read only</span>
