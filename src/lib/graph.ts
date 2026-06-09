@@ -111,6 +111,8 @@ export interface MsCalendarEvent {
   joinUrl: string | null;
   /** Outlook web link to the event. */
   webLink: string | null;
+  /** Event attendees (lower-cased emails + display names), for matching. */
+  attendees: { email: string; name: string | null }[];
 }
 
 // Returns the signed-in user's calendar events between two dates. Uses
@@ -126,7 +128,7 @@ export async function getMyCalendarEvents(
       `/me/calendarView` +
       `?startDateTime=${encodeURIComponent(fromIso)}` +
       `&endDateTime=${encodeURIComponent(toIso)}` +
-      `&$select=id,subject,start,end,location,isAllDay,onlineMeeting,webLink` +
+      `&$select=id,subject,start,end,location,isAllDay,onlineMeeting,webLink,attendees` +
       `&$orderby=start/dateTime` +
       `&$top=200`;
     const res = await graphFetch(token, path, {
@@ -148,6 +150,7 @@ export async function getMyCalendarEvents(
       isAllDay?: boolean;
       onlineMeeting?: { joinUrl?: string };
       webLink?: string;
+      attendees?: { emailAddress?: { address?: string; name?: string } }[];
     }) => {
       const startIso = ev.start?.dateTime ?? '';
       const startLocal = new Date(startIso + (startIso.endsWith('Z') ? '' : 'Z'));
@@ -164,6 +167,9 @@ export async function getMyCalendarEvents(
         isAllDay: !!ev.isAllDay,
         joinUrl: ev.onlineMeeting?.joinUrl ?? null,
         webLink: ev.webLink ?? null,
+        attendees: (ev.attendees ?? [])
+          .map(at => ({ email: (at.emailAddress?.address ?? '').toLowerCase(), name: at.emailAddress?.name ?? null }))
+          .filter(a => a.email),
       };
     });
     return items.filter(i => i.date);

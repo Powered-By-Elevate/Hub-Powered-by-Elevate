@@ -6,8 +6,9 @@ import { Modal } from '../shared/Modal';
 import { Pencil, Trash2, Plus, Check, X } from 'lucide-react';
 import { ScheduleTemplatesSection } from './ScheduleTemplatesSection';
 import { M365SyncSection } from './M365SyncSection';
+import { OutlookCheckinImport } from './OutlookCheckinImport';
 
-type SettingsSection = 'schedule' | 'banners' | 'organization' | 'contacts' | 'schedule-templates' | 'roles' | 'document-buckets' | 'm365-sync';
+type SettingsSection = 'schedule' | 'banners' | 'organization' | 'contacts' | 'schedule-templates' | 'roles' | 'document-buckets' | 'm365-sync' | 'outlook-checkins';
 
 interface Props {
   employees: Employee[];
@@ -231,6 +232,7 @@ const [editContact, setEditContact] = useState<Contact | null>(null);
     { id: 'document-buckets', label: 'Document Buckets' },
     { id: 'roles', label: 'User Roles & Visibility' },
     { id: 'm365-sync', label: 'Microsoft 365 Sync' },
+    { id: 'outlook-checkins', label: 'Quarterly Import (Outlook)' },
   ];
 
   const titlesByCategory: Record<string, JobTitle[]> = {};
@@ -427,6 +429,9 @@ const [editContact, setEditContact] = useState<Contact | null>(null);
             )}
             {section === 'm365-sync' && (
               <M365SyncSection employees={employees} companies={companies} onImported={onCheckinUpdated} />
+            )}
+            {section === 'outlook-checkins' && (
+              <OutlookCheckinImport employees={employees} onImported={onCheckinUpdated} />
             )}
             {section === 'organization' && (
               <div>
