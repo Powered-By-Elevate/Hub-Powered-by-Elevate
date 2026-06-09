@@ -180,6 +180,10 @@ export function EmployeeApp() {
       // see everyone
     } else if (viewer.scope === 'company_reports' && viewer.company_id) {
       query = query.eq('company_id', viewer.company_id);
+    } else if (viewer.scope === 'department_reports') {
+      const depts = viewer.departments ?? [];
+      if (depts.length === 0) { setTeam([]); setTeamScope([]); return; }
+      query = query.in('department', depts);
     } else {
       // direct_reports
       if (!viewer.employee_id) { setTeam([]); setTeamScope([]); return; }
@@ -232,9 +236,9 @@ export function EmployeeApp() {
 
   useEffect(() => { if (employee) loadTourState(); }, [employee, loadTourState]);
   useEffect(() => { loadData(); }, [loadData]);
-  // Company/app-wide managers default to Team Dashboard
+  // Company/app-wide/department managers default to Team Dashboard
   useEffect(() => {
-    if (viewer?.role === 'manager' && (viewer.scope === 'company_reports' || viewer.scope === 'app_wide_reports')) {
+    if (viewer?.role === 'manager' && (viewer.scope === 'company_reports' || viewer.scope === 'app_wide_reports' || viewer.scope === 'department_reports')) {
       setTab(prev => prev === 'overview' ? 'mgr-dashboard' : prev);
     }
   }, [viewer?.role, viewer?.scope]);

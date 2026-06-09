@@ -74,7 +74,7 @@ export function EmpSidebar({ employee, tab, onTab }: Props) {
   const managerNav: { id: EmpTab; icon: string; label: string }[] = isManager ? [
     { id: 'mgr-dashboard', icon: '📊', label: 'Team Dashboard' },
     { id: 'mgr-team', icon: '👨‍👩‍👧', label: 'Direct Team' },
-    ...(viewer?.scope === 'company_reports' || viewer?.scope === 'app_wide_reports'
+    ...(viewer?.scope === 'company_reports' || viewer?.scope === 'app_wide_reports' || viewer?.scope === 'department_reports'
       ? [
           { id: 'mgr-employees' as EmpTab, icon: '🏢', label: 'All Employees' },
           { id: 'mgr-applicants' as EmpTab, icon: '📨', label: 'Applicants' },
@@ -122,7 +122,7 @@ export function EmpSidebar({ employee, tab, onTab }: Props) {
           </div>
         </div>
         <div className="sidebar-nav">
-          {isManager && managerNav.length > 0 && (viewer?.scope === 'company_reports' || viewer?.scope === 'app_wide_reports') && (
+          {isManager && managerNav.length > 0 && (viewer?.scope === 'company_reports' || viewer?.scope === 'app_wide_reports' || viewer?.scope === 'department_reports') && (
             <>
               <div className="nav-section-label">Manager</div>
               {managerNav.map(({ id, icon, label }) => (

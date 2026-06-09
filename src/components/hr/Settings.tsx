@@ -1187,8 +1187,9 @@ interface UserRow {
   id: string;
   email: string;
   role: 'employee' | 'manager' | 'hr';
-  visibility_scope: 'direct_reports' | 'company_reports' | 'app_wide_reports' | null;
+  visibility_scope: 'direct_reports' | 'company_reports' | 'app_wide_reports' | 'department_reports' | null;
   company_id: string | null;
+  visibility_departments: string[] | null;
   employee_id: string | null;
 }
 
@@ -1197,20 +1198,30 @@ function UserRolesSection() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [employees, setEmployees] = useState<{ id: string; name: string }[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [editUser, setEditUser] = useState<UserRow | null>(null);
   const [search, setSearch] = useState('');
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
-    const [{ data: usersData }, { data: companiesData }, { data: empsData }] = await Promise.all([
-      supabase.from('users').select('id, email, role, visibility_scope, company_id, employee_id').order('email'),
+    const [companiesRes, empsRes, deptRes] = await Promise.all([
       supabase.from('companies').select('*').eq('active', true).order('name'),
       supabase.from('employees').select('id, name').eq('archived', false).order('name'),
+      supabase.from('departments').select('name').order('name'),
     ]);
-    setUsers((usersData as UserRow[]) ?? []);
-    setCompanies(companiesData ?? []);
-    setEmployees(empsData ?? []);
+    // Resilient: include visibility_departments, but fall back if the column
+    // hasn't been migrated yet so the section still loads.
+    let usersRes = await supabase
+      .from('users').select('id, email, role, visibility_scope, company_id, employee_id, visibility_departments').order('email');
+    if (usersRes.error && /visibility_departments/i.test(usersRes.error.message)) {
+      usersRes = await supabase
+        .from('users').select('id, email, role, visibility_scope, company_id, employee_id').order('email');
+    }
+    setUsers((usersRes.data as UserRow[]) ?? []);
+    setCompanies(companiesRes.data ?? []);
+    setEmployees(empsRes.data ?? []);
+    setDepartments(((deptRes.data as { name: string }[] | null) ?? []).map(d => d.name).filter(Boolean));
     setLoading(false);
   }, []);
 
@@ -1231,6 +1242,7 @@ function UserRolesSection() {
     if (scope === 'direct_reports') return 'Direct Reports';
     if (scope === 'company_reports') return 'Company';
     if (scope === 'app_wide_reports') return 'App-Wide';
+    if (scope === 'department_reports') return 'Department';
     return scope;
   }
 
@@ -1309,8 +1321,12 @@ function UserRolesSection() {
                   <td style={{ fontSize: 12, color: '#1A1916' }}>
                     {u.role === 'manager' ? scopeLabel(u.visibility_scope) : <span style={{ color: '#C5C3BB' }}>—</span>}
                   </td>
-                  <td style={{ fontSize: 12, color: '#6B6860' }}>
-                    {u.role === 'manager' && u.visibility_scope === 'company_reports' ? companyName(u.company_id) : <span style={{ color: '#C5C3BB' }}>—</span>}
+                  <td style={{ fontSize: 12, color: '#6B6860', maxWidth: 260 }}>
+                    {u.role === 'manager' && u.visibility_scope === 'company_reports'
+                      ? companyName(u.company_id)
+                      : u.role === 'manager' && u.visibility_scope === 'department_reports'
+                        ? ((u.visibility_departments ?? []).join(', ') || <span style={{ color: '#C5C3BB' }}>none set</span>)
+                        : <span style={{ color: '#C5C3BB' }}>—</span>}
                   </td>
                   <td>
                     <button
@@ -1333,6 +1349,7 @@ function UserRolesSection() {
           user={editUser}
           isSelf={editUser.id === profile?.id}
           companies={companies}
+          allDepartments={departments}
           onClose={() => setEditUser(null)}
           onSaved={() => { setEditUser(null); loadUsers(); }}
         />
@@ -1345,16 +1362,22 @@ interface EditUserRoleModalProps {
   user: UserRow;
   isSelf: boolean;
   companies: Company[];
+  allDepartments: string[];
   onClose: () => void;
   onSaved: () => void;
 }
 
-function EditUserRoleModal({ user, isSelf, companies, onClose, onSaved }: EditUserRoleModalProps) {
+function EditUserRoleModal({ user, isSelf, companies, allDepartments, onClose, onSaved }: EditUserRoleModalProps) {
   const [role, setRole] = useState<UserRow['role']>(user.role);
   const [scope, setScope] = useState<UserRow['visibility_scope']>(user.visibility_scope);
   const [companyId, setCompanyId] = useState<string | null>(user.company_id);
+  const [depts, setDepts] = useState<string[]>(user.visibility_departments ?? []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  function toggleDept(name: string) {
+    setDepts(d => d.includes(name) ? d.filter(x => x !== name) : [...d, name]);
+  }
 
   async function save() {
     // Safety: prevent self-demotion from HR
@@ -1362,25 +1385,35 @@ function EditUserRoleModal({ user, isSelf, companies, onClose, onSaved }: EditUs
       setError('You cannot remove your own HR role. Ask another HR admin to do it.');
       return;
     }
+    if (role === 'manager' && scope === 'department_reports' && depts.length === 0) {
+      setError('Pick at least one department for department-level access.');
+      return;
+    }
 
     setSaving(true);
     setError('');
 
-    const payload: Record<string, unknown> = {
+    const base: Record<string, unknown> = {
       role,
       visibility_scope: role === 'manager' ? (scope ?? 'direct_reports') : null,
       company_id: role === 'manager' && scope === 'company_reports' ? companyId : null,
     };
+    const payload = {
+      ...base,
+      visibility_departments: role === 'manager' && scope === 'department_reports' ? depts : null,
+    };
 
-    const { error: err } = await supabase
-      .from('users')
-      .update(payload)
-      .eq('id', user.id);
+    let res = await supabase.from('users').update(payload).eq('id', user.id);
+    // Fall back if the visibility_departments column isn't migrated yet so the
+    // rest of the role change still saves.
+    if (res.error && /visibility_departments/i.test(res.error.message)) {
+      res = await supabase.from('users').update(base).eq('id', user.id);
+    }
 
     setSaving(false);
 
-    if (err) {
-      setError(err.message);
+    if (res.error) {
+      setError(res.error.message);
       return;
     }
     onSaved();
@@ -1425,11 +1458,13 @@ function EditUserRoleModal({ user, isSelf, companies, onClose, onSaved }: EditUs
             <label>Visibility Scope <span style={{ color: '#E53E3E' }}>*</span></label>
             <select value={scope ?? 'direct_reports'} onChange={e => setScope(e.target.value as UserRow['visibility_scope'])}>
               <option value="direct_reports">Direct Reports — sees only their direct reports</option>
+              <option value="department_reports">Department — sees everyone in selected departments</option>
               <option value="company_reports">Company — sees everyone in their assigned company</option>
               <option value="app_wide_reports">App-Wide — sees all employees, all companies</option>
             </select>
             <div style={{ fontSize: 11, color: '#9B9890', marginTop: 6, lineHeight: 1.5 }}>
               {scope === 'direct_reports' && 'Manager will see only employees who report directly to them. No document access.'}
+              {scope === 'department_reports' && 'Manager will see everyone in the departments you select below.'}
               {scope === 'company_reports' && 'Manager will see all employees in their company. Includes document access.'}
               {scope === 'app_wide_reports' && 'Manager will see all employees across all companies. Includes document access.'}
             </div>
@@ -1450,6 +1485,27 @@ function EditUserRoleModal({ user, isSelf, companies, onClose, onSaved }: EditUs
                 Required when scope is Company-level.
               </div>
             )}
+          </div>
+        )}
+
+        {role === 'manager' && scope === 'department_reports' && (
+          <div className="field full">
+            <label>Departments <span style={{ color: '#E53E3E' }}>*</span></label>
+            {allDepartments.length === 0 ? (
+              <div style={{ fontSize: 12, color: '#9B9890' }}>No departments found. Add them under Organization Setup first.</div>
+            ) : (
+              <div style={{ maxHeight: 220, overflow: 'auto', border: '1px solid #E5E3DC', borderRadius: 6, padding: '6px 10px' }}>
+                {allDepartments.map(name => (
+                  <label key={name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 13, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={depts.includes(name)} onChange={() => toggleDept(name)} />
+                    {name}
+                  </label>
+                ))}
+              </div>
+            )}
+            <div style={{ fontSize: 11, color: depts.length === 0 ? '#DC2626' : '#9B9890', marginTop: 6 }}>
+              {depts.length === 0 ? 'Pick at least one department.' : `${depts.length} department${depts.length === 1 ? '' : 's'} selected.`}
+            </div>
           </div>
         )}
 

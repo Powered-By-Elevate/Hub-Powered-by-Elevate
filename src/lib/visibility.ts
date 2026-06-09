@@ -10,6 +10,8 @@ export interface Viewer {
   company_id: string | null;
   role: Role;
   scope: VisibilityScope | null;
+  /** Department names visible to this viewer (only used when scope = department_reports). */
+  departments: string[] | null;
 }
 
 /**
@@ -24,6 +26,7 @@ export function buildViewer(profile: UserProfile | null): Viewer | null {
     company_id: profile.company_id,
     role: profile.role,
     scope: profile.visibility_scope,
+    departments: profile.visibility_departments ?? null,
   };
 }
 
@@ -42,12 +45,18 @@ export function visibleEmployees(viewer: Viewer | null, all: Employee[]): Employ
   
   // viewer.role === 'manager'
   if (viewer.scope === 'app_wide_reports') return all;
-  
+
   if (viewer.scope === 'company_reports') {
     if (!viewer.company_id) return [];
     return all.filter(e => e.company_id === viewer.company_id);
   }
-  
+
+  if (viewer.scope === 'department_reports') {
+    const depts = viewer.departments ?? [];
+    if (depts.length === 0) return [];
+    return all.filter(e => !!e.department && depts.includes(e.department));
+  }
+
   // direct_reports (default if scope is null or 'direct_reports')
   if (!viewer.employee_id) return [];
   return all.filter(e => e.manager_id === viewer.employee_id);

@@ -20,10 +20,12 @@ export interface UserProfile {
   employee_id: string | null;
   visibility_scope: VisibilityScope | null;
   company_id: string | null;
+  /** Department names this manager can see (only used when scope = department_reports). */
+  visibility_departments: string[] | null;
   created_at: string;
 }
 
-export type VisibilityScope = 'direct_reports' | 'company_reports' | 'app_wide_reports';
+export type VisibilityScope = 'direct_reports' | 'company_reports' | 'app_wide_reports' | 'department_reports';
 
 export interface Department {
   id: string;
