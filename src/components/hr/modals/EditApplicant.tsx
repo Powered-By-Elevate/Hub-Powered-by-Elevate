@@ -33,6 +33,7 @@ export function EditApplicantModal({ applicant: a, employees, onClose, onSaved }
     hiring_manager_id: a.hiring_manager_id ?? '',
     applicant_source: a.applicant_source ?? '',
     resume_url: a.resume_url ?? '',
+    applicant_notes: a.applicant_notes ?? '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -55,7 +56,7 @@ export function EditApplicantModal({ applicant: a, employees, onClose, onSaved }
     setSaving(true);
     setError('');
 
-    const payload = {
+    const base = {
       name: form.name.trim(),
       email: form.email.trim(),
       phone: form.phone.trim() || null,
@@ -67,13 +68,16 @@ export function EditApplicantModal({ applicant: a, employees, onClose, onSaved }
       applicant_source: form.applicant_source || null,
       resume_url: form.resume_url.trim() || null,
     };
+    const payload = { ...base, applicant_notes: form.applicant_notes.trim() || null };
 
-    const { data, error: err } = await supabase
-      .from('employees')
-      .update(payload)
-      .eq('id', a.id)
-      .select()
-      .single();
+    let res = await supabase.from('employees').update(payload).eq('id', a.id).select().single();
+    // If the applicant_notes column hasn't been migrated yet, retry without it
+    // so editing still works — the note just won't persist until the migration
+    // (20260608130000) is applied.
+    if (res.error && /applicant_notes/i.test(res.error.message)) {
+      res = await supabase.from('employees').update(base).eq('id', a.id).select().single();
+    }
+    const { data, error: err } = res;
 
     setSaving(false);
     if (err) {
@@ -147,6 +151,16 @@ export function EditApplicantModal({ applicant: a, employees, onClose, onSaved }
         <div className="field full">
           <label>Resume URL</label>
           <input type="url" value={form.resume_url} onChange={e => setForm(f => ({ ...f, resume_url: e.target.value }))} placeholder="https://..." />
+        </div>
+        <div className="field full">
+          <label>Notes <span style={{ fontWeight: 400, color: '#9B9890', fontSize: 11 }}>· shows on the applicants list</span></label>
+          <textarea
+            value={form.applicant_notes}
+            onChange={e => setForm(f => ({ ...f, applicant_notes: e.target.value }))}
+            rows={3}
+            placeholder="e.g. 6/9 Pat likes, Anita still debating · Tom & Evan interviewing top two in person"
+            style={{ resize: 'vertical' }}
+          />
         </div>
       </div>
     </Modal>
