@@ -241,6 +241,16 @@ export function EmployeeApp() {
   useEffect(() => { if (isManager) loadTeam(); }, [isManager, loadTeam]);
   useEffect(() => { if (isManager) loadTeamCheckinData(); }, [isManager, loadTeamCheckinData]);
 
+  // Scope team check-in data to only the employees this manager can see.
+  // RLS lets any manager read all check-ins and HRCheckins renders whatever
+  // it's given, so without this filter a company/direct-reports manager would
+  // see check-ins outside their scope. teamScope is the visible-employee set
+  // (app-wide = everyone, company = same company, direct = their reports).
+  const teamScopeIds = new Set(teamScope.map(e => e.id));
+  const scopedTeamCheckins = teamQuarterlyCheckins.filter(c => teamScopeIds.has(c.employee_id));
+  const scopedTeamReviews = teamAnnualReviews.filter(r => teamScopeIds.has(r.employee_id));
+  const scopedTeamLifecycle = teamLifecycleCheckins.filter(l => teamScopeIds.has(l.employee_id));
+
   useEffect(() => {
     if (selectedTeamMemberId && !teamTasks[selectedTeamMemberId]) loadTeamMemberTasks(selectedTeamMemberId);
   }, [selectedTeamMemberId, teamTasks, loadTeamMemberTasks]);
@@ -463,9 +473,9 @@ export function EmployeeApp() {
         {tab === 'mgr-checkins' && isManager && (
           <HRCheckins
           employees={teamScope}
-          checkins={teamQuarterlyCheckins}
-          reviews={teamAnnualReviews}
-          lifecycleCheckins={teamLifecycleCheckins}
+          checkins={scopedTeamCheckins}
+          reviews={scopedTeamReviews}
+          lifecycleCheckins={scopedTeamLifecycle}
           readOnly
         />
         )}
@@ -585,9 +595,9 @@ export function EmployeeApp() {
         {tab === 'mgr-checkins' && isManager && (
           <HRCheckins
           employees={teamScope}
-            checkins={teamQuarterlyCheckins}
-            reviews={teamAnnualReviews}
-            lifecycleCheckins={teamLifecycleCheckins}
+            checkins={scopedTeamCheckins}
+            reviews={scopedTeamReviews}
+            lifecycleCheckins={scopedTeamLifecycle}
             readOnly
           />
         )}
