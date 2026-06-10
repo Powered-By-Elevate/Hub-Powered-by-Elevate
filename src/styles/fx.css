@@ -1,0 +1,79 @@
+/* ════════════════════════════════════════════════════════════════════════
+   The Hub — motion + micro-interaction layer
+   Batch 1 (foundation) + Batch 2 (micro-interactions)
+   Brand-locked: navy #1B3F6E · paper #F8F7F4 · green #2D9A60
+   Elevate accents: teal #17A39A · gold #E8A93A
+   Additive only — layered over index.css. Respects prefers-reduced-motion.
+   ════════════════════════════════════════════════════════════════════════ */
+
+:root{
+  --fx-navy:#1B3F6E; --fx-green:#2D9A60; --fx-teal:#17A39A; --fx-gold:#E8A93A;
+  --fx-ease-out:cubic-bezier(.16,.84,.34,1);
+  --fx-ease-spring:cubic-bezier(.34,1.56,.64,1);
+}
+
+@keyframes fxPopIn { 0%{opacity:0;transform:scale(.94)} 60%{opacity:1;transform:scale(1.012)} 100%{transform:scale(1)} }
+@keyframes fxRipple{ to{transform:scale(2.6);opacity:0} }
+@keyframes fxSheen { 0%{transform:translateX(-130%) skewX(-18deg)} 100%{transform:translateX(230%) skewX(-18deg)} }
+@keyframes fxFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+/* ── Buttons: lift, press, ripple, sheen ─────────────────────────────────── */
+.btn-primary,.btn-ghost,.btn-danger-soft,.btn-signin{
+  position:relative; overflow:hidden;
+  transition:transform .16s var(--fx-ease-spring), box-shadow .2s, background-color .15s, border-color .15s;
+}
+.btn-primary:hover:not(:disabled),.btn-signin:hover:not(:disabled){ transform:translateY(-1.5px); box-shadow:0 8px 20px -6px rgba(27,63,110,.5); }
+.btn-ghost:hover:not(:disabled){ transform:translateY(-1.5px); box-shadow:0 6px 16px -8px rgba(27,63,110,.28); }
+.btn-danger-soft:hover:not(:disabled){ transform:translateY(-1.5px); }
+.btn-primary:active:not(:disabled),.btn-ghost:active:not(:disabled),.btn-danger-soft:active:not(:disabled),.btn-signin:active:not(:disabled){ transform:translateY(0) scale(.97); }
+
+.fx-ripple{ position:absolute; border-radius:50%; background:rgba(255,255,255,.5); width:14px; height:14px; margin:-7px 0 0 -7px; pointer-events:none; transform:scale(0); animation:fxRipple .6s var(--fx-ease-out) forwards; }
+.btn-ghost .fx-ripple,.filter-chip .fx-ripple,.tab-btn .fx-ripple,.nav-btn .fx-ripple,.close-x .fx-ripple{ background:rgba(27,63,110,.16); }
+
+.btn-signin::after{ content:""; position:absolute; top:0; left:0; width:40%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent); transform:translateX(-130%) skewX(-18deg); pointer-events:none; }
+.btn-signin:hover:not(:disabled)::after{ animation:fxSheen .8s var(--fx-ease-out); }
+
+/* ── Cards: hover lift + cursor-tracking spotlight ───────────────────────── */
+.card,.stat-card{ position:relative; transition:transform .26s var(--fx-ease-out), box-shadow .26s var(--fx-ease-out), border-color .26s; }
+.card::before,.stat-card::before{
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; opacity:0; transition:opacity .3s;
+  background:radial-gradient(380px circle at var(--fx-mx,50%) var(--fx-my,0%), rgba(23,163,154,.09), transparent 60%);
+}
+.card:hover,.stat-card:hover{ transform:translateY(-3px); box-shadow:0 18px 40px -22px rgba(27,63,110,.42); border-color:#D8D5CC; }
+.card:hover::before,.stat-card:hover::before{ opacity:1; }
+.stat-card{ overflow:hidden; }
+.stat-card::after{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:linear-gradient(180deg,var(--fx-teal),var(--fx-gold)); transform:scaleY(0); transform-origin:top; transition:transform .4s var(--fx-ease-out); }
+.stat-card:hover::after{ transform:scaleY(1); }
+
+/* ── Inputs: focus ring polish ───────────────────────────────────────────── */
+.field input,.field select,.field textarea,input.search-input{ transition:border-color .2s, box-shadow .2s; }
+.field input:focus,.field select:focus,.field textarea:focus,input.search-input:focus{ box-shadow:0 0 0 3px rgba(27,63,110,.12); }
+
+/* ── Filter chips ────────────────────────────────────────────────────────── */
+.filter-chip{ position:relative; overflow:hidden; transition:transform .16s var(--fx-ease-spring), background-color .15s, border-color .15s, color .15s; }
+.filter-chip:hover{ transform:translateY(-1px); }
+.filter-chip:active{ transform:scale(.95); }
+.filter-chip.active{ animation:fxPopIn .34s var(--fx-ease-spring); }
+
+/* ── Table / list rows: hover accent + avatar tilt ──────────────────────── */
+tr.tr-click{ transition:background .2s; }
+tr.tr-click td:first-child{ position:relative; }
+tr.tr-click td:first-child::before{ content:""; position:absolute; left:0; top:6px; bottom:6px; width:0; background:linear-gradient(180deg,var(--fx-teal),var(--fx-gold)); border-radius:2px; transition:width .22s var(--fx-ease-out); }
+tr.tr-click:hover td:first-child::before{ width:3px; }
+.avatar{ transition:transform .22s var(--fx-ease-spring); }
+tr.tr-click:hover .avatar,.contact-row:hover .avatar{ transform:scale(1.07) rotate(-3deg); }
+.badge{ transition:transform .18s var(--fx-ease-spring); }
+tr.tr-click:hover .badge{ transform:scale(1.04); }
+
+/* ── Misc polish ─────────────────────────────────────────────────────────── */
+.close-x{ transition:transform .2s var(--fx-ease-spring), background .15s, color .15s, border-color .15s; }
+.close-x:hover{ transform:rotate(90deg); }
+.empty-icon{ display:inline-block; animation:fxFloat 3s ease-in-out infinite; }
+::selection{ background:rgba(23,163,154,.22); }
+
+/* ── Reduced motion: strip movement, keep the app fully usable ───────────── */
+@media (prefers-reduced-motion:reduce){
+  *{ animation-duration:.001ms!important; animation-iteration-count:1!important; transition-duration:.001ms!important; }
+  .card:hover,.stat-card:hover,.btn-primary:hover,.btn-ghost:hover,.btn-danger-soft:hover,.btn-signin:hover,.filter-chip:hover{ transform:none!important; }
+  .empty-icon{ animation:none!important; }
+}
