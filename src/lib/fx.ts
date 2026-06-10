@@ -87,13 +87,51 @@ export function initFx(): void {
     });
   }
 
+  // ── Count-up stat numbers + progress bars filling from zero (once each) ──
+  const counted = new WeakSet<Element>();
+  const filled = new WeakSet<Element>();
+
+  function animateCounts(): void {
+    document.querySelectorAll<HTMLElement>('.stat-value').forEach((el) => {
+      if (counted.has(el)) return;
+      const raw = (el.textContent ?? '').trim();
+      const target = parseInt(raw.replace(/[^0-9-]/g, ''), 10);
+      if (Number.isNaN(target)) return;
+      counted.add(el);
+      if (target === 0) return;
+      const suffix = raw.replace(/[0-9,\s-]/g, '');
+      const dur = 850;
+      const start = performance.now();
+      const step = (now: number): void => {
+        const p = Math.min((now - start) / dur, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = `${Math.round(eased * target)}${suffix}`;
+        if (p < 1) window.requestAnimationFrame(step);
+        else el.textContent = `${target}${suffix}`;
+      };
+      window.requestAnimationFrame(step);
+    });
+  }
+
+  function animateFills(): void {
+    document.querySelectorAll<HTMLElement>('.prog-fill, .wb-fill').forEach((el) => {
+      if (filled.has(el)) return;
+      const target = el.style.width;
+      if (!target) return;            // width not set yet — retry on next cycle
+      filled.add(el);
+      if (target === '0%') return;
+      el.style.width = '0%';
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => { el.style.width = target; }));
+    });
+  }
+
   function reposition(): void {
     if (scheduled) return;
     scheduled = window.requestAnimationFrame(() => {
       scheduled = 0;
-      // Disconnect while we mutate so our own pill/ink edits don't re-trigger us.
+      // Disconnect while we mutate so our own edits don't re-trigger us.
       observer?.disconnect();
-      try { positionNavPill(); positionTabInks(); } catch { /* never break the app */ }
+      try { positionNavPill(); positionTabInks(); animateCounts(); animateFills(); } catch { /* never break the app */ }
       observer?.observe(document.body, OBS);
     });
   }

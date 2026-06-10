@@ -88,6 +88,9 @@ tr.tr-click:hover .badge{ transform:scale(1.04); }
 }
 .fx-ink-on .tab-btn.active{ border-bottom-color:transparent!important; }
 
+/* ── Batch 4: smooth progress fill (fx.ts animates width from 0) ─────────── */
+.prog-fill,.wb-fill{ transition:width 1s var(--fx-ease-out); }
+
 /* ── Reduced motion: strip movement, keep the app fully usable ───────────── */
 @media (prefers-reduced-motion:reduce){
   *{ animation-duration:.001ms!important; animation-iteration-count:1!important; transition-duration:.001ms!important; }
