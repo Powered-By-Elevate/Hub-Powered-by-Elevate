@@ -110,13 +110,39 @@ export function initFx(): void {
     });
   }
 
+  // ── Live clock in the topbar (date · time with a pulsing status dot) ──
+  function injectClock(): void {
+    const bar = document.querySelector<HTMLElement>('.topbar');
+    if (!bar) return;
+    let actions = bar.querySelector<HTMLElement>('.topbar-actions');
+    if (!actions) {
+      actions = document.createElement('div');
+      actions.className = 'topbar-actions';
+      bar.appendChild(actions);
+    }
+    if (actions.querySelector('.fx-clock')) return;
+    const clock = document.createElement('div');
+    clock.className = 'fx-clock';
+    clock.innerHTML = '<span class="fx-clock-dot"></span><span class="fx-clock-t"></span>';
+    actions.insertBefore(clock, actions.firstChild);
+    tickClock();
+  }
+
+  function tickClock(): void {
+    const d = new Date();
+    const day = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+    document.querySelectorAll<HTMLElement>('.fx-clock-t').forEach((t) => { t.textContent = `${day} · ${time}`; });
+  }
+  window.setInterval(tickClock, 1000);
+
   function reposition(): void {
     if (scheduled) return;
     scheduled = window.requestAnimationFrame(() => {
       scheduled = 0;
       // Disconnect while we mutate so our own edits don't re-trigger us.
       observer?.disconnect();
-      try { positionNavPill(); positionTabInks(); animateCounts(); animateFills(); } catch { /* never break the app */ }
+      try { positionNavPill(); positionTabInks(); animateCounts(); animateFills(); injectClock(); } catch { /* never break the app */ }
       observer?.observe(document.body, OBS);
     });
   }

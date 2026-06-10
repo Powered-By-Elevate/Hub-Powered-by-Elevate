@@ -23,6 +23,7 @@ import {
   QuarterlyCheckin, AnnualReview,
 } from '../lib/database.types';
 import { HRSidebar } from '../components/hr/Sidebar';
+import { ActivityTicker } from '../components/hr/ActivityTicker';
 import { HRDashboard } from '../components/hr/Dashboard';
 import { EmployeeList } from '../components/hr/EmployeeList';
 import { EmployeeDetail } from '../components/hr/EmployeeDetail';
@@ -649,6 +650,7 @@ export function HRApp() {
 
   return (
     <>
+      <ActivityTicker items={activity} />
       <div className="app-shell">
         <HRSidebar tab={tab} onTab={t => { setTab(t as HRTab); if (t !== 'detail') setSelectedEmpId(null); }} />
         <div className="main-area">
