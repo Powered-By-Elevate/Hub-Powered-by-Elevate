@@ -29,21 +29,6 @@ export function initFx(): void {
     window.setTimeout(() => ripple.remove(), 620);
   }, true);
 
-  // Cursor-tracking inner glow on cards (fine pointers only).
-  if (window.matchMedia('(hover:hover) and (pointer:fine)').matches) {
-    let raf = 0;
-    document.addEventListener('mousemove', (e) => {
-      const card = (e.target as HTMLElement | null)?.closest<HTMLElement>('.card,.stat-card');
-      if (!card || raf) return;
-      raf = window.requestAnimationFrame(() => {
-        const rect = card.getBoundingClientRect();
-        card.style.setProperty('--fx-mx', `${((e.clientX - rect.left) / rect.width) * 100}%`);
-        card.style.setProperty('--fx-my', `${((e.clientY - rect.top) / rect.height) * 100}%`);
-        raf = 0;
-      });
-    }, { passive: true });
-  }
-
   // ── Sliding active-pill (sidebar nav) + sliding tab underline ──
   // DOM-driven so it works across the HR and employee shells without touching
   // components. The native .active highlight is the fallback: fx.css only hides
