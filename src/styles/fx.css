@@ -21,6 +21,8 @@
 @keyframes fxRise   { from{opacity:0;transform:translateY(24px) scale(.985)} to{opacity:1;transform:none} }
 @keyframes fxBlobDrift{ 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(36px,-26px) scale(1.12)} 66%{transform:translate(-26px,22px) scale(.94)} }
 @keyframes fxToastIn{ from{opacity:0;transform:translateY(14px) scale(.96)} to{opacity:1;transform:none} }
+@keyframes fxPulse{ 0%{box-shadow:0 0 0 0 rgba(45,154,96,.5)} 70%{box-shadow:0 0 0 7px rgba(45,154,96,0)} 100%{box-shadow:0 0 0 0 rgba(45,154,96,0)} }
+@keyframes fxTicker{ from{transform:translateX(0)} to{transform:translateX(-50%)} }
 
 /* ── Buttons: lift, press, ripple, sheen ─────────────────────────────────── */
 .btn-primary,.btn-ghost,.btn-danger-soft,.btn-signin{
@@ -123,6 +125,35 @@ tr.tr-click:hover .badge{ transform:scale(1.04); }
 .fx-toast.warn .fx-toast-ic{ background:linear-gradient(135deg,var(--fx-gold),#D97706); }
 .fx-toast.error .fx-toast-ic{ background:linear-gradient(135deg,#DC2626,#B91C1C); }
 .fx-toast .fx-toast-sub{ font-size:11px; color:#9B9890; font-weight:500; margin-top:1px; }
+
+/* ── Live clock (injected by fx.ts into the topbar) ──────────────────────── */
+.fx-clock{ display:flex; align-items:center; gap:7px; font-size:12px; font-weight:500; color:#9B9890; white-space:nowrap; padding-right:2px; }
+.fx-clock-dot{ width:6px; height:6px; border-radius:50%; background:#2D9A60; display:inline-block; animation:fxPulse 2s infinite; }
+
+/* ── Activity ticker (footer crawler, HR desktop) ────────────────────────── */
+#fx-ticker{
+  position:fixed; left:0; right:0; bottom:0; height:32px; z-index:60;
+  display:flex; align-items:center; overflow:hidden;
+  background:linear-gradient(90deg,#1B3F6E,#122B4D);
+  border-top:1px solid rgba(255,255,255,.08); color:#fff; font-size:12px;
+  box-shadow:0 -6px 22px -14px rgba(0,0,0,.5);
+}
+#fx-ticker .fx-ticker-tag{
+  flex-shrink:0; height:100%; display:flex; align-items:center; gap:7px; padding:0 14px;
+  background:linear-gradient(90deg,var(--fx-teal),var(--fx-green)); font-weight:700; font-size:10px;
+  letter-spacing:1px; text-transform:uppercase; z-index:2; box-shadow:6px 0 14px -6px rgba(0,0,0,.5);
+}
+#fx-ticker .fx-ticker-tag::before{ content:""; width:6px; height:6px; border-radius:50%; background:#fff; animation:fxPulse 1.8s infinite; }
+#fx-ticker .fx-ticker-track{ display:flex; align-items:center; white-space:nowrap; animation:fxTicker 46s linear infinite; }
+#fx-ticker:hover .fx-ticker-track{ animation-play-state:paused; }
+#fx-ticker .fx-ticker-item{ display:inline-flex; align-items:center; gap:8px; padding:0 26px; color:rgba(255,255,255,.82); }
+#fx-ticker .fx-ticker-item b{ color:#fff; font-weight:600; }
+#fx-ticker .fx-tdot{ width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+/* lift the app off the ticker */
+body.fx-has-ticker .main-area{ padding-bottom:32px; }
+body.fx-has-ticker .sidebar{ bottom:32px; }
+body.fx-has-ticker .fx-toasts{ bottom:48px; }
+@media(max-width:767px){ #fx-ticker{ display:none; } body.fx-has-ticker .main-area{ padding-bottom:0; } body.fx-has-ticker .sidebar{ bottom:0; } }
 
 /* ── Reduced motion: strip movement, keep the app fully usable ───────────── */
 @media (prefers-reduced-motion:reduce){
