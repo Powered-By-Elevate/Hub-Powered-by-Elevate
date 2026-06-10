@@ -189,9 +189,9 @@ export function EmpMyCertifications({ certifications }: MyCertificationsProps) {
 }
 
 // ── My Check-ins ─────────────────────────────────────────────────────────────
-// Employee view: shows date and pillar_focus ONLY
-// Hidden: motivation_level, decision, pillar_reflection, contribution_to_growth,
-//         business_dev_involvement, notes (all HR-internal)
+// Employees (and managers viewing their own) see the substance of their
+// check-ins: notes and ratings included. Internal flags (motivation_level,
+// decision) stay HR-only.
 
 interface MyCheckinsProps {
   checkins: Checkin[];
@@ -209,6 +209,8 @@ export function EmpMyCheckins({ checkins, quarterlyCheckins, lifecycleCheckins }
     label: string;
     status?: string;
     pillar_focus?: string | null;
+    notes?: string | null;
+    rating?: string | null;
   };
 
   const combined: CheckinEntry[] = [
@@ -218,6 +220,8 @@ export function EmpMyCheckins({ checkins, quarterlyCheckins, lifecycleCheckins }
       type: 'Quarterly' as const,
       label: `${c.quarter} ${c.year} Check-in`,
       status: c.status,
+      notes: c.notes,
+      rating: c.rating,
     })),
     ...lifecycleCheckins.filter(lc => lc.status !== 'skipped').map(lc => ({
       id: lc.id,
@@ -225,6 +229,8 @@ export function EmpMyCheckins({ checkins, quarterlyCheckins, lifecycleCheckins }
       type: 'Lifecycle' as const,
       label: `Day ${lc.milestone_day} Check-in`,
       status: lc.status,
+      notes: lc.notes,
+      rating: lc.rating,
     })),
     ...checkins.map(c => ({
       id: c.id,
@@ -232,6 +238,7 @@ export function EmpMyCheckins({ checkins, quarterlyCheckins, lifecycleCheckins }
       type: 'Legacy' as const,
       label: 'Quarterly Check-in',
       pillar_focus: c.pillar_focus,
+      notes: c.notes,
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -268,25 +275,40 @@ export function EmpMyCheckins({ checkins, quarterlyCheckins, lifecycleCheckins }
                   ? { bg: '#F0F9FF', color: '#075985' }
                   : { bg: '#F2F1ED', color: '#6B6860' };
               return (
-                <div key={`${c.type}-${c.id}`} style={{ padding: '14px 1.25rem', borderBottom: '1px solid #F2F1ED', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontWeight: 700, fontSize: 14 }}>{c.label}</span>
-                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: typeColor.bg, color: typeColor.color, fontWeight: 700 }}>{c.type}</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: '#9B9890' }}>{fmt(c.date)}</div>
-                    {c.pillar_focus && (
-                      <div style={{ marginTop: 6 }}>
-                        <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 10, background: '#E8EFF8', color: '#1B3F6E', fontWeight: 600 }}>
-                          {c.pillar_focus}
-                        </span>
+                <div key={`${c.type}-${c.id}`} style={{ padding: '14px 1.25rem', borderBottom: '1px solid #F2F1ED' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontWeight: 700, fontSize: 14 }}>{c.label}</span>
+                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: typeColor.bg, color: typeColor.color, fontWeight: 700 }}>{c.type}</span>
                       </div>
-                    )}
+                      <div style={{ fontSize: 12, color: '#9B9890' }}>{fmt(c.date)}</div>
+                      {c.pillar_focus && (
+                        <div style={{ marginTop: 6 }}>
+                          <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 10, background: '#E8EFF8', color: '#1B3F6E', fontWeight: 600 }}>
+                            {c.pillar_focus}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                      {c.rating && (
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 10, background: '#E8EFF8', color: '#1B3F6E' }}>
+                          {c.rating}
+                        </span>
+                      )}
+                      {c.status && (
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 10, background: statusColor.bg, color: statusColor.color }}>
+                          {c.status}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  {c.status && (
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 10, background: statusColor.bg, color: statusColor.color }}>
-                      {c.status}
-                    </span>
+                  {c.notes && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#9B9890', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 }}>Notes</div>
+                      <div style={{ fontSize: 13, color: '#1A1916', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{c.notes}</div>
+                    </div>
                   )}
                 </div>
               );
@@ -299,8 +321,8 @@ export function EmpMyCheckins({ checkins, quarterlyCheckins, lifecycleCheckins }
 }
 
 // ── My Reviews ───────────────────────────────────────────────────────────────
-// Employee view: shows date, type, year ONLY
-// Hidden: sentiment, notes, pdf_path (all HR-internal)
+// Employees (and managers viewing their own) see the full content of their
+// reviews: ratings, summaries, notes, goals, and any attached review documents.
 
 interface MyReviewsProps {
   reviews: Review[];
@@ -309,6 +331,11 @@ interface MyReviewsProps {
 }
 
 export function EmpMyReviews({ reviews, annualReviews }: MyReviewsProps) {
+  async function viewAttachment(path: string) {
+    const { data } = await supabase.storage.from('review-documents').createSignedUrl(path, 3600);
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+  }
+
   type ReviewEntry = {
     id: string;
     date: string;
@@ -316,6 +343,12 @@ export function EmpMyReviews({ reviews, annualReviews }: MyReviewsProps) {
     year: number;
     source: 'annual' | 'legacy';
     status?: string;
+    rating?: string | null;
+    summary?: string | null;
+    goals?: string | null;
+    notes?: string | null;
+    sentiment?: string | null;
+    pdfPath?: string | null;
   };
 
   const combined: ReviewEntry[] = [
@@ -326,6 +359,9 @@ export function EmpMyReviews({ reviews, annualReviews }: MyReviewsProps) {
       year: r.review_year,
       source: 'annual' as const,
       status: r.status,
+      rating: r.rating != null ? `${r.rating} / 5${r.rating_label ? ` · ${r.rating_label}` : ''}` : null,
+      summary: r.summary,
+      goals: r.goals_next_year,
     })),
     ...reviews.map(r => ({
       id: r.id,
@@ -333,6 +369,9 @@ export function EmpMyReviews({ reviews, annualReviews }: MyReviewsProps) {
       type: r.review_type,
       year: r.review_year,
       source: 'legacy' as const,
+      sentiment: r.sentiment,
+      notes: r.notes,
+      pdfPath: r.pdf_path,
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -362,19 +401,52 @@ export function EmpMyReviews({ reviews, annualReviews }: MyReviewsProps) {
                   ? { bg: '#FEE2E2', color: '#991B1B' }
                   : { bg: '#FEF3C7', color: '#92400E' };
               return (
-                <div key={`${r.source}-${r.id}`} style={{ padding: '14px 1.25rem', borderBottom: '1px solid #F2F1ED', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 15 }}>{r.type} {r.year}</div>
-                    <div style={{ fontSize: 12, color: '#9B9890', marginTop: 3 }}>{fmt(r.date)}</div>
+                <div key={`${r.source}-${r.id}`} style={{ padding: '14px 1.25rem', borderBottom: '1px solid #F2F1ED' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 15 }}>{r.type} {r.year}</div>
+                      <div style={{ fontSize: 12, color: '#9B9890', marginTop: 3 }}>{fmt(r.date)}</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                      {r.rating && (
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 10, background: '#E8EFF8', color: '#1B3F6E' }}>
+                          {r.rating}
+                        </span>
+                      )}
+                      {r.sentiment && (
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#6B6860', background: '#F2F1ED', padding: '3px 10px', borderRadius: 8 }}>
+                          {r.sentiment}
+                        </span>
+                      )}
+                      {r.status && (
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 10, background: statusColor.bg, color: statusColor.color }}>
+                          {r.status}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  {r.status ? (
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 10, background: statusColor.bg, color: statusColor.color }}>
-                      {r.status}
-                    </span>
-                  ) : (
-                    <span style={{ fontSize: 11, fontWeight: 600, color: '#6B6860', background: '#F2F1ED', padding: '3px 10px', borderRadius: 8 }}>
-                      {r.type}
-                    </span>
+                  {r.summary && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#9B9890', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 }}>Summary</div>
+                      <div style={{ fontSize: 13, color: '#1A1916', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{r.summary}</div>
+                    </div>
+                  )}
+                  {r.goals && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#9B9890', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 }}>Goals for Next Year</div>
+                      <div style={{ fontSize: 13, color: '#1A1916', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{r.goals}</div>
+                    </div>
+                  )}
+                  {r.notes && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#9B9890', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 }}>Notes</div>
+                      <div style={{ fontSize: 13, color: '#1A1916', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{r.notes}</div>
+                    </div>
+                  )}
+                  {r.pdfPath && (
+                    <button className="btn-ghost sm" style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 10 }} onClick={() => viewAttachment(r.pdfPath!)}>
+                      <FileText size={12} /> View Review Document
+                    </button>
                   )}
                 </div>
               );
