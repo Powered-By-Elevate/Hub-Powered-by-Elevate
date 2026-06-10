@@ -6,16 +6,20 @@ import { Employee } from '../../../lib/database.types';
 
 
 interface Props {
-  employeeId: string;
+  /** Fixed target employee. Omit to let the user pick from `employees`. */
+  employeeId?: string;
   employee?: Employee;
+  /** Choices for the "Assign to" picker when no employeeId is given. */
+  employees?: Employee[];
   assignedByRole?: 'hr' | 'manager' | 'employee';
   assignedByName?: string;
   onClose: () => void;
-  onCreated: () => void;
+  onCreated: (employeeId?: string) => void;
 }
 
-export function AddTaskModal({ employeeId, employee, assignedByRole = 'hr', assignedByName, onClose, onCreated }: Props) {
+export function AddTaskModal({ employeeId, employee, employees, assignedByRole = 'hr', assignedByName, onClose, onCreated }: Props) {
   const { user, profile } = useAuth();
+  const [empId, setEmpId] = useState(employeeId ?? '');
   const [form, setForm] = useState({
     title: '', description: '', category: 'document', dueDate: '',
     notes: '', required: false, triage: 'normal' as 'critical' | 'normal',
@@ -23,13 +27,15 @@ export function AddTaskModal({ employeeId, employee, assignedByRole = 'hr', assi
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const taskPhase = employee?.lifecycle_status === 'active' ? 'active' : 'onboarding';
+  const targetEmp = employee ?? employees?.find(e => e.id === empId);
+  const taskPhase = targetEmp?.lifecycle_status === 'active' ? 'active' : 'onboarding';
 
   async function handleSave() {
+    if (!empId) { setError('Pick who this task is for.'); return; }
     if (!form.title.trim()) { setError('Task title is required.'); return; }
     setSaving(true);
     const { error: err } = await supabase.from('onboarding_tasks').insert({
-      employee_id: employeeId,
+      employee_id: empId,
       title: form.title.trim(),
       description: form.description || null,
       category: form.category,
@@ -46,7 +52,7 @@ export function AddTaskModal({ employeeId, employee, assignedByRole = 'hr', assi
     });
     setSaving(false);
     if (err) { setError(err.message); return; }
-    onCreated();
+    onCreated(empId);
     onClose();
   }
 
@@ -59,6 +65,17 @@ export function AddTaskModal({ employeeId, employee, assignedByRole = 'hr', assi
     }>
       {error && <div className="error-msg">{error}</div>}
       <div className="form-grid">
+        {!employeeId && (
+          <div className="field full">
+            <label>Assign to</label>
+            <select value={empId} onChange={e => setEmpId(e.target.value)}>
+              <option value="">— Select an employee —</option>
+              {(employees ?? []).map(e => (
+                <option key={e.id} value={e.id}>{e.name}{e.role ? ` · ${e.role}` : ''}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="field full">
           <label>Task title</label>
           <input type="text" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Complete benefits enrollment form" />

@@ -26,6 +26,7 @@ import { MobileDocuments } from '../components/mobile/MobileDocuments';
 import { SpotlightTour } from '../components/shared/SpotlightTour';
 import { employeeOnboardingTour, employeeOnboardingIntro, employeeOnboardingOutro, employeeActiveTour, employeeActiveIntro, employeeActiveOutro, managerTour, managerIntro, managerOutro } from '../lib/tours';
 import { NotificationBell } from '../components/shared/NotificationBell';
+import { toast } from '../lib/toast';
 
 function useMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -505,16 +506,17 @@ export function EmployeeApp() {
             }}
           />
         )}
-        {modal?.type === 'add-task' && modal.eid && isManager && (() => {
+        {modal?.type === 'add-task' && isManager && (() => {
           const taskEmp = team.find(e => e.id === modal.eid);
           return (
             <AddTaskModal
               employeeId={modal.eid}
               employee={taskEmp}
+              employees={team}
               assignedByRole="manager"
               assignedByName={employee?.name ?? profile?.email ?? undefined}
               onClose={() => setModal(null)}
-              onCreated={() => { if (modal.eid) loadTeamMemberTasks(modal.eid); }}
+              onCreated={(eid) => { const id = eid ?? modal.eid; if (id) loadTeamMemberTasks(id); toast.ok('Task assigned'); }}
             />
           );
         })()}
@@ -523,7 +525,7 @@ export function EmployeeApp() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell emp-shell">
       {profile?.id && (
         <div style={{ position: 'fixed', top: 16, right: 24, zIndex: 50 }}>
           <NotificationBell
@@ -697,16 +699,17 @@ export function EmployeeApp() {
         />
       )}
 
-      {modal?.type === 'add-task' && modal.eid && isManager && (() => {
+      {modal?.type === 'add-task' && isManager && (() => {
         const taskEmp = team.find(e => e.id === modal.eid);
         return (
           <AddTaskModal
             employeeId={modal.eid}
             employee={taskEmp}
+            employees={team}
             assignedByRole="manager"
             assignedByName={employee?.name ?? profile?.email ?? undefined}
             onClose={() => setModal(null)}
-            onCreated={() => { if (modal.eid) loadTeamMemberTasks(modal.eid); }}
+            onCreated={(eid) => { const id = eid ?? modal.eid; if (id) loadTeamMemberTasks(id); toast.ok('Task assigned'); }}
           />
         );
       })()}
