@@ -71,6 +71,23 @@ tr.tr-click:hover .badge{ transform:scale(1.04); }
 .empty-icon{ display:inline-block; animation:fxFloat 3s ease-in-out infinite; }
 ::selection{ background:rgba(23,163,154,.22); }
 
+/* ── Batch 3: sliding nav pill + tab underline (positioned by fx.ts) ─────── */
+.sidebar-nav{ position:relative; }
+#fx-navpill{
+  position:absolute; height:0; border-radius:8px; background:rgba(255,255,255,.16); opacity:0;
+  z-index:0; pointer-events:none;
+  transition:top .34s var(--fx-ease-spring), left .34s var(--fx-ease-spring), width .34s var(--fx-ease-spring), height .34s var(--fx-ease-spring), opacity .2s;
+}
+.fx-pill-on .nav-btn{ position:relative; z-index:1; }
+.fx-pill-on .nav-btn.active{ background:transparent!important; }
+
+.fx-tab-ink{
+  position:absolute; bottom:-1px; height:2px; border-radius:2px; pointer-events:none; z-index:1;
+  background:linear-gradient(90deg,var(--fx-navy),var(--fx-teal));
+  transition:left .3s var(--fx-ease-spring), width .3s var(--fx-ease-spring);
+}
+.fx-ink-on .tab-btn.active{ border-bottom-color:transparent!important; }
+
 /* ── Reduced motion: strip movement, keep the app fully usable ───────────── */
 @media (prefers-reduced-motion:reduce){
   *{ animation-duration:.001ms!important; animation-iteration-count:1!important; transition-duration:.001ms!important; }
