@@ -4,10 +4,12 @@ import App from './App.tsx';
 import './index.css';
 import './styles/fx.css';
 import { initFx } from './lib/fx';
+import { Toaster } from './components/shared/Toaster';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
+    <Toaster />
   </StrictMode>
 );
 
