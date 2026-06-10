@@ -4,6 +4,7 @@ import { LifecycleCheckin } from '../../../lib/database.types';
 import { Modal } from '../../shared/Modal';
 import { useAuth } from '../../../contexts/AuthContext';
 import { createEventWithTeamsMeeting, deleteCalendarEvent } from '../../../lib/graph';
+import { toast } from '../../../lib/toast';
 
 interface Props {
   checkin: LifecycleCheckin;
@@ -48,6 +49,7 @@ export function EditLifecycleCheckinModal({ checkin, employeeName, employeeEmail
       setConfirmingDelete(false);
       return;
     }
+    toast.ok('Check-in deleted');
     onSaved();
     onClose();
   }
@@ -88,6 +90,7 @@ export function EditLifecycleCheckinModal({ checkin, employeeName, employeeEmail
     const { error: err } = await supabase.from('lifecycle_checkins').update(patch).eq('id', checkin.id);
     setSaving(false);
     if (err) { setError(err.message); return; }
+    toast.ok('Check-in updated');
     onSaved();
     onClose();
   }

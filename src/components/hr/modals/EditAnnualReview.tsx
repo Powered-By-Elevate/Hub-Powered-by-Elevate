@@ -4,6 +4,7 @@ import { AnnualReview, ReviewStatus } from '../../../lib/database.types';
 import { Modal } from '../../shared/Modal';
 import { useAuth } from '../../../contexts/AuthContext';
 import { createEventWithTeamsMeeting, deleteCalendarEvent } from '../../../lib/graph';
+import { toast } from '../../../lib/toast';
 
 interface Props {
   review: AnnualReview;
@@ -52,6 +53,7 @@ export function EditAnnualReviewModal({ review, employeeName, employeeEmail, onC
       setConfirmingDelete(false);
       return;
     }
+    toast.ok('Review deleted');
     onSaved();
     onClose();
   }
@@ -95,6 +97,7 @@ export function EditAnnualReviewModal({ review, employeeName, employeeEmail, onC
     const { error: err } = await supabase.from('annual_reviews').update(patch).eq('id', review.id);
     setSaving(false);
     if (err) { setError(err.message); return; }
+    toast.ok('Review updated');
     onSaved();
     onClose();
   }
