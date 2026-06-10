@@ -43,4 +43,65 @@ export function initFx(): void {
       });
     }, { passive: true });
   }
+
+  // ── Sliding active-pill (sidebar nav) + sliding tab underline ──
+  // DOM-driven so it works across the HR and employee shells without touching
+  // components. The native .active highlight is the fallback: fx.css only hides
+  // it once these classes are applied, so if positioning ever fails the app
+  // still shows the active state.
+  const OBS = { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] };
+  let observer: MutationObserver | null = null;
+  let scheduled = 0;
+
+  function positionNavPill(): void {
+    const nav = document.querySelector<HTMLElement>('.sidebar-nav');
+    let pill = document.getElementById('fx-navpill');
+    if (!nav) { if (pill) pill.style.opacity = '0'; return; }
+    const active = nav.querySelector<HTMLElement>('.nav-btn.active');
+    if (!active) { nav.classList.remove('fx-pill-on'); if (pill) pill.style.opacity = '0'; return; }
+    if (!pill || pill.parentElement !== nav) {
+      pill = pill || document.createElement('div');
+      pill.id = 'fx-navpill';
+      nav.insertBefore(pill, nav.firstChild);
+    }
+    nav.classList.add('fx-pill-on');
+    pill.style.opacity = '1';
+    pill.style.top = `${active.offsetTop}px`;
+    pill.style.left = `${active.offsetLeft}px`;
+    pill.style.width = `${active.offsetWidth}px`;
+    pill.style.height = `${active.offsetHeight}px`;
+  }
+
+  function positionTabInks(): void {
+    const seen = new Set<HTMLElement>();
+    document.querySelectorAll<HTMLElement>('.tab-btn.active').forEach((active) => {
+      const parent = active.parentElement;
+      if (!parent || seen.has(parent)) return;
+      seen.add(parent);
+      parent.classList.add('fx-ink-on');
+      if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
+      let ink = parent.querySelector<HTMLElement>(':scope > .fx-tab-ink');
+      if (!ink) { ink = document.createElement('span'); ink.className = 'fx-tab-ink'; parent.appendChild(ink); }
+      ink.style.left = `${active.offsetLeft}px`;
+      ink.style.width = `${active.offsetWidth}px`;
+    });
+  }
+
+  function reposition(): void {
+    if (scheduled) return;
+    scheduled = window.requestAnimationFrame(() => {
+      scheduled = 0;
+      // Disconnect while we mutate so our own pill/ink edits don't re-trigger us.
+      observer?.disconnect();
+      try { positionNavPill(); positionTabInks(); } catch { /* never break the app */ }
+      observer?.observe(document.body, OBS);
+    });
+  }
+
+  observer = new MutationObserver(reposition);
+  observer.observe(document.body, OBS);
+  window.addEventListener('resize', reposition, { passive: true });
+  reposition();
+  window.setTimeout(reposition, 150);
+  window.setTimeout(reposition, 450);
 }
