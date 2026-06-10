@@ -16,6 +16,10 @@
 @keyframes fxRipple{ to{transform:scale(2.6);opacity:0} }
 @keyframes fxSheen { 0%{transform:translateX(-130%) skewX(-18deg)} 100%{transform:translateX(230%) skewX(-18deg)} }
 @keyframes fxFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+@keyframes fxFadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+@keyframes fxFadeIn { from{opacity:0} to{opacity:1} }
+@keyframes fxRise   { from{opacity:0;transform:translateY(24px) scale(.985)} to{opacity:1;transform:none} }
+@keyframes fxBlobDrift{ 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(36px,-26px) scale(1.12)} 66%{transform:translate(-26px,22px) scale(.94)} }
 
 /* ── Buttons: lift, press, ripple, sheen ─────────────────────────────────── */
 .btn-primary,.btn-ghost,.btn-danger-soft,.btn-signin{
@@ -90,6 +94,29 @@ tr.tr-click:hover .badge{ transform:scale(1.04); }
 
 /* ── Batch 4: smooth progress fill (fx.ts animates width from 0) ─────────── */
 .prog-fill,.wb-fill{ transition:width 1s var(--fx-ease-out); }
+
+/* ── Batch 5: login entrance + drifting blobs + modal polish ─────────────── */
+.login-wrap{ position:relative; overflow:hidden; }
+.login-wrap::before,.login-wrap::after{ content:""; position:absolute; border-radius:50%; filter:blur(50px); opacity:.5; z-index:0; pointer-events:none; }
+.login-wrap::before{ width:420px; height:420px; top:-120px; left:-90px; background:radial-gradient(circle,#BFE3DE,transparent 70%); animation:fxBlobDrift 17s ease-in-out infinite; }
+.login-wrap::after{ width:380px; height:380px; bottom:-140px; right:-80px; background:radial-gradient(circle,#FBE6BE,transparent 70%); animation:fxBlobDrift 21s ease-in-out infinite reverse; }
+.login-card{ position:relative; z-index:1; animation:fxRise .7s var(--fx-ease-out) both; }
+.login-logo{ animation:fxFadeUp .6s var(--fx-ease-out) .05s both; }
+.login-card h2{ animation:fxFadeUp .6s var(--fx-ease-out) .14s both; }
+.login-sub{ animation:fxFadeUp .6s var(--fx-ease-out) .20s both; }
+.role-tabs{ animation:fxFadeUp .6s var(--fx-ease-out) .26s both; }
+.login-card .field{ animation:fxFadeUp .6s var(--fx-ease-out) both; }
+.login-card .field:nth-of-type(1){ animation-delay:.30s; }
+.login-card .field:nth-of-type(2){ animation-delay:.36s; }
+.demo-hint{ animation:fxFadeUp .6s var(--fx-ease-out) .46s both; }
+
+.modal-overlay{ animation:fxFadeIn .22s ease both; backdrop-filter:blur(4px); }
+.modal{ animation:fxRise .42s var(--fx-ease-spring) both; }
+.modal .field{ animation:fxFadeUp .4s var(--fx-ease-out) both; }
+.modal .form-grid .field:nth-child(1){ animation-delay:.04s; }
+.modal .form-grid .field:nth-child(2){ animation-delay:.08s; }
+.modal .form-grid .field:nth-child(3){ animation-delay:.12s; }
+.modal .form-grid .field:nth-child(4){ animation-delay:.16s; }
 
 /* ── Reduced motion: strip movement, keep the app fully usable ───────────── */
 @media (prefers-reduced-motion:reduce){
