@@ -1,6 +1,7 @@
 import { Employee, DevelopmentPlan, Certification, Checkin, Review, Pathway } from '../../lib/database.types';
 import { supabase } from '../../lib/supabase';
 import { FileText } from 'lucide-react';
+import { toast } from '../../lib/toast';
 
 function fmt(d: string | null | undefined) {
   if (!d) return '—';
@@ -125,8 +126,9 @@ interface MyCertificationsProps {
 
 export function EmpMyCertifications({ certifications }: MyCertificationsProps) {
   async function viewProof(path: string) {
-    const { data } = await supabase.storage.from('certification-proofs').createSignedUrl(path, 3600);
+    const { data, error } = await supabase.storage.from('certification-proofs').createSignedUrl(path, 3600);
     if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+    else toast.error("Couldn't open the proof document", error?.message ?? 'The file may be missing or access is not configured.');
   }
 
   const completed = certifications.filter(c => c.status === 'Completed');
@@ -332,8 +334,9 @@ interface MyReviewsProps {
 
 export function EmpMyReviews({ reviews, annualReviews }: MyReviewsProps) {
   async function viewAttachment(path: string) {
-    const { data } = await supabase.storage.from('review-documents').createSignedUrl(path, 3600);
+    const { data, error } = await supabase.storage.from('review-documents').createSignedUrl(path, 3600);
     if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+    else toast.error("Couldn't open the review document", error?.message ?? 'The file may be missing or access is not configured.');
   }
 
   type ReviewEntry = {

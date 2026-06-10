@@ -10,6 +10,7 @@ import { Modal } from '../shared/Modal';
 import { applyScheduleTemplate } from '../../lib/scheduleTemplates';
 import { ScheduleTemplateWithEvents } from '../../lib/database.types';
 import { useAuth } from '../../contexts/AuthContext';
+import { toast } from '../../lib/toast';
 import { getTenantUserByEmail } from '../../lib/graph';
 
 type DetailTab = 'overview' | 'tasks' | 'documents' | 'schedule' | 'checkins' | 'reviews' | 'development' | 'certifications' | 'notes';
@@ -792,7 +793,12 @@ function ReviewsTab({ reviews, empId, onChanged }: { reviews: Review[]; empId: s
     let pdf_path: string | null = null;
     if (form.pdf) {
       const path = `${empId}/${Date.now()}_${form.pdf.name}`;
-      await supabase.storage.from('review-documents').upload(path, form.pdf, { upsert: true });
+      const { error: upErr } = await supabase.storage.from('review-documents').upload(path, form.pdf, { upsert: true });
+      if (upErr) {
+        setSaving(false);
+        toast.error('PDF upload failed', upErr.message);
+        return;
+      }
       pdf_path = path;
     }
     const payload = { employee_id: empId, review_date: form.review_date, review_type: form.review_type, review_year: form.review_year, sentiment: form.sentiment, notes: form.notes, ...(pdf_path ? { pdf_path } : {}) };
@@ -821,8 +827,9 @@ function ReviewsTab({ reviews, empId, onChanged }: { reviews: Review[]; empId: s
   }
 
   async function viewPdf(path: string) {
-    const { data } = await supabase.storage.from('review-documents').createSignedUrl(path, 3600);
+    const { data, error } = await supabase.storage.from('review-documents').createSignedUrl(path, 3600);
     if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+    else toast.error("Couldn't open the review document", error?.message ?? 'The file may be missing or access is not configured.');
   }
 
   return (
@@ -1040,7 +1047,12 @@ function CertificationsTab({ certifications, empId, onChanged }: { certification
     let proof_path: string | null = null;
     if (form.proof) {
       const path = `${empId}/${Date.now()}_${form.proof.name}`;
-      await supabase.storage.from('certification-proofs').upload(path, form.proof, { upsert: true });
+      const { error: upErr } = await supabase.storage.from('certification-proofs').upload(path, form.proof, { upsert: true });
+      if (upErr) {
+        setSaving(false);
+        toast.error('Proof upload failed', upErr.message);
+        return;
+      }
       proof_path = path;
     }
     const payload = { employee_id: empId, course_name: form.course_name.trim(), status: form.status, completion_date: form.completion_date || null, ...(proof_path ? { proof_path } : {}) };
@@ -1069,8 +1081,9 @@ function CertificationsTab({ certifications, empId, onChanged }: { certification
   }
 
   async function viewProof(path: string) {
-    const { data } = await supabase.storage.from('certification-proofs').createSignedUrl(path, 3600);
+    const { data, error } = await supabase.storage.from('certification-proofs').createSignedUrl(path, 3600);
     if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+    else toast.error("Couldn't open the proof document", error?.message ?? 'The file may be missing or access is not configured.');
   }
 
   const statusColors: Record<string, { bg: string; color: string }> = {
