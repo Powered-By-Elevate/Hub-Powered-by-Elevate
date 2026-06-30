@@ -3,7 +3,7 @@ import { Employee, QuarterlyCheckin, AnnualReview, LifecycleCheckin } from '../.
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatTime12h } from '../shared/utils';
 import { useAuth } from '../../contexts/AuthContext';
-import { getMyCalendarEvents, type MsCalendarEvent } from '../../lib/graph';
+import { getMyCalendarEvents, getUserCalendarEvents, type MsCalendarEvent, type CalendarAccess } from '../../lib/graph';
 
 interface Props {
   employees: Employee[];
@@ -31,6 +31,14 @@ export function HRSchedule({ employees, checkins, reviews, lifecycleCheckins, on
   const { session } = useAuth();
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date()));
   const [outlookEvents, setOutlookEvents] = useState<MsCalendarEvent[]>([]);
+  const [viewEmpId, setViewEmpId] = useState<string>('me');
+  const [access, setAccess] = useState<CalendarAccess>('ok');
+
+  const viewingSelf = viewEmpId === 'me';
+  const viewedEmp = viewingSelf ? null : employees.find(e => e.id === viewEmpId) ?? null;
+  const calendarPeople = employees
+    .filter(e => !e.archived && !e.is_test_account && e.email)
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const today = fmtDate(new Date());
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -43,14 +51,22 @@ export function HRSchedule({ employees, checkins, reviews, lifecycleCheckins, on
   // for non-SSO sessions.
   useEffect(() => {
     const token = session?.provider_token;
-    if (!token) { setOutlookEvents([]); return; }
+    if (!token) { setOutlookEvents([]); setAccess('ok'); return; }
     const from = new Date(weekDays[0]); from.setHours(0, 0, 0, 0);
     const to = new Date(weekDays[6]); to.setHours(23, 59, 59, 999);
     let cancelled = false;
-    getMyCalendarEvents(token, from.toISOString(), to.toISOString())
-      .then(evs => { if (!cancelled) setOutlookEvents(evs); });
+    if (viewingSelf) {
+      getMyCalendarEvents(token, from.toISOString(), to.toISOString())
+        .then(evs => { if (!cancelled) { setOutlookEvents(evs); setAccess('ok'); } });
+    } else {
+      const email = viewedEmp?.email;
+      if (!email) { setOutlookEvents([]); setAccess('error'); return; }
+      getUserCalendarEvents(token, email, from.toISOString(), to.toISOString())
+        .then(res => { if (!cancelled) { setOutlookEvents(res.events); setAccess(res.access); } });
+    }
     return () => { cancelled = true; };
-  }, [session?.provider_token, weekStart]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.provider_token, weekStart, viewEmpId]);
 
   function outlookForDay(dateStr: string): MsCalendarEvent[] {
     return outlookEvents
@@ -104,8 +120,14 @@ export function HRSchedule({ employees, checkins, reviews, lifecycleCheckins, on
     <>
       <div className="topbar">
         <div className="topbar-left">
-          <h1>My Schedule</h1>
-          <p>Your Outlook calendar plus this week's HR events</p>
+          <h1>{viewingSelf ? 'My Schedule' : `${viewedEmp?.name ?? 'Employee'}’s Calendar`}</h1>
+          <p>{viewingSelf ? "Your Outlook calendar plus this week's HR events" : 'Their Outlook calendar for the selected week'}</p>
+        </div>
+        <div className="topbar-actions">
+          <select value={viewEmpId} onChange={e => setViewEmpId(e.target.value)} style={{ minWidth: 210 }} title="View another employee's calendar">
+            <option value="me">📅 My calendar</option>
+            {calendarPeople.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+          </select>
         </div>
       </div>
 
@@ -125,12 +147,18 @@ export function HRSchedule({ employees, checkins, reviews, lifecycleCheckins, on
             </div>
           </div>
 
+          {!viewingSelf && access !== 'ok' && (
+            <div style={{ margin: '0 1.25rem 1rem', padding: '12px 14px', background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 8, fontSize: 12.5, color: '#92400E', lineHeight: 1.5 }}>
+              🔒 {viewedEmp?.name ?? 'This employee'}&rsquo;s calendar isn&rsquo;t visible to your account. Whether you can see a coworker&rsquo;s calendar depends on your Microsoft 365 calendar-sharing settings — if you need to view everyone&rsquo;s regardless, IT can grant the app an org-level calendar permission.
+            </div>
+          )}
+
           <div className="week-grid-desktop">
             {weekDays.map((day, i) => {
               const ds = fmtDate(day);
               const isToday = ds === today;
               const outlook = outlookForDay(ds);
-              const dayCheckins = weekCheckins.filter(c => c.date === ds);
+              const dayCheckins = (viewingSelf ? weekCheckins : []).filter(c => c.date === ds);
               return (
                 <div key={ds} style={{
                   borderRight: i < 6 ? '1px solid #F2F1ED' : 'none',
@@ -200,6 +228,7 @@ export function HRSchedule({ employees, checkins, reviews, lifecycleCheckins, on
           </div>
         </div>
 
+        {viewingSelf && (<>
         {/* This week's check-ins (full list with details) */}
         <div className="card mb2">
           <div className="card-header"><h3>Check-ins {weekLabel}</h3></div>
@@ -241,6 +270,7 @@ export function HRSchedule({ employees, checkins, reviews, lifecycleCheckins, on
             ))}
           </div>
         </div>
+        </>)}
       </div>
     </>
   );

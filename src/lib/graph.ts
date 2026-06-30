@@ -115,6 +115,42 @@ export interface MsCalendarEvent {
   attendees: { email: string; name: string | null }[];
 }
 
+const CAL_SELECT = 'id,subject,start,end,location,isAllDay,onlineMeeting,webLink,attendees';
+
+interface RawMsEvent {
+  id: string;
+  subject?: string;
+  start?: { dateTime?: string };
+  end?: { dateTime?: string };
+  location?: { displayName?: string };
+  isAllDay?: boolean;
+  onlineMeeting?: { joinUrl?: string };
+  webLink?: string;
+  attendees?: { emailAddress?: { address?: string; name?: string } }[];
+}
+
+function mapMsEvent(ev: RawMsEvent): MsCalendarEvent {
+  const startIso = ev.start?.dateTime ?? '';
+  const startLocal = new Date(startIso + (startIso.endsWith('Z') ? '' : 'Z'));
+  const date = isNaN(startLocal.getTime())
+    ? ''
+    : `${startLocal.getFullYear()}-${String(startLocal.getMonth() + 1).padStart(2, '0')}-${String(startLocal.getDate()).padStart(2, '0')}`;
+  return {
+    id: ev.id,
+    subject: ev.subject ?? '(no title)',
+    start: startIso,
+    end: ev.end?.dateTime ?? '',
+    date,
+    location: ev.location?.displayName ?? null,
+    isAllDay: !!ev.isAllDay,
+    joinUrl: ev.onlineMeeting?.joinUrl ?? null,
+    webLink: ev.webLink ?? null,
+    attendees: (ev.attendees ?? [])
+      .map(at => ({ email: (at.emailAddress?.address ?? '').toLowerCase(), name: at.emailAddress?.name ?? null }))
+      .filter(a => a.email),
+  };
+}
+
 // Returns the signed-in user's calendar events between two dates. Uses
 // /me/calendarView so recurring meetings are expanded into individual
 // occurrences.
@@ -128,54 +164,50 @@ export async function getMyCalendarEvents(
       `/me/calendarView` +
       `?startDateTime=${encodeURIComponent(fromIso)}` +
       `&endDateTime=${encodeURIComponent(toIso)}` +
-      `&$select=id,subject,start,end,location,isAllDay,onlineMeeting,webLink,attendees` +
+      `&$select=${CAL_SELECT}` +
       `&$orderby=start/dateTime` +
       `&$top=200`;
-    const res = await graphFetch(token, path, {
-      headers: {
-        // Tell Graph to return start/end times in the user's preferred TZ if
-        // we knew it, but UTC is the simplest cross-environment choice and we
-        // localize in the renderer anyway.
-        Prefer: 'outlook.timezone="UTC"',
-      },
-    });
+    const res = await graphFetch(token, path, { headers: { Prefer: 'outlook.timezone="UTC"' } });
     if (!res.ok) return [];
     const data = await res.json();
-    const items: MsCalendarEvent[] = (data.value ?? []).map((ev: {
-      id: string;
-      subject?: string;
-      start?: { dateTime?: string };
-      end?: { dateTime?: string };
-      location?: { displayName?: string };
-      isAllDay?: boolean;
-      onlineMeeting?: { joinUrl?: string };
-      webLink?: string;
-      attendees?: { emailAddress?: { address?: string; name?: string } }[];
-    }) => {
-      const startIso = ev.start?.dateTime ?? '';
-      const startLocal = new Date(startIso + (startIso.endsWith('Z') ? '' : 'Z'));
-      const date = isNaN(startLocal.getTime())
-        ? ''
-        : `${startLocal.getFullYear()}-${String(startLocal.getMonth() + 1).padStart(2, '0')}-${String(startLocal.getDate()).padStart(2, '0')}`;
-      return {
-        id: ev.id,
-        subject: ev.subject ?? '(no title)',
-        start: startIso,
-        end: ev.end?.dateTime ?? '',
-        date,
-        location: ev.location?.displayName ?? null,
-        isAllDay: !!ev.isAllDay,
-        joinUrl: ev.onlineMeeting?.joinUrl ?? null,
-        webLink: ev.webLink ?? null,
-        attendees: (ev.attendees ?? [])
-          .map(at => ({ email: (at.emailAddress?.address ?? '').toLowerCase(), name: at.emailAddress?.name ?? null }))
-          .filter(a => a.email),
-      };
-    });
-    return items.filter(i => i.date);
+    return ((data.value ?? []) as RawMsEvent[]).map(mapMsEvent).filter(i => i.date);
   } catch (err) {
     console.error('Graph /me/calendarView fetch failed:', err);
     return [];
+  }
+}
+
+export type CalendarAccess = 'ok' | 'forbidden' | 'not-found' | 'error';
+
+// Returns another user's calendar events using the SIGNED-IN user's delegated
+// token (/users/{email}/calendarView). This works for any calendar the
+// signed-in user can already see — their own delegate access plus whatever the
+// tenant's Microsoft 365 calendar-sharing settings expose. Returns a structured
+// result so the UI can tell "no access / not shared" apart from "no events".
+export async function getUserCalendarEvents(
+  token: string,
+  userEmail: string,
+  fromIso: string,
+  toIso: string,
+): Promise<{ events: MsCalendarEvent[]; access: CalendarAccess }> {
+  try {
+    const path =
+      `/users/${encodeURIComponent(userEmail)}/calendarView` +
+      `?startDateTime=${encodeURIComponent(fromIso)}` +
+      `&endDateTime=${encodeURIComponent(toIso)}` +
+      `&$select=${CAL_SELECT}` +
+      `&$orderby=start/dateTime` +
+      `&$top=200`;
+    const res = await graphFetch(token, path, { headers: { Prefer: 'outlook.timezone="UTC"' } });
+    if (!res.ok) {
+      const access: CalendarAccess = res.status === 403 ? 'forbidden' : res.status === 404 ? 'not-found' : 'error';
+      return { events: [], access };
+    }
+    const data = await res.json();
+    return { events: ((data.value ?? []) as RawMsEvent[]).map(mapMsEvent).filter(i => i.date), access: 'ok' };
+  } catch (err) {
+    console.error('Graph /users/{email}/calendarView fetch failed:', err);
+    return { events: [], access: 'error' };
   }
 }
 
