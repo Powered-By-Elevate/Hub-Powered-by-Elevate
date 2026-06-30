@@ -3,7 +3,7 @@ import { Employee, QuarterlyCheckin, AnnualReview, LifecycleCheckin } from '../.
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatTime12h } from '../shared/utils';
 import { useAuth } from '../../contexts/AuthContext';
-import { getMyCalendarEvents, getUserCalendarEvents, type MsCalendarEvent, type CalendarAccess } from '../../lib/graph';
+import { getMyCalendarEvents, getUserCalendarEvents, getUserSchedule, type MsCalendarEvent, type CalendarAccess } from '../../lib/graph';
 
 interface Props {
   employees: Employee[];
@@ -33,6 +33,7 @@ export function HRSchedule({ employees, checkins, reviews, lifecycleCheckins, on
   const [outlookEvents, setOutlookEvents] = useState<MsCalendarEvent[]>([]);
   const [viewEmpId, setViewEmpId] = useState<string>('me');
   const [access, setAccess] = useState<CalendarAccess>('ok');
+  const [freeBusy, setFreeBusy] = useState(false);
 
   const viewingSelf = viewEmpId === 'me';
   const viewedEmp = viewingSelf ? null : employees.find(e => e.id === viewEmpId) ?? null;
@@ -57,12 +58,26 @@ export function HRSchedule({ employees, checkins, reviews, lifecycleCheckins, on
     let cancelled = false;
     if (viewingSelf) {
       getMyCalendarEvents(token, from.toISOString(), to.toISOString())
-        .then(evs => { if (!cancelled) { setOutlookEvents(evs); setAccess('ok'); } });
+        .then(evs => { if (!cancelled) { setOutlookEvents(evs); setAccess('ok'); setFreeBusy(false); } });
     } else {
       const email = viewedEmp?.email;
-      if (!email) { setOutlookEvents([]); setAccess('error'); return; }
+      if (!email) { setOutlookEvents([]); setAccess('error'); setFreeBusy(false); return; }
       getUserCalendarEvents(token, email, from.toISOString(), to.toISOString())
-        .then(res => { if (!cancelled) { setOutlookEvents(res.events); setAccess(res.access); } });
+        .then(async res => {
+          if (cancelled) return;
+          if (res.access === 'ok') {
+            setOutlookEvents(res.events); setAccess('ok'); setFreeBusy(false);
+            return;
+          }
+          // Full calendar isn't shared — fall back to org-wide free/busy.
+          const fb = await getUserSchedule(token, email, from.toISOString(), to.toISOString());
+          if (cancelled) return;
+          if (fb.access === 'ok') {
+            setOutlookEvents(fb.events); setAccess('ok'); setFreeBusy(true);
+          } else {
+            setOutlookEvents([]); setAccess(res.access); setFreeBusy(false);
+          }
+        });
     }
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -149,7 +164,13 @@ export function HRSchedule({ employees, checkins, reviews, lifecycleCheckins, on
 
           {!viewingSelf && access !== 'ok' && (
             <div style={{ margin: '0 1.25rem 1rem', padding: '12px 14px', background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 8, fontSize: 12.5, color: '#92400E', lineHeight: 1.5 }}>
-              🔒 {viewedEmp?.name ?? 'This employee'}&rsquo;s calendar isn&rsquo;t visible to your account. Whether you can see a coworker&rsquo;s calendar depends on your Microsoft 365 calendar-sharing settings — if you need to view everyone&rsquo;s regardless, IT can grant the app an org-level calendar permission.
+              🔒 {viewedEmp?.name ?? 'This employee'}&rsquo;s calendar isn&rsquo;t visible to your account, and your tenant didn&rsquo;t return their free/busy times either. Whether you can see a coworker&rsquo;s calendar depends on your Microsoft 365 sharing settings — if you need to view everyone&rsquo;s regardless, IT can grant the app an org-level calendar permission.
+            </div>
+          )}
+
+          {!viewingSelf && access === 'ok' && freeBusy && (
+            <div style={{ margin: '0 1.25rem 1rem', padding: '12px 14px', background: '#EEF4FF', border: '1px solid #C7D7F0', borderRadius: 8, fontSize: 12.5, color: '#1B3F6E', lineHeight: 1.5 }}>
+              ℹ️ Showing {viewedEmp?.name ?? 'this employee'}&rsquo;s busy/free times. Full event details aren&rsquo;t shared with your account, but their availability is visible org-wide.
             </div>
           )}
 

@@ -211,6 +211,79 @@ export async function getUserCalendarEvents(
   }
 }
 
+interface RawSchedule {
+  scheduleItems?: {
+    status?: string;
+    start?: { dateTime?: string };
+    end?: { dateTime?: string };
+    subject?: string;
+    location?: string;
+  }[];
+}
+
+// Free/busy fallback. /me/calendar/getSchedule returns busy / tentative / OOF
+// blocks for any mailbox in the org using the signed-in user's delegated token.
+// It relies on the tenant's default free/busy sharing (on for everyone in most
+// Microsoft 365 orgs), so it still works when the full calendar isn't shared.
+// Subjects and locations come through only when the org's sharing level
+// includes them (LimitedDetails / FullDetails); otherwise items read as "Busy".
+export async function getUserSchedule(
+  token: string,
+  userEmail: string,
+  fromIso: string,
+  toIso: string,
+): Promise<{ events: MsCalendarEvent[]; access: CalendarAccess; hasDetail: boolean }> {
+  try {
+    const body = {
+      schedules: [userEmail],
+      startTime: { dateTime: fromIso.replace('Z', ''), timeZone: 'UTC' },
+      endTime: { dateTime: toIso.replace('Z', ''), timeZone: 'UTC' },
+      availabilityViewInterval: 60,
+    };
+    const res = await graphFetch(token, '/me/calendar/getSchedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      return { events: [], access: res.status === 403 ? 'forbidden' : 'error', hasDetail: false };
+    }
+    const data = await res.json();
+    const sched = ((data.value ?? []) as RawSchedule[])[0];
+    const statusLabel: Record<string, string> = {
+      busy: 'Busy', tentative: 'Tentative', oof: 'Out of office', workingElsewhere: 'Working elsewhere',
+    };
+    let hasDetail = false;
+    const events: MsCalendarEvent[] = (sched?.scheduleItems ?? [])
+      .filter(it => (it.status ?? 'busy') !== 'free')
+      .map((it, idx) => {
+        const startIso = it.start?.dateTime ?? '';
+        const local = new Date(startIso + (startIso.endsWith('Z') ? '' : 'Z'));
+        const date = isNaN(local.getTime())
+          ? ''
+          : `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, '0')}-${String(local.getDate()).padStart(2, '0')}`;
+        if (it.subject) hasDetail = true;
+        return {
+          id: `fb-${idx}-${startIso}`,
+          subject: it.subject ?? statusLabel[it.status ?? 'busy'] ?? 'Busy',
+          start: startIso,
+          end: it.end?.dateTime ?? '',
+          date,
+          location: it.location ?? null,
+          isAllDay: false,
+          joinUrl: null,
+          webLink: null,
+          attendees: [],
+        };
+      })
+      .filter(e => e.date);
+    return { events, access: 'ok', hasDetail };
+  } catch (err) {
+    console.error('Graph /me/calendar/getSchedule fetch failed:', err);
+    return { events: [], access: 'error', hasDetail: false };
+  }
+}
+
 export interface MsTenantUser {
   id: string;
   displayName: string | null;
