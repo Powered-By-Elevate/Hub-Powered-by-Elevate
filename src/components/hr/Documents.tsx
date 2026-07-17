@@ -34,6 +34,20 @@ function fmtDate(iso: string | null | undefined): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+// Every bucket renders its own <table>. With the default auto layout each one
+// sizes its columns to its own content, so the sections don't line up with each
+// other. Pinning one shared column layout keeps them aligned down the page.
+const DOC_COLS = (
+  <colgroup>
+    <col style={{ width: '34%' }} />
+    <col style={{ width: '18%' }} />
+    <col style={{ width: '12%' }} />
+    <col style={{ width: '15%' }} />
+    <col style={{ width: '9%' }} />
+    <col style={{ width: '12%' }} />
+  </colgroup>
+);
+
 export function HRDocuments({ employees, companies }: Props) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [buckets, setBuckets] = useState<DocumentBucket[]>([]);
@@ -167,7 +181,8 @@ export function HRDocuments({ employees, companies }: Props) {
                     {docs.length}
                   </span>
                 </div>
-                <table>
+                <table style={{ tableLayout: 'fixed' }}>
+                  {DOC_COLS}
                   <thead>
                     <tr>
                       <th>Document</th>
@@ -191,8 +206,8 @@ export function HRDocuments({ employees, companies }: Props) {
                             }}
                           >
                             <FileText size={14} style={{ color: '#1B3F6E', flexShrink: 0 }} />
-                            <div>
-                              <div className="emp-name" style={{ color: '#1B3F6E' }}>{d.name}</div>
+                            <div style={{ minWidth: 0 }}>
+                              <div className="emp-name" style={{ color: '#1B3F6E', wordBreak: 'break-word' }}>{d.name}</div>
                               {d.description && <div className="emp-email">{d.description}</div>}
                             </div>
                           </button>
