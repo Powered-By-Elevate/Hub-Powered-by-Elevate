@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FileText, Eye, Download, Trash2 } from 'lucide-react';
 import type { Document } from '../../lib/database.types';
 import { supabase } from '../../lib/supabase';
+import { DocumentPreview } from './DocumentPreview';
 
 async function getSignedUrl(doc: Document): Promise<string | null> {
   if (doc.file_path) {
@@ -20,24 +21,10 @@ interface Props {
 }
 
 export function DocRow({ doc, onDeleted, onError }: Props) {
-  const [viewLoading, setViewLoading] = useState(false);
   const [dlLoading, setDlLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-
-  async function handleView() {
-    setViewLoading(true);
-    const url = await getSignedUrl(doc);
-    setViewLoading(false);
-    if (!url) { onError?.('Could not load document. Please try again.'); return; }
-    const mime = doc.mime_type ?? '';
-    if (mime.startsWith('image/') || mime === 'application/pdf') {
-      window.open(url, '_blank');
-    } else {
-      const a = document.createElement('a');
-      a.href = url; a.download = doc.name; a.click();
-    }
-  }
+  const [preview, setPreview] = useState(false);
 
   async function handleDownload() {
     setDlLoading(true);
@@ -61,18 +48,24 @@ export function DocRow({ doc, onDeleted, onError }: Props) {
 
   return (
     <div className="doc-row">
-      <FileText size={18} style={{ color: '#1B3F6E', flexShrink: 0 }} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div className="doc-name">{doc.name}</div>
-        <div className="doc-meta">
-          {doc.category}
-          {doc.size_label && ` · ${doc.size_label}`}
-          {doc.section && ` · ${doc.section}`}
+      <button
+        onClick={() => setPreview(true)}
+        title="Click to open this document"
+        style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}
+      >
+        <FileText size={18} style={{ color: '#1B3F6E', flexShrink: 0 }} />
+        <div style={{ minWidth: 0 }}>
+          <div className="doc-name" style={{ color: '#1B3F6E' }}>{doc.name}</div>
+          <div className="doc-meta">
+            {doc.category}
+            {doc.size_label && ` · ${doc.size_label}`}
+            {doc.section && ` · ${doc.section}`}
+          </div>
         </div>
-      </div>
+      </button>
       <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-        <button className="btn-ghost sm" onClick={handleView} disabled={viewLoading} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Eye size={12} /> {viewLoading ? '…' : 'View'}
+        <button className="btn-ghost sm" onClick={() => setPreview(true)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Eye size={12} /> View
         </button>
         <button className="btn-ghost sm" onClick={handleDownload} disabled={dlLoading} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <Download size={12} /> {dlLoading ? '…' : 'Download'}
@@ -90,6 +83,16 @@ export function DocRow({ doc, onDeleted, onError }: Props) {
           </div>
         )}
       </div>
+
+      {preview && (
+        <DocumentPreview
+          name={doc.name}
+          filePath={doc.file_path}
+          mimeType={doc.mime_type}
+          fileUrl={doc.file_url}
+          onClose={() => setPreview(false)}
+        />
+      )}
     </div>
   );
 }
