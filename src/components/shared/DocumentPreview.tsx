@@ -6,6 +6,8 @@ interface Props {
   name: string;
   filePath: string | null;
   mimeType: string | null;
+  /** Fallback direct URL for legacy rows stored outside the bucket (file_url). */
+  fileUrl?: string | null;
   /** Storage bucket the file lives in. Defaults to the company/employee docs bucket. */
   bucket?: string;
   onClose: () => void;
@@ -21,7 +23,7 @@ function previewKind(name: string, mime: string | null): 'pdf' | 'image' | 'othe
   return 'other';
 }
 
-export function DocumentPreview({ name, filePath, mimeType, bucket = 'employee-documents', onClose }: Props) {
+export function DocumentPreview({ name, filePath, mimeType, fileUrl = null, bucket = 'employee-documents', onClose }: Props) {
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,7 +34,9 @@ export function DocumentPreview({ name, filePath, mimeType, bucket = 'employee-d
     let cancelled = false;
     async function load() {
       if (!filePath) {
-        setError('This document doesn’t have a file attached yet.');
+        // Legacy rows keep a direct URL instead of a storage object.
+        if (fileUrl) setUrl(fileUrl);
+        else setError('This document doesn’t have a file attached yet.');
         setLoading(false);
         return;
       }
@@ -48,7 +52,7 @@ export function DocumentPreview({ name, filePath, mimeType, bucket = 'employee-d
     }
     load();
     return () => { cancelled = true; };
-  }, [filePath, bucket]);
+  }, [filePath, fileUrl, bucket]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
@@ -57,7 +61,10 @@ export function DocumentPreview({ name, filePath, mimeType, bucket = 'employee-d
   }, [onClose]);
 
   async function download() {
-    if (!filePath) return;
+    if (!filePath) {
+      if (fileUrl) window.open(fileUrl, '_blank');
+      return;
+    }
     const { data } = await supabase.storage.from(bucket).createSignedUrl(filePath, 60, { download: name });
     if (data?.signedUrl) window.open(data.signedUrl, '_blank');
   }

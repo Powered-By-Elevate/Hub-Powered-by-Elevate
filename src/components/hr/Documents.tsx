@@ -306,6 +306,7 @@ export function HRDocuments({ employees, companies }: Props) {
           name={previewDoc.name}
           filePath={previewDoc.file_path}
           mimeType={previewDoc.mime_type}
+          fileUrl={previewDoc.file_url}
           onClose={() => setPreviewDoc(null)}
         />
       )}
