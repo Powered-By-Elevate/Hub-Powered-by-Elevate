@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Document, DocumentBucket, Employee, Company, DocumentAcknowledgment, DocumentVersion } from '../../lib/database.types';
 import { Modal } from '../shared/Modal';
+import { DocumentPreview } from '../shared/DocumentPreview';
 import { Pencil, Trash2, FileText, Upload, X, Check, Users, History, Download } from 'lucide-react';
 
 interface Props {
@@ -42,6 +43,7 @@ export function HRDocuments({ employees, companies }: Props) {
   const [editDoc, setEditDoc] = useState<Document | null>(null);
   const [viewAcks, setViewAcks] = useState<Document | null>(null);
   const [viewHistory, setViewHistory] = useState<Document | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [selectedBucket, setSelectedBucket] = useState<string>('all');
   const [showArchived, setShowArchived] = useState(false);
 
@@ -171,7 +173,7 @@ export function HRDocuments({ employees, companies }: Props) {
                       <th>Document</th>
                       <th>Target</th>
                       <th>Status</th>
-                      <th>Acks</th>
+                      <th>Acknowledgements</th>
                       <th>Version</th>
                       <th>Actions</th>
                     </tr>
@@ -180,13 +182,20 @@ export function HRDocuments({ employees, companies }: Props) {
                     {docs.map(d => (
                       <tr key={d.id} style={{ opacity: d.published_status === 'archived' ? 0.5 : 1 }}>
                         <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <FileText size={14} style={{ color: '#1B3F6E' }} />
+                          <button
+                            onClick={() => setPreviewDoc(d)}
+                            title="Click to open this document"
+                            style={{
+                              all: 'unset', cursor: 'pointer', display: 'flex',
+                              alignItems: 'center', gap: 8, width: '100%',
+                            }}
+                          >
+                            <FileText size={14} style={{ color: '#1B3F6E', flexShrink: 0 }} />
                             <div>
-                              <div className="emp-name">{d.name}</div>
+                              <div className="emp-name" style={{ color: '#1B3F6E' }}>{d.name}</div>
                               {d.description && <div className="emp-email">{d.description}</div>}
                             </div>
-                          </div>
+                          </button>
                         </td>
                         <td style={{ fontSize: 12, color: '#6B6860' }}>{targetLabel(d)}</td>
                         <td>
@@ -246,7 +255,16 @@ export function HRDocuments({ employees, companies }: Props) {
               <tbody>
                 {byBucket['no-bucket'].map(d => (
                   <tr key={d.id}>
-                    <td><div className="emp-name">{d.name}</div></td>
+                    <td>
+                      <button
+                        onClick={() => setPreviewDoc(d)}
+                        title="Click to open this document"
+                        style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+                      >
+                        <FileText size={14} style={{ color: '#1B3F6E', flexShrink: 0 }} />
+                        <div className="emp-name" style={{ color: '#1B3F6E' }}>{d.name}</div>
+                      </button>
+                    </td>
                     <td><button className="btn-ghost sm" onClick={() => setEditDoc(d)}>Assign Bucket</button></td>
                   </tr>
                 ))}
@@ -280,6 +298,15 @@ export function HRDocuments({ employees, companies }: Props) {
         <VersionHistoryModal
           document={viewHistory}
           onClose={() => setViewHistory(null)}
+        />
+      )}
+
+      {previewDoc && (
+        <DocumentPreview
+          name={previewDoc.name}
+          filePath={previewDoc.file_path}
+          mimeType={previewDoc.mime_type}
+          onClose={() => setPreviewDoc(null)}
         />
       )}
     </>
