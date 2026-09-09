@@ -5,7 +5,7 @@ import { StatusBadge } from '../shared/StatusBadge';
 import { CheckItem } from '../shared/CheckItem';
 import { TaskCard } from '../shared/TaskCard';
 import { supabase } from '../../lib/supabase';
-import { Upload, FileText, Download, Eye, Trash2, Pencil, X, Check, Plus } from 'lucide-react';
+import { Upload, FileText, Download, Eye, Trash2, Pencil, X, Check, Plus, KeyRound } from 'lucide-react';
 import { Modal } from '../shared/Modal';
 import { applyScheduleTemplate } from '../../lib/scheduleTemplates';
 import { ScheduleTemplateWithEvents } from '../../lib/database.types';
@@ -63,6 +63,7 @@ interface Props {
   onTaskStatusChange: (taskId: string, status: string) => void;
   onTaskTriageChange?: (taskId: string, triage: 'critical' | 'normal') => void;
   onArchive: (id: string) => void;
+  onSetAccess?: (id: string, revoked: boolean) => void;
   onRestore: (id: string) => void;
   onDelete?: (id: string) => void;
   onEditEmployee: (id: string) => void;
@@ -74,7 +75,7 @@ export function EmployeeDetail({
   employee: e, tasks, documents, schedules, notes, companies = [], pathways = [],
   reviews, developmentPlans, certifications, checkins,
   onBack, onOpenModal, onToggleTask, onTaskStatusChange, onTaskTriageChange,
-  onArchive, onRestore, onDelete, onEditEmployee, onDocumentsChanged, onDataChanged,
+  onArchive, onRestore, onSetAccess, onDelete, onEditEmployee, onDocumentsChanged, onDataChanged,
 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const companyName = companies.find(c => c.id === e.company_id)?.name ?? null;
@@ -364,6 +365,18 @@ export function EmployeeDetail({
                     <button className="btn-ghost sm" style={{ justifyContent: 'flex-start', borderColor: '#9B9890', color: '#6B6860' }} onClick={() => onArchive(e.id)}>Archive Employee</button>
                   </>
                 )}
+                {/* Separate switch from Archive on purpose. Archiving hides someone
+                    from the roster and drops them to base employee level. This is
+                    what stops them signing in. A termination is both. */}
+                {onSetAccess && (e.access_revoked ? (
+                  <button className="btn-ghost sm" style={{ justifyContent: 'flex-start', borderColor: '#2D9A60', color: '#2D9A60' }} onClick={() => onSetAccess(e.id, false)}>
+                    <KeyRound size={13} style={{ marginRight: 6 }} />Restore Account Access
+                  </button>
+                ) : (
+                  <button className="btn-ghost sm" style={{ justifyContent: 'flex-start', borderColor: '#C4420A', color: '#C4420A' }} onClick={() => { if (confirm(`Revoke account access for ${e.name}? They will be signed out and unable to log back in. Their records are kept.`)) onSetAccess(e.id, true); }}>
+                    <KeyRound size={13} style={{ marginRight: 6 }} />Revoke Account Access
+                  </button>
+                ))}
                 <hr style={{ border: 'none', borderTop: '1px solid #F2F1ED', margin: '4px 0' }} />
                 {!confirmDelete ? (
                   <button className="btn-ghost sm" style={{ justifyContent: 'flex-start', borderColor: '#C4420A', color: '#C4420A' }} onClick={() => setConfirmDelete(true)}>

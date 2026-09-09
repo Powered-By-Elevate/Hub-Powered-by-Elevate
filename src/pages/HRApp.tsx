@@ -407,6 +407,27 @@ export function HRApp() {
     await logActivity(id, `Restored employee ${emp?.name ?? id}`);
   }
 
+  // Access revocation is deliberately NOT a table update. The auth-level ban is
+  // the thing that actually stops a sign-in, and only the RPC can set both, so
+  // routing through it keeps the flag and the ban from drifting apart.
+  async function setEmployeeAccess(id: string, revoked: boolean) {
+    const emp = employees.find(e => e.id === id);
+    const { data, error } = await supabase.rpc('set_employee_access', {
+      p_employee_id: id,
+      p_revoked: revoked,
+    });
+    const result = data as { success?: boolean; error?: string; had_login?: boolean } | null;
+    if (error || !result?.success) {
+      alert(result?.error ?? error?.message ?? 'Could not change account access.');
+      return;
+    }
+    setEmployees(prev => prev.map(e => e.id === id ? { ...e, access_revoked: revoked } : e));
+    await logActivity(id, `${revoked ? 'Revoked' : 'Restored'} account access for ${emp?.name ?? id}`);
+    if (revoked && result.had_login === false) {
+      alert(`${emp?.name ?? 'This employee'} has no login yet, so there was nothing to sign out. They are marked revoked and cannot activate an account.`);
+    }
+  }
+
   async function deleteEmployee(id: string) {
     const emp = employees.find(e => e.id === id);
     if (!emp) return;
@@ -464,7 +485,7 @@ export function HRApp() {
         >
           {tab === 'dashboard' && (
             <MobileDashboard
-              employee={{ id: '', name: profile?.email?.split('@')[0] ?? 'HR', email: profile?.email ?? '', phone: null, role: 'HR Administrator', department: null, team_id: null, manager: null, manager_user_id: null, start_date: null, status: 'complete', progress: 100, archived: false, user_id: null, avatar_url: null, bio: null, onboarding_completed_at: null, lifecycle_status: 'active', birthday_month: null, birthday_day: null, company_id: null, created_at: '', current_level: null, next_level: null, pathway_id: null, readiness_level: null, current_status: null, employment_type: null, pillar_focus: null, applicant_phase: null, applicant_stage: null, hiring_manager_id: null, position_applied_for: null, resume_url: null, applicant_source: null, access_role: null, manager_id: null, pathway: null, is_test_account: false }}
+              employee={{ id: '', name: profile?.email?.split('@')[0] ?? 'HR', email: profile?.email ?? '', phone: null, role: 'HR Administrator', department: null, team_id: null, manager: null, manager_user_id: null, start_date: null, status: 'complete', progress: 100, archived: false, access_revoked: false, user_id: null, avatar_url: null, bio: null, onboarding_completed_at: null, lifecycle_status: 'active', birthday_month: null, birthday_day: null, company_id: null, created_at: '', current_level: null, next_level: null, pathway_id: null, readiness_level: null, current_status: null, employment_type: null, pillar_focus: null, applicant_phase: null, applicant_stage: null, hiring_manager_id: null, position_applied_for: null, resume_url: null, applicant_source: null, access_role: null, manager_id: null, pathway: null, is_test_account: false }}
               tasks={[]}
               schedules={[]}
               announcement={null}
@@ -744,6 +765,7 @@ export function HRApp() {
               onTaskStatusChange={taskStatusChange}
               onTaskTriageChange={taskTriageChange}
               onArchive={archiveEmployee}
+              onSetAccess={setEmployeeAccess}
               onRestore={restoreEmployee}
               onDelete={deleteEmployee}
               onEditEmployee={id => setEditEmpId(id)}

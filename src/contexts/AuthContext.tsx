@@ -190,7 +190,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signIn(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
+    // A revoked account is banned at the auth level, so Supabase refuses the
+    // sign-in before any of our code runs. Its wording ("User is banned") reads
+    // like a fault in the app, so translate it into something a former employee
+    // and the HR person fielding their call can both act on.
+    if (error) {
+      if (/banned/i.test(error.message)) {
+        return { error: 'This account is no longer active. Please contact HR if you believe this is a mistake.' };
+      }
+      return { error: error.message };
+    }
     return { error: null };
   }
 

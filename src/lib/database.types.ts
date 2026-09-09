@@ -86,6 +86,11 @@ export interface Employee {
   status: EmployeeStatus;
   progress: number;
   archived: boolean;
+  /** Cannot sign in at all. Independent of `archived`: a terminated employee is
+   *  both archived and revoked, someone on leave is archived only. Flipped
+   *  through the set_employee_access RPC, never written directly, because the
+   *  auth-level ban is what actually stops a sign-in. */
+  access_revoked: boolean;
   user_id: string | null;
   avatar_url: string | null;
   bio: string | null;
